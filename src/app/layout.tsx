@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Onest } from "next/font/google";
+import { Inter_Tight, Onest } from "next/font/google";
 import { Clock3, LogIn, Menu, Phone, Stethoscope } from "lucide-react";
 import { ToastProvider } from "@/components/toast-provider";
 import "./globals.css";
@@ -12,13 +12,20 @@ const onest = Onest({
   variable: "--font-onest",
 });
 
+const interTight = Inter_Tight({
+  subsets: ["latin"],
+  weight: "variable",
+  display: "swap",
+  variable: "--font-inter-tight",
+});
+
 export const metadata: Metadata = {
   title: { default: "Mondesa Health | General medical practice", template: "%s | Mondesa Health" },
   description: "Calm, thorough general medical care for individuals and families in Mondesa, Swakopmund.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en" className={onest.variable} data-scroll-behavior="smooth"><body>
+  return <html lang="en" className={`${onest.variable} ${interTight.variable}`} data-scroll-behavior="smooth"><body>
     <a className="skip-link" href="#main-content">Skip to main content</a>
     <header style={{borderBottom:"1px solid #dce4df",position:"sticky",top:0,zIndex:40,background:"rgba(255,255,255,.96)",backdropFilter:"blur(10px)"}}>
       <div className="container" style={{height:74,display:"flex",alignItems:"center",justifyContent:"space-between",gap:28}}>
