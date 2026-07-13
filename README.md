@@ -4,10 +4,13 @@ A full-stack public website and medical-practice management workspace for a Nami
 
 ## Local setup
 
-1. Copy `.env.example` to `.env` and set a strong `AUTH_SECRET`.
-2. Install dependencies with `pnpm install`.
-3. Create and seed the local database with `pnpm db:setup`.
-4. Start the application with `pnpm dev`.
+1. Create a Neon Postgres database, then copy `.env.example` to `.env`.
+2. Set `DATABASE_URL` to Neon's pooled connection string and `DIRECT_URL` to its direct, non-pooled connection string. Set a strong `AUTH_SECRET` as well.
+3. Install dependencies with `pnpm install`.
+4. Push the schema and seed the selected database with `pnpm db:setup`.
+5. Start the application with `pnpm dev`.
+
+Both `.env` and `.env.local` are ignored by Git. Keep the connection strings private and verify them before running `pnpm db:setup`, because it changes the referenced database.
 
 The local seed creates an owner login for evaluation:
 
@@ -19,7 +22,7 @@ Change the seed credentials before any real deployment.
 ## Architecture
 
 - Next.js App Router and React Server Components
-- Prisma relational data model (SQLite locally; migrate the datasource to PostgreSQL for hosted production)
+- Prisma relational data model backed by Neon Postgres
 - Zod request validation, signed HTTP-only staff sessions and expiring hashed patient-action links
 - Transactional bookings and a unique appointment start constraint for collision safety
 - `@react-pdf/renderer` for server-generated financial documents
