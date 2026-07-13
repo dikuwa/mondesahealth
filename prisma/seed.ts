@@ -1,0 +1,52 @@
+import { PrismaClient } from "@prisma/client";
+import { hash } from "bcryptjs";
+
+const db = new PrismaClient();
+
+async function main() {
+  await db.practiceSetting.upsert({ where: { id: "practice" }, update: {}, create: { id: "practice" } });
+
+  await db.user.upsert({
+    where: { email: "owner@mondesahealth.na" },
+    update: {},
+    create: {
+      name: "Practice Owner",
+      email: "owner@mondesahealth.na",
+      passwordHash: await hash("Mondesa2026!", 12),
+      role: "OWNER",
+    },
+  });
+
+  const funds = [
+    ["PSEMAS", "PSEMAS"],
+    ["Namibia Medical Care", "NMC"],
+    ["Namibia Health Plan", "NHP"],
+    ["Nammed Medical Aid Fund", "NAMMED"],
+    ["Renaissance Health Medical Aid Fund", "RMA"],
+    ["Heritage Health Medical Aid Fund", "HHMAF"],
+    ["Napotel Medical Aid Fund", "NAPOTEL"],
+  ];
+  for (const [name, abbreviation] of funds) {
+    await db.medicalAid.upsert({
+      where: { normalizedName: name.toLowerCase().replace(/[^a-z0-9]/g, "") },
+      update: {},
+      create: { name, normalizedName: name.toLowerCase().replace(/[^a-z0-9]/g, ""), abbreviation, sortOrder: funds.findIndex((f) => f[0] === name) },
+    });
+  }
+
+  for (const rule of [
+    { weekday: 1, openTime: "08:00", closeTime: "17:00" },
+    { weekday: 2, openTime: "08:00", closeTime: "17:00" },
+    { weekday: 3, openTime: "08:00", closeTime: "17:00" },
+    { weekday: 4, openTime: "08:00", closeTime: "17:00" },
+    { weekday: 5, openTime: "08:00", closeTime: "16:00" },
+  ]) {
+    await db.availabilityRule.upsert({
+      where: { weekday: rule.weekday },
+      update: {},
+      create: { ...rule, lunchStart: "13:00", lunchEnd: "14:00", durationMinutes: 30 },
+    });
+  }
+}
+
+main().finally(() => db.$disconnect());

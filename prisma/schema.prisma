@@ -1,0 +1,322 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  role         String        @default("RECEPTIONIST")
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  appointments Appointment[] @relation("CreatedBy")
+  payments     Payment[]
+  logs         ActivityLog[]
+}
+
+model Patient {
+  id              String             @id @default(cuid())
+  patientNumber   String             @unique
+  fullName        String
+  surname         String             @default("")
+  initials        String             @default("")
+  dateOfBirth     DateTime
+  gender          String?
+  identityNumber  String?
+  nationality     String?
+  phone           String
+  whatsapp        String?
+  email           String?
+  address         String?
+  preferredMethod String             @default("WHATSAPP")
+  emergencyName   String?
+  emergencyPhone  String?
+  emergencyRelation String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  appointments    Appointment[]
+  memberships     PatientMedicalAid[]
+  claims          Claim[]
+  invoices        Invoice[]
+  payments        Payment[]
+}
+
+model MedicalAid {
+  id                    String              @id @default(cuid())
+  name                  String              @unique
+  normalizedName        String              @unique
+  abbreviation          String?
+  administrator         String?
+  claimsEmail           String?
+  supportEmail          String?
+  phone                 String?
+  portalUrl             String?
+  submissionInstructions String?
+  active                Boolean             @default(true)
+  public                Boolean             @default(true)
+  sortOrder             Int                 @default(0)
+  memberships           PatientMedicalAid[]
+}
+
+model PatientMedicalAid {
+  id                   String     @id @default(cuid())
+  patientId            String
+  medicalAidId         String?
+  customFundName       String?
+  membershipNumber     String?
+  plan                  String?
+  principalName        String?
+  principalId          String?
+  dependantCode        String?
+  relationship         String?
+  effectiveDate        DateTime?
+  expiryDate           DateTime?
+  current              Boolean    @default(true)
+  verified             Boolean    @default(false)
+  patient              Patient    @relation(fields: [patientId], references: [id])
+  medicalAid           MedicalAid? @relation(fields: [medicalAidId], references: [id])
+  createdAt            DateTime   @default(now())
+}
+
+model Appointment {
+  id                 String    @id @default(cuid())
+  reference          String    @unique
+  patientId          String
+  startAt            DateTime?
+  endAt              DateTime?
+  preferredDate      DateTime?
+  preferredPeriod    String?
+  preferredTime      String?
+  status             String    @default("NEW_REQUEST")
+  bookingMode        String    @default("AVAILABLE_TIME")
+  source             String    @default("PUBLIC")
+  reason             String
+  notes              String?
+  internalNote       String?
+  originalStartAt    DateTime?
+  rescheduleReason   String?
+  contacted          Boolean   @default(false)
+  createdById        String?
+  patient            Patient   @relation(fields: [patientId], references: [id])
+  createdBy          User?     @relation("CreatedBy", fields: [createdById], references: [id])
+  claim              Claim?
+  invoice            Invoice?
+  secureLinks        SecureLink[]
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([startAt])
+  @@index([status, startAt])
+}
+
+model AvailabilityRule {
+  id               String  @id @default(cuid())
+  weekday          Int     @unique
+  active           Boolean @default(true)
+  openTime         String
+  closeTime        String
+  lunchStart       String?
+  lunchEnd         String?
+  durationMinutes  Int     @default(30)
+  bufferMinutes    Int     @default(0)
+  maximumPerDay    Int     @default(16)
+}
+
+model BlockedTime {
+  id        String   @id @default(cuid())
+  startAt   DateTime
+  endAt     DateTime
+  reason    String?
+}
+
+model PracticeSetting {
+  id                    String  @id @default("practice")
+  practiceName          String  @default("Mondesa Health")
+  doctorName            String  @default("Dr Helena Ndeitunga")
+  practiceNumber        String  @default("Pending configuration")
+  registrationNumber    String  @default("Pending configuration")
+  phone                 String  @default("+264 81 000 0000")
+  whatsapp              String  @default("+264 81 000 0000")
+  email                 String  @default("hello@mondesahealth.na")
+  address               String  @default("Mondesa, Swakopmund, Namibia")
+  bookingMode           String  @default("AVAILABLE_TIME")
+  minNoticeHours        Int     @default(2)
+  maxAdvanceDays        Int     @default(60)
+  cancellationPolicy    String  @default("Please give at least 4 hours' notice when possible.")
+  currency              String  @default("NAD")
+  signatureName         String  @default("Dr Helena Ndeitunga")
+  signatureTitle        String  @default("Medical Practitioner")
+  vatEnabled            Boolean @default(false)
+}
+
+model Claim {
+  id                 String      @id @default(cuid())
+  claimNumber        String      @unique
+  patientId          String
+  appointmentId      String      @unique
+  status             String      @default("DRAFT")
+  consultationDate   DateTime
+  practitioner       String
+  practiceNumber     String
+  medicalAidSnapshot String?
+  membershipSnapshot String?
+  principalSnapshot  String?
+  dependantSnapshot  String?
+  planSnapshot       String?
+  primaryDiagnosis   String?
+  primaryIcd10       String?
+  amountSubmitted    Float       @default(0)
+  amountApproved     Float       @default(0)
+  amountReceived     Float       @default(0)
+  patientShortfall   Float       @default(0)
+  patient            Patient     @relation(fields: [patientId], references: [id])
+  appointment        Appointment @relation(fields: [appointmentId], references: [id])
+  lines              ClaimLine[]
+  batches            ClaimBatchItem[]
+  payments           Payment[]
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+}
+
+model ClaimLine {
+  id          String @id @default(cuid())
+  claimId     String
+  tariffCode  String?
+  description String
+  icd10       String?
+  quantity    Float  @default(1)
+  rate        Float
+  claimed     Float
+  approved    Float  @default(0)
+  rejected    Float  @default(0)
+  patientAmount Float @default(0)
+  claim       Claim  @relation(fields: [claimId], references: [id], onDelete: Cascade)
+}
+
+model ClaimBatch {
+  id               String           @id @default(cuid())
+  reference        String           @unique
+  medicalAidName   String
+  periodStart      DateTime
+  periodEnd        DateTime
+  totalAmount      Float
+  status           String           @default("DRAFT")
+  submissionMethod String?
+  submittedAt      DateTime?
+  items            ClaimBatchItem[]
+  createdAt        DateTime         @default(now())
+}
+
+model ClaimBatchItem {
+  batchId String
+  claimId String
+  batch   ClaimBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  claim   Claim      @relation(fields: [claimId], references: [id])
+  @@id([batchId, claimId])
+}
+
+model Invoice {
+  id                 String      @id @default(cuid())
+  number             String      @unique
+  patientId          String
+  appointmentId      String?     @unique
+  status             String      @default("DRAFT")
+  responsibility     String      @default("PATIENT_FULL")
+  issueDate          DateTime    @default(now())
+  dueDate            DateTime?
+  subtotal           Float
+  adjustment         Float       @default(0)
+  total              Float
+  patientResponsibility Float
+  medicalAidResponsibility Float @default(0)
+  patientPaid        Float       @default(0)
+  medicalAidPaid     Float       @default(0)
+  patient            Patient     @relation(fields: [patientId], references: [id])
+  appointment        Appointment? @relation(fields: [appointmentId], references: [id])
+  lines              InvoiceLine[]
+  payments           Payment[]
+  documents          GeneratedDocument[]
+  createdAt          DateTime    @default(now())
+}
+
+model InvoiceLine {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  description String
+  tariffCode  String?
+  quantity    Float   @default(1)
+  rate        Float
+  total       Float
+  patientPortion Float
+  medicalAidPortion Float @default(0)
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  reference   String   @unique
+  patientId   String
+  invoiceId   String?
+  claimId     String?
+  userId      String
+  amount      Float
+  method      String
+  payer       String
+  paidAt      DateTime @default(now())
+  notes       String?
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  invoice     Invoice? @relation(fields: [invoiceId], references: [id])
+  claim       Claim?   @relation(fields: [claimId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+  receipt     Receipt?
+}
+
+model Receipt {
+  id        String  @id @default(cuid())
+  number    String  @unique
+  paymentId String  @unique
+  payment   Payment @relation(fields: [paymentId], references: [id])
+  issuedAt  DateTime @default(now())
+}
+
+model GeneratedDocument {
+  id         String   @id @default(cuid())
+  number     String   @unique
+  type       String
+  status     String   @default("ISSUED")
+  invoiceId  String?
+  secureToken String? @unique
+  expiresAt  DateTime?
+  invoice    Invoice? @relation(fields: [invoiceId], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+model SecureLink {
+  id            String      @id @default(cuid())
+  tokenHash     String      @unique
+  appointmentId String
+  purpose       String
+  expiresAt     DateTime
+  usedAt        DateTime?
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  createdAt     DateTime    @default(now())
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String
+  summary    String
+  beforeJson String?
+  afterJson  String?
+  user       User?    @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+}

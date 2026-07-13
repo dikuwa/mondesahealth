@@ -1,0 +1,6 @@
+import type { Metadata } from "next";
+import { BookingForm } from "@/components/booking-form";
+import { db } from "@/lib/db";
+export const metadata: Metadata={title:"Book an appointment"};
+export const dynamic="force-dynamic";
+export default async function BookPage(){const [funds,settings]=await Promise.all([db.medicalAid.findMany({where:{active:true,public:true},orderBy:{sortOrder:"asc"}}),db.practiceSetting.findUnique({where:{id:"practice"}})]);return <main style={{background:"#f7f4ed",minHeight:"80vh",padding:"70px 0"}}><div className="container" style={{display:"grid",gridTemplateColumns:".65fr 1.35fr",gap:55,alignItems:"start"}}><div><div className="eyebrow">Online booking</div><h1 className="display" style={{fontSize:"clamp(3rem,6vw,5.2rem)",margin:"17px 0 23px"}}>An appointment, without the back-and-forth.</h1><p style={{lineHeight:1.75,color:"#5c716a"}}>Choose a live available time. We’ll reserve it and send your reference straight away.</p><div style={{marginTop:28,paddingTop:24,borderTop:"1px solid #d8d5cb",fontSize:13,lineHeight:1.7,color:"#6e746f"}}>Appointments are usually {30} minutes.<br/>Same-day bookings are subject to availability.<br/><b>Emergency?</b> Call 112.</div></div><BookingForm funds={funds} mode={settings?.bookingMode||"AVAILABLE_TIME"}/></div></main>}

@@ -1,0 +1,3 @@
+import {describe,expect,it} from "vitest";
+import {missingClaimInformation} from "./claims";
+describe("claim readiness",()=>{it("reports configured missing fields",()=>{const missing=missingClaimInformation({medicalAidSnapshot:"NHP",membershipSnapshot:"123",dependantSnapshot:null,primaryIcd10:null,practiceNumber:"P-123",lines:[]});expect(missing).toEqual(["dependant code","primary ICD-10 code","at least one claim line"])});it("accepts a complete claim",()=>expect(missingClaimInformation({medicalAidSnapshot:"NHP",membershipSnapshot:"123",dependantSnapshot:"01",primaryIcd10:"Z00.0",practiceNumber:"P-123",lines:[{tariffCode:"0190",icd10:"Z00.0",claimed:650}]})).toEqual([]))});
