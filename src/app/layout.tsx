@@ -1,8 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Onest } from "next/font/google";
 import { Clock3, Menu, Phone, Stethoscope } from "lucide-react";
 import { ToastProvider } from "@/components/toast-provider";
 import "./globals.css";
+
+const onest = Onest({
+  subsets: ["latin"],
+  weight: "variable",
+  display: "swap",
+  variable: "--font-onest",
+});
 
 export const metadata: Metadata = {
   title: { default: "Mondesa Health | General medical practice", template: "%s | Mondesa Health" },
@@ -10,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en" data-scroll-behavior="smooth"><body>
+  return <html lang="en" className={onest.variable} data-scroll-behavior="smooth"><body>
     <a className="skip-link" href="#main-content">Skip to main content</a>
     <header style={{borderBottom:"1px solid #dce4df",position:"sticky",top:0,zIndex:40,background:"rgba(255,255,255,.96)",backdropFilter:"blur(10px)"}}>
       <div className="container" style={{height:74,display:"flex",alignItems:"center",justifyContent:"space-between",gap:28}}>
@@ -22,7 +30,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </div>
     </header>
     <div id="main-content" tabIndex={-1}>{children}</div>
-    <footer style={{background:"#153c33",color:"white",padding:"54px 0 26px"}}><div className="container"><div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:34}}><div><h3 style={{fontFamily:"Georgia",fontSize:27,margin:"0 0 12px"}}>Care that listens.</h3><p style={{color:"#c8dad4",maxWidth:430,lineHeight:1.7}}>General medical care for the Mondesa and greater Swakopmund community. Every patient is treated with dignity, attention and respect.</p></div><div><b>Visit</b><p style={{color:"#c8dad4",lineHeight:1.7}}>Mondesa<br/>Swakopmund, Namibia<br/>Mon–Thu 08:00–17:00<br/>Fri 08:00–16:00</p></div><div><b>Contact</b><p style={{color:"#c8dad4",lineHeight:1.7}}>+264 81 000 0000<br/>hello@mondesahealth.na</p></div></div><div style={{borderTop:"1px solid #ffffff25",marginTop:34,paddingTop:20,display:"flex",justifyContent:"space-between",fontSize:12,color:"#b6cbc4"}}><span>© 2026 Mondesa Health</span><Link href="/policies">Privacy · Booking terms · Medical disclaimer</Link></div></div></footer>
+    <footer style={{background:"#153c33",color:"white",padding:"54px 0 26px"}}><div className="container"><div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:34}}><div><h3 style={{fontSize:27,margin:"0 0 12px"}}>Care that listens.</h3><p style={{color:"#c8dad4",maxWidth:430,lineHeight:1.7}}>General medical care for the Mondesa and greater Swakopmund community. Every patient is treated with dignity, attention and respect.</p></div><div><b>Visit</b><p style={{color:"#c8dad4",lineHeight:1.7}}>Mondesa<br/>Swakopmund, Namibia<br/>Mon–Thu 08:00–17:00<br/>Fri 08:00–16:00</p></div><div><b>Contact</b><p style={{color:"#c8dad4",lineHeight:1.7}}>+264 81 000 0000<br/>hello@mondesahealth.na</p></div></div><div style={{borderTop:"1px solid #ffffff25",marginTop:34,paddingTop:20,display:"flex",justifyContent:"space-between",fontSize:12,color:"#b6cbc4"}}><span>© 2026 Mondesa Health</span><Link href="/policies">Privacy · Booking terms · Medical disclaimer</Link></div></div></footer>
     <ToastProvider/>
   </body></html>;
 }

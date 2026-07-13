@@ -28,15 +28,11 @@
 
 ### Typography
 
-- **Heading Font:** Figtree
-- **Body Font:** Noto Sans
-- **Mood:** medical, clean, accessible, professional, healthcare, trustworthy
-- **Google Fonts:** [Figtree + Noto Sans](https://fonts.google.com/share?selection.family=Figtree:wght@300;400;500;600;700|Noto+Sans:wght@300;400;500;700)
-
-**CSS Import:**
-```css
-@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;700&display=swap');
-```
+- **Application font:** Onest (variable, 100–900)
+- **Document signature font:** Allura Regular
+- **Mood:** medical, clean, accessible, professional, contemporary, trustworthy
+- Onest is self-hosted by `next/font` for the interface and bundled locally for PDFs.
+- Allura is bundled locally and restricted to authorised signatory names in documents.
 
 ### Spacing Variables
 
