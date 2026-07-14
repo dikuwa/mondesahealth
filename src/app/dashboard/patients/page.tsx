@@ -1,5 +1,11 @@
 import { PageHeading } from "@/components/dashboard";
 import { PatientManager } from "@/components/patient-manager";
 import { db } from "@/lib/db";
-export const dynamic="force-dynamic";
-export default async function Patients(){const[patients,funds]=await Promise.all([db.patient.findMany({include:{memberships:{where:{current:true},include:{medicalAid:true}},_count:{select:{appointments:true,claims:true}}},orderBy:{createdAt:"desc"}}),db.medicalAid.findMany({where:{active:true},orderBy:{sortOrder:"asc"}})]);return <><PageHeading eyebrow="Patient records" title="Patients"/><PatientManager funds={funds.map(f=>({id:f.id,name:f.name}))} initial={patients.map(p=>({id:p.id,fullName:p.fullName,patientNumber:p.patientNumber,dateOfBirth:p.dateOfBirth.toISOString(),gender:p.gender,phone:p.phone,email:p.email,preferredMethod:p.preferredMethod,medicalAid:p.memberships[0]?.medicalAid?.abbreviation||p.memberships[0]?.customFundName||"",medicalAidId:p.memberships[0]?.medicalAidId||"",membershipNumber:p.memberships[0]?.membershipNumber||"",visits:p._count.appointments}))}/></>}
+
+export default async function Patients(){
+  const[patients,funds]=await Promise.all([
+    db.patient.findMany({where:{archivedAt:null},include:{memberships:{where:{current:true},include:{medicalAid:true}},_count:{select:{appointments:true,claims:true}}},orderBy:{createdAt:"desc"}}),
+    db.medicalAid.findMany({where:{active:true},orderBy:{sortOrder:"asc"}}),
+  ]);
+  return <><PageHeading eyebrow="Patient records" title="Patients"/><PatientManager funds={funds.map(f=>({id:f.id,name:f.name}))} initial={patients.map(p=>({id:p.id,fullName:p.fullName,patientNumber:p.patientNumber,dateOfBirth:p.dateOfBirth?.toISOString()||null,gender:p.gender,phone:p.phone,email:p.email,preferredMethod:p.preferredMethod,medicalAid:p.memberships[0]?.medicalAid?.abbreviation||p.memberships[0]?.customFundName||"",medicalAidId:p.memberships[0]?.medicalAidId||"",membershipNumber:p.memberships[0]?.membershipNumber||"",visits:p._count.appointments}))}/></>
+}

@@ -7,9 +7,10 @@ export async function availableSlots(dateString: string) {
   if (!rule?.active) return [];
   const dayStart = startOfDay(date);
   const nextDay = addMinutes(dayStart, 1440);
-  const [appointments, blocks] = await Promise.all([
+  const [appointments, blocks, holds] = await Promise.all([
     db.appointment.findMany({ where: { startAt: { gte: dayStart, lt: nextDay }, status: { notIn: ["CANCELLED", "NO_SHOW"] } } }),
     db.blockedTime.findMany({ where: { startAt: { lt: nextDay }, endAt: { gt: dayStart } } }),
+    db.appointmentChangeRequest.findMany({where:{status:"PENDING",expiresAt:{gt:new Date()},proposedStartAt:{gte:dayStart,lt:nextDay}}}),
   ]);
   if (appointments.length >= rule.maximumPerDay) return [];
   let cursor = parse(rule.openTime, "HH:mm", date);
@@ -22,7 +23,8 @@ export async function availableSlots(dateString: string) {
     const lunch = lunchStart && lunchEnd && isBefore(cursor, lunchEnd) && isAfter(end, lunchStart);
     const collision = appointments.some((a) => a.startAt && a.endAt && isBefore(cursor, a.endAt) && isAfter(end, a.startAt));
     const blocked = blocks.some((b) => isBefore(cursor, b.endAt) && isAfter(end, b.startAt));
-    if (!lunch && !collision && !blocked && isAfter(cursor, new Date())) result.push(format(cursor, "HH:mm"));
+    const held = holds.some((h) => isBefore(cursor, h.proposedEndAt) && isAfter(end, h.proposedStartAt));
+    if (!lunch && !collision && !blocked && !held && isAfter(cursor, new Date())) result.push(format(cursor, "HH:mm"));
     cursor = addMinutes(cursor, rule.durationMinutes + rule.bufferMinutes);
   }
   return result;

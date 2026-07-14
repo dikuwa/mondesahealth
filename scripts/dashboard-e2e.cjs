@@ -51,13 +51,15 @@ const widths = process.env.E2E_WIDTH ? [Number(process.env.E2E_WIDTH)] : [375,76
     const box = element.getBoundingClientRect(); return box.left >= 0 && box.right <= window.innerWidth && box.bottom <= window.innerHeight + 1;
   });
   report.interactions.patientSelect = await page.getByLabel("Patient").isVisible();
-  report.interactions.dateInput = await page.getByLabel("Date").isVisible();
+  report.interactions.dateInput = await page.getByLabel("Appointment date").isVisible();
   await page.getByLabel("Patient").click();
   await page.getByRole("option").nth(1).click();
   const future = new Date(); future.setDate(future.getDate()+1); while ([0,6].includes(future.getDay())) future.setDate(future.getDate()+1);
-  await page.getByLabel("Date").fill(future.toISOString().slice(0,10));
+  await page.getByLabel("Appointment date").click();
+  const dateLabel = future.toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+  await page.getByRole("button", { name:dateLabel, exact:true }).click();
   await page.getByLabel("Available time").waitFor({ state:"visible" });
-  await page.waitForFunction(() => !document.querySelector("#manual-time")?.disabled);
+  await page.getByLabel("Available time").waitFor({ state:"visible" });
   report.interactions.availableSlots = await page.getByLabel("Available time").isEnabled();
   report.interactions.dashboardNativeSelects = await page.locator("select").count() === 0;
   await page.getByLabel("Reason for visit").fill("Mobile workflow check");
