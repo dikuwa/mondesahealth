@@ -17,6 +17,22 @@ async function main() {
     },
   });
 
+  await db.patient.upsert({
+    where: { patientNumber: "PAT-DEMO-001" },
+    update: {},
+    create: {
+      patientNumber: "PAT-DEMO-001",
+      fullName: "Demo Patient",
+      surname: "Patient",
+      initials: "DP",
+      dateOfBirth: new Date("1990-06-15T00:00:00"),
+      gender: "Other",
+      phone: "+264810000001",
+      whatsapp: "+264810000001",
+      preferredMethod: "WHATSAPP",
+    },
+  });
+
   const funds = [
     ["PSEMAS", "PSEMAS"],
     ["Namibia Medical Care", "NMC"],

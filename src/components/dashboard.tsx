@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight, CalendarPlus, Plus, ReceiptText, UserPlus } from "lucide-react";
-export function PageHeading({eyebrow,title,action}:{eyebrow:string,title:string,action?:React.ReactNode}){return <div style={{display:"flex",justifyContent:"space-between",alignItems:"end",marginBottom:26}}><div><div className="eyebrow">{eyebrow}</div><h1 style={{fontSize:35,letterSpacing:"-.04em",margin:"8px 0 0"}}>{title}</h1></div>{action}</div>}
+export function PageHeading({eyebrow,title,action}:{eyebrow:string,title:string,action?:React.ReactNode}){return <div className="dashboard-page-heading"><div><div className="eyebrow">{eyebrow}</div><h1 style={{fontSize:35,letterSpacing:"-.04em",margin:"8px 0 0"}}>{title}</h1></div>{action}</div>}
 export function Stat({label,value,note}:{label:string,value:string|number,note?:string}){return <div className="card" style={{padding:20}}><span style={{fontSize:12,color:"#6b7e78"}}>{label}</span><b style={{display:"block",fontSize:31,letterSpacing:"-.035em",margin:"10px 0 4px"}}>{value}</b>{note&&<small style={{color:"#768780"}}>{note}</small>}</div>}
 export function Status({value}:{value:string}){const colors:valueColor={["CONFIRMED"]:"#e0f2e8",["COMPLETED"]:"#dcebec",["CANCELLED"]:"#f6e3e0",["NEW_REQUEST"]:"#fff0d5",["DRAFT"]:"#ece9e2",["READY_FOR_REVIEW"]:"#e4e8f6"};return <span style={{display:"inline-block",padding:"6px 9px",borderRadius:99,fontSize:10,fontWeight:800,background:colors[value]||"#edf1ef"}}>{value.replaceAll("_"," ")}</span>}
 type valueColor=Record<string,string>;
