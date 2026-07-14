@@ -3,4 +3,28 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-export async function POST(request:Request){const parsed=z.object({email:z.string().email(),password:z.string().min(8)}).safeParse(await request.json());if(!parsed.success)return NextResponse.json({error:"Enter a valid email and password."},{status:400});const user=await db.user.findUnique({where:{email:parsed.data.email.toLowerCase()}});if(!user||!user.active||!await compare(parsed.data.password,user.passwordHash))return NextResponse.json({error:"The email or password is incorrect."},{status:401});await createSession({id:user.id,role:user.role,name:user.name});await db.activityLog.create({data:{userId:user.id,action:"USER_LOGIN",entityType:"User",entityId:user.id,summary:"Signed in to dashboard"}});return NextResponse.json({ok:true});}
+import { checkLoginThrottle, clearCredentialThrottle, loginThrottleKeys, pruneLoginThrottles, recordFailedLogin, requestAddress } from "@/lib/login-throttle";
+import { parsePermissions } from "@/lib/permissions";
+
+const input=z.object({email:z.string().trim().email().max(254),password:z.string().min(1).max(200)});
+const noStore={"Cache-Control":"no-store"};
+const limited=(retryAfter:number)=>NextResponse.json({error:"Too many sign-in attempts. Try again later."},{status:429,headers:{...noStore,"Retry-After":String(retryAfter)}});
+
+export async function POST(request:Request){
+  const parsed=input.safeParse(await request.json());
+  if(!parsed.success)return NextResponse.json({error:"Enter a valid email and password."},{status:400,headers:noStore});
+  const email=parsed.data.email.toLowerCase(),keys=loginThrottleKeys(email,requestAddress(request));
+  const throttle=await checkLoginThrottle(keys);
+  if(!throttle.allowed)return limited(throttle.retryAfter);
+  const user=await db.user.findUnique({where:{email}});
+  if(!user||!user.active||!await compare(parsed.data.password,user.passwordHash)){
+    const failed=await recordFailedLogin(keys);
+    await db.activityLog.create({data:{action:"USER_LOGIN_FAILED",entityType:"Authentication",entityId:keys[0].key.slice(-32),summary:"Rejected staff sign-in attempt"}});
+    return failed.blocked?limited(failed.retryAfter):NextResponse.json({error:"The email or password is incorrect."},{status:401,headers:noStore});
+  }
+  await clearCredentialThrottle(keys);
+  await pruneLoginThrottles();
+  await createSession({id:user.id,sessionVersion:user.sessionVersion,role:user.role,permissions:parsePermissions(user.permissions,user.role)});
+  await db.activityLog.create({data:{userId:user.id,action:"USER_LOGIN",entityType:"User",entityId:user.id,summary:"Signed in to dashboard"}});
+  return NextResponse.json({ok:true},{headers:noStore});
+}

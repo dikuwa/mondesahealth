@@ -1,6 +1,6 @@
 import { renderToBuffer } from "@react-pdf/renderer";
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getFinanceSession as getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { InvoiceDocument } from "@/lib/invoice-document";
 export const runtime="nodejs";

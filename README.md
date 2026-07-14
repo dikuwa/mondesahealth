@@ -10,14 +10,52 @@ A full-stack public website and medical-practice management workspace for a Nami
 4. Push the schema and seed the selected database with `pnpm db:setup`.
 5. Start the application with `pnpm dev`.
 
-Both `.env` and `.env.local` are ignored by Git. Keep the connection strings private and verify them before running `pnpm db:setup`, because it changes the referenced database.
+Both `.env` and `.env.local` are ignored by Git. Keep the connection strings private and verify them before running `pnpm db:setup`, because it changes the referenced database. Do not define `DATABASE_URL` twice across those files: Next gives `.env.local` priority at runtime, while Prisma CLI commonly reads `.env`.
 
-The local seed creates an owner login for evaluation:
+## Variables to configure
+
+| Variable | Where to get it | Required |
+| --- | --- | --- |
+| `DATABASE_URL` | Neon **pooled** connection string (hostname contains `-pooler`) | Yes |
+| `DIRECT_URL` | Neon direct/non-pooled connection string | Yes |
+| `AUTH_SECRET` | Generate with `openssl rand -base64 48`; keep identical across deployments | Yes |
+| `NEXT_PUBLIC_APP_URL` | Canonical deployed URL, for example `https://mondesahealth.na` | Yes |
+| `BACKUP_ENCRYPTION_KEY` | Generate separately with `openssl rand -base64 48` | Backup only |
+| `BACKUP_DIR` | Directory on an encrypted disk outside the repository | Backup only |
+| `RESTORE_DATABASE_URL` | A separate disposable Neon database | Restore drill only |
+| `OWNER_NAME` | Initial owner display name used by the seed | Seed only |
+| `OWNER_EMAIL` | Initial owner login email used by the seed | Seed only |
+| `OWNER_PASSWORD` | Strong temporary password (10+ characters) used by the seed | Seed only |
+
+No email-verification, SMTP, or file-storage variable is required. Owner/admin-created accounts can sign in immediately. Small profile images are stored with the user record; the login email remains immutable while the display name and avatar can change.
+
+Unless overridden with the seed variables, the local seed creates an owner login for evaluation:
 
 - Email: `owner@mondesahealth.na`
 - Password: `Mondesa2026!`
 
-Change the seed credentials before any real deployment.
+Set `OWNER_EMAIL` and `OWNER_PASSWORD` before the first production seed. After login, create other staff under **Staff users**, assign a role, adjust its permission checklist, and give the temporary password directly to that person. The account is required to change that administrator-set password from **My profile**.
+
+## Production security
+
+- Production startup fails unless `AUTH_SECRET` is at least 32 characters. Never reuse the database password or backup key as this secret.
+- Staff sessions expire after eight hours. Password resets, password changes, role changes, permission changes and account-status changes revoke existing sessions.
+- Failed sign-ins are limited by an HMAC-hashed account key and network key. Attempted email addresses, IP addresses, passwords and session tokens are never written to application logs.
+- Passwords require at least 12 characters with uppercase, lowercase, numeric and symbol characters.
+- Dashboard routes are checked by the server-side Next.js proxy, and every mutating or sensitive API route performs its own database-backed permission check.
+- Multi-factor authentication is not yet available in the local authentication system. Treat MFA as a pre-launch follow-up or migrate staff sign-in to a managed provider that supports it.
+
+## Encrypted backups and restore drills
+
+The app does not need object storage for normal operation. Database backups are separate operational files and must be stored outside this repository on encrypted media.
+
+1. Install PostgreSQL client tools (`pg_dump` and `pg_restore`) and OpenSSL on the machine that runs backups.
+2. Configure `BACKUP_ENCRYPTION_KEY` and `BACKUP_DIR`, keeping the key separate from the generated files.
+3. Run `pnpm db:backup`. The command creates an AES-256 encrypted custom-format dump and verifies that `pg_restore` can read it.
+4. Create a disposable Neon database, set `RESTORE_DATABASE_URL`, and run `CONFIRM_RESTORE=mondesahealth-restore-test pnpm db:restore:test -- /absolute/path/to/backup.dump.enc`.
+5. Schedule `pnpm db:backup` daily using the host's scheduler. Periodically move encrypted backups to a second access-controlled location and run a restore drill at least monthly.
+
+The restore command refuses to target the same host/database identity as `DIRECT_URL`. It uses `--clean`, so the disposable target is destructive by design. A successful backup verification is not a substitute for a successful restore drill.
 
 ## Architecture
 

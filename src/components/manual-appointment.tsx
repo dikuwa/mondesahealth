@@ -12,6 +12,8 @@ export function ManualAppointment({ patients }: { patients: PatientOption[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState("");
+  const [patientId, setPatientId] = useState("");
+  const [time, setTime] = useState("");
   const [slots, setSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -24,7 +26,7 @@ export function ManualAppointment({ patients }: { patients: PatientOption[] }) {
   }, [open]);
 
   async function loadSlots(value: string) {
-    setDate(value); setSlots([]);
+    setDate(value); setTime(""); setSlots([]);
     if (!value) return;
     setLoadingSlots(true);
     const response = await fetch(`/api/slots?date=${value}`);
@@ -40,7 +42,7 @@ export function ManualAppointment({ patients }: { patients: PatientOption[] }) {
     const data = await response.json(); setSaving(false);
     if (!response.ok) return toast.error(data.error || "Could not create appointment");
     toast.success(`Appointment ${data.reference} confirmed`);
-    setOpen(false); setDate(""); setSlots([]); router.refresh();
+    setOpen(false); setDate(""); setPatientId(""); setTime(""); setSlots([]); router.refresh();
   }
 
   return <>
@@ -50,9 +52,9 @@ export function ManualAppointment({ patients }: { patients: PatientOption[] }) {
       <form className="appointment-panel" onSubmit={submit}>
         <div className="appointment-panel-heading"><div><span className="eyebrow">Staff booking</span><h2 id="appointment-dialog-title">New appointment</h2><p>Create a confirmed appointment for an existing patient.</p></div><button type="button" aria-label="Close appointment form" onClick={() => setOpen(false)}><X size={20}/></button></div>
         {patients.length ? <div className="appointment-form-grid">
-          <div className="field dashboard-span-all"><label htmlFor="manual-patient">Patient</label><NativeSelect id="manual-patient" name="patientId" required defaultValue=""><option value="" disabled>Select a patient</option>{patients.map(patient => <option value={patient.id} key={patient.id}>{patient.fullName} · {patient.patientNumber} · {patient.phone}</option>)}</NativeSelect></div>
+          <div className="field dashboard-span-all"><label htmlFor="manual-patient">Patient</label><NativeSelect id="manual-patient" name="patientId" required value={patientId} onChange={event=>setPatientId(event.target.value)}><option value="" disabled>Select a patient</option>{patients.map(patient => <option value={patient.id} key={patient.id}>{patient.fullName} · {patient.patientNumber} · {patient.phone}</option>)}</NativeSelect></div>
           <div className="field"><label htmlFor="manual-date">Date</label><input id="manual-date" name="date" type="date" className="input" min={new Date().toISOString().slice(0,10)} value={date} onChange={event => loadSlots(event.target.value)} required/></div>
-          <div className="field"><label htmlFor="manual-time">Available time</label><NativeSelect id="manual-time" name="time" required disabled={!date || loadingSlots || !slots.length} defaultValue=""><option value="" disabled>{loadingSlots ? "Loading times…" : slots.length ? "Select a time" : date ? "No times available" : "Choose a date first"}</option>{slots.map(slot => <option value={slot} key={slot}>{slot}</option>)}</NativeSelect></div>
+          <div className="field"><label htmlFor="manual-time">Available time</label><NativeSelect id="manual-time" name="time" required disabled={!date || loadingSlots || !slots.length} value={time} onChange={event=>setTime(event.target.value)}><option value="" disabled>{loadingSlots ? "Loading times…" : slots.length ? "Select a time" : date ? "No times available" : "Choose a date first"}</option>{slots.map(slot => <option value={slot} key={slot}>{slot}</option>)}</NativeSelect></div>
           <div className="field dashboard-span-all"><label htmlFor="manual-reason">Reason for visit</label><input id="manual-reason" name="reason" className="input" maxLength={200} placeholder="e.g. Follow-up consultation" required/></div>
           <div className="field dashboard-span-all"><label htmlFor="manual-notes">Internal note <span>(optional)</span></label><textarea id="manual-notes" name="notes" className="input" maxLength={500} placeholder="Information for the practice team"/></div>
         </div> : <div className="appointment-empty"><p>Add a patient record before creating a staff appointment.</p><a className="btn btn-primary" href="/dashboard/patients">Go to patients</a></div>}

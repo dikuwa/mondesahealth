@@ -1,19 +1,27 @@
 import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
+import { roleDefaults } from "../src/lib/permissions";
+import { passwordSchema } from "../src/lib/password";
 
 const db = new PrismaClient();
 
 async function main() {
+  const ownerEmail=(process.env.OWNER_EMAIL||"owner@mondesahealth.na").toLowerCase();
+  const ownerPassword=process.env.OWNER_PASSWORD||"Mondesa2026!";
+  const ownerName=process.env.OWNER_NAME||"Practice Owner";
+  if(process.env.NODE_ENV==="production"&&!process.env.OWNER_PASSWORD)throw new Error("OWNER_PASSWORD is required when seeding production.");
+  passwordSchema.parse(ownerPassword);
   await db.practiceSetting.upsert({ where: { id: "practice" }, update: {}, create: { id: "practice" } });
 
   await db.user.upsert({
-    where: { email: "owner@mondesahealth.na" },
-    update: {},
+    where: { email: ownerEmail },
+    update: { permissions: JSON.stringify(roleDefaults.OWNER) },
     create: {
-      name: "Practice Owner",
-      email: "owner@mondesahealth.na",
-      passwordHash: await hash("Mondesa2026!", 12),
+      name: ownerName,
+      email: ownerEmail,
+      passwordHash: await hash(ownerPassword, 12),
       role: "OWNER",
+      permissions: JSON.stringify(roleDefaults.OWNER),
     },
   });
 

@@ -1,0 +1,13 @@
+"use client";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { format, isToday } from "date-fns";
+import { Loader2 } from "lucide-react";
+import toast from "react-hot-toast";
+import { CustomSelect } from "@/components/ui/custom-select";
+type Row={id:string;reference:string;status:string;startAt:string|null;preferredDate:string|null;patient:{fullName:string;phone:string;payment:string}};
+const statuses=["NEW_REQUEST","CONFIRMED","REVIEW_REQUIRED","RESCHEDULED","COMPLETED","CANCELLED","NO_SHOW"];
+const options=statuses.map(value=>({value,label:value.replaceAll("_"," ").toLowerCase().replace(/^./,x=>x.toUpperCase())}));
+export function AppointmentsManager({rows}:{rows:Row[]}){const router=useRouter();const[filter,setFilter]=useState("ALL");const[saving,setSaving]=useState("");const visible=useMemo(()=>rows.filter(row=>filter==="ALL"||(filter==="TODAY"&&row.startAt&&isToday(new Date(row.startAt)))||row.status===filter),[rows,filter]);
+async function update(id:string,status:string){setSaving(id);const toastId=toast.loading("Updating appointment…");try{const response=await fetch("/api/appointments",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status})});const data=await response.json();if(!response.ok)throw new Error(data.error);toast.success("Appointment updated",{id:toastId});router.refresh()}catch(error){toast.error(error instanceof Error?error.message:"Could not update appointment",{id:toastId})}finally{setSaving("")}}
+return <div className="card dashboard-card" style={{padding:20}}><div className="dashboard-filter-row"><CustomSelect ariaLabel="Filter appointments" value={filter} onChange={setFilter} options={[{value:"ALL",label:"All appointments"},{value:"TODAY",label:"Today"},...options]}/></div>{visible.length?<div className="table-scroll"><table className="data-table"><thead><tr><th>Date & time</th><th>Patient</th><th>Contact</th><th>Payment</th><th>Status</th><th>Reference</th></tr></thead><tbody>{visible.map(row=><tr key={row.id}><td>{row.startAt?format(new Date(row.startAt),"dd MMM yyyy · HH:mm"):row.preferredDate?format(new Date(row.preferredDate),"dd MMM yyyy"):"To schedule"}</td><td><b>{row.patient.fullName}</b></td><td>{row.patient.phone}</td><td>{row.patient.payment}</td><td><div className="status-control">{saving===row.id?<Loader2 className="toast-spinner" size={17}/>:<CustomSelect value={row.status} onChange={value=>update(row.id,value)} options={options}/>}</div></td><td>{row.reference}</td></tr>)}</tbody></table></div>:<div className="dashboard-empty"><h3>No matching appointments</h3><p>Try another filter or create an appointment.</p></div>}</div>}

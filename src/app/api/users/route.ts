@@ -1,0 +1,45 @@
+import { hash } from "bcryptjs";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { requirePermission } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { PERMISSIONS, ROLES, roleDefaults } from "@/lib/permissions";
+import { passwordSchema } from "@/lib/password";
+
+const role=z.enum(ROLES),permissions=z.array(z.enum(PERMISSIONS));
+export async function POST(request:Request){
+  const session=await requirePermission("MANAGE_USERS");
+  if(!session)return NextResponse.json({error:"You do not have permission to create staff accounts."},{status:403});
+  const parsed=z.object({name:z.string().trim().min(2).max(80),email:z.string().email(),password:passwordSchema,role,permissions:permissions.optional()}).safeParse(await request.json());
+  if(!parsed.success)return NextResponse.json({error:parsed.error.issues[0]?.message||"Check the staff details."},{status:400});
+  if(parsed.data.role==="OWNER"&&session.role!=="OWNER")return NextResponse.json({error:"Only the owner can create another owner."},{status:403});
+  try{
+    const user=await db.$transaction(async tx=>{
+      const created=await tx.user.create({data:{name:parsed.data.name,email:parsed.data.email.toLowerCase(),passwordHash:await hash(parsed.data.password,12),role:parsed.data.role,permissions:JSON.stringify(parsed.data.permissions||roleDefaults[parsed.data.role]),mustChangePassword:true}});
+      await tx.activityLog.create({data:{userId:session.id,action:"USER_CREATED",entityType:"User",entityId:created.id,summary:`Created ${created.role.toLowerCase()} staff account`}});
+      return created;
+    });
+    return NextResponse.json({id:user.id},{status:201});
+  }catch(error){
+    if(error instanceof Error&&error.message.includes("Unique constraint"))return NextResponse.json({error:"That login email is already in use."},{status:409});
+    return NextResponse.json({error:"Could not create the staff account."},{status:500});
+  }
+}
+
+export async function PATCH(request:Request){
+  const session=await requirePermission("MANAGE_USERS");
+  if(!session)return NextResponse.json({error:"You do not have permission to manage staff accounts."},{status:403});
+  const parsed=z.object({id:z.string(),role:role.optional(),permissions:permissions.optional(),active:z.boolean().optional(),password:passwordSchema.optional()}).safeParse(await request.json());
+  if(!parsed.success)return NextResponse.json({error:"Check the staff account changes."},{status:400});
+  const target=await db.user.findUnique({where:{id:parsed.data.id}});
+  if(!target)return NextResponse.json({error:"Staff account not found."},{status:404});
+  if((target.role==="OWNER"||parsed.data.role==="OWNER")&&session.role!=="OWNER")return NextResponse.json({error:"Only the owner can assign or modify owner access."},{status:403});
+  if(target.id===session.id&&(parsed.data.active===false||parsed.data.role&&parsed.data.role!=="OWNER"&&target.role==="OWNER"))return NextResponse.json({error:"You cannot revoke your own owner access."},{status:400});
+  const data:{role?:string;permissions?:string;active?:boolean;passwordHash?:string;mustChangePassword?:boolean;sessionVersion?:{increment:number}}={sessionVersion:{increment:1}};
+  if(parsed.data.role)data.role=parsed.data.role;
+  if(parsed.data.permissions)data.permissions=JSON.stringify(parsed.data.permissions);
+  if(parsed.data.active!==undefined)data.active=parsed.data.active;
+  if(parsed.data.password){data.passwordHash=await hash(parsed.data.password,12);data.mustChangePassword=true}
+  await db.$transaction([db.user.update({where:{id:target.id},data}),db.activityLog.create({data:{userId:session.id,action:"USER_UPDATED",entityType:"User",entityId:target.id,summary:"Updated staff account access"}})]);
+  return NextResponse.json({ok:true});
+}

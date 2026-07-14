@@ -3,7 +3,7 @@ const { chromium } = require("/Users/stunna/.cache/codex-runtimes/codex-primary-
 const fs = require("node:fs");
 
 const base = process.env.E2E_BASE_URL || "http://localhost:3001";
-const routes = process.env.E2E_ROUTE ? [process.env.E2E_ROUTE] : ["/dashboard","/dashboard/appointments","/dashboard/patients","/dashboard/claims","/dashboard/finance","/dashboard/availability","/dashboard/settings","/dashboard/activity"];
+const routes = process.env.E2E_ROUTE ? [process.env.E2E_ROUTE] : ["/dashboard","/dashboard/appointments","/dashboard/patients","/dashboard/claims","/dashboard/finance","/dashboard/availability","/dashboard/settings","/dashboard/users","/dashboard/profile","/dashboard/activity"];
 const widths = process.env.E2E_WIDTH ? [Number(process.env.E2E_WIDTH)] : [375,768,1024,1440];
 
 (async () => {
@@ -13,6 +13,8 @@ const widths = process.env.E2E_WIDTH ? [Number(process.env.E2E_WIDTH)] : [375,76
   const report = { routes:{}, interactions:{} };
 
   await page.goto(`${base}/login`, { waitUntil:"networkidle" });
+  await page.locator('input[name="email"]').fill(process.env.E2E_OWNER_EMAIL || "owner@mondesahealth.na");
+  await page.locator('input[name="password"]').fill(process.env.E2E_OWNER_PASSWORD || "Mondesa2026!");
   await page.getByRole("button", { name:"Sign in" }).click();
   await page.waitForURL("**/dashboard");
 
@@ -50,12 +52,14 @@ const widths = process.env.E2E_WIDTH ? [Number(process.env.E2E_WIDTH)] : [375,76
   });
   report.interactions.patientSelect = await page.getByLabel("Patient").isVisible();
   report.interactions.dateInput = await page.getByLabel("Date").isVisible();
-  await page.getByLabel("Patient").selectOption({ index:1 });
+  await page.getByLabel("Patient").click();
+  await page.getByRole("option").nth(1).click();
   const future = new Date(); future.setDate(future.getDate()+1); while ([0,6].includes(future.getDay())) future.setDate(future.getDate()+1);
   await page.getByLabel("Date").fill(future.toISOString().slice(0,10));
   await page.getByLabel("Available time").waitFor({ state:"visible" });
   await page.waitForFunction(() => !document.querySelector("#manual-time")?.disabled);
-  report.interactions.availableSlots = await page.getByLabel("Available time").locator("option").count() > 1;
+  report.interactions.availableSlots = await page.getByLabel("Available time").isEnabled();
+  report.interactions.dashboardNativeSelects = await page.locator("select").count() === 0;
   await page.getByLabel("Reason for visit").fill("Mobile workflow check");
   await page.screenshot({ path:"e2e-artifacts/dashboard/appointments-mobile.png", fullPage:true });
   await page.getByRole("button", { name:"Close appointment form" }).last().click();
@@ -69,6 +73,11 @@ const widths = process.env.E2E_WIDTH ? [Number(process.env.E2E_WIDTH)] : [375,76
   report.interactions.desktopCollapse = after < before;
   report.interactions.openSiteLink = await page.getByRole("link", { name:"Open site" }).isVisible();
   await page.screenshot({ path:"e2e-artifacts/dashboard/overview-desktop.png", fullPage:true });
+
+  await page.goto(`${base}/book`, { waitUntil:"networkidle" });
+  report.interactions.bookingNativeSelects = await page.locator("select").count() === 0;
+  await page.getByLabel("Gender (optional)").click();
+  report.interactions.bookingCustomOptions = await page.getByRole("option").count() >= 5;
 
   const failures = [];
   for (const [route, viewports] of Object.entries(report.routes)) for (const [width, result] of Object.entries(viewports)) {

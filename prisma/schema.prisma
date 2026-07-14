@@ -14,7 +14,12 @@ model User {
   email        String        @unique
   passwordHash String
   role         String        @default("RECEPTIONIST")
+  permissions  String        @default("[]")
+  avatarData   String?
   active       Boolean       @default(true)
+  mustChangePassword Boolean @default(false)
+  sessionVersion Int         @default(0)
+  updatedAt    DateTime      @default(now()) @updatedAt
   createdAt    DateTime      @default(now())
   appointments Appointment[] @relation("CreatedBy")
   payments     Payment[]
@@ -320,4 +325,14 @@ model ActivityLog {
   afterJson  String?
   user       User?    @relation(fields: [userId], references: [id])
   createdAt  DateTime @default(now())
+}
+
+model LoginThrottle {
+  key             String    @id
+  failures        Int       @default(0)
+  windowStartedAt DateTime  @default(now())
+  blockedUntil    DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  @@index([updatedAt])
 }

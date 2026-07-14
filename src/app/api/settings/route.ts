@@ -1,5 +1,37 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSession } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
-export async function PATCH(request:Request){const session=await getSession();if(!session)return NextResponse.json({error:"Unauthorised"},{status:401});const parsed=z.object({bookingMode:z.enum(["AVAILABLE_TIME","APPOINTMENT_REQUEST"])}).safeParse(await request.json());if(!parsed.success)return NextResponse.json({error:"Invalid settings"},{status:400});await db.$transaction([db.practiceSetting.update({where:{id:"practice"},data:parsed.data}),db.activityLog.create({data:{userId:session.id,action:"PRACTICE_SETTINGS_UPDATED",entityType:"PracticeSetting",entityId:"practice",summary:`Booking mode changed to ${parsed.data.bookingMode}`}})]);return NextResponse.json({ok:true});}
+
+const detailsSchema=z.object({
+  practiceName:z.string().trim().min(2),doctorName:z.string().trim().min(2),
+  practiceNumber:z.string().trim().min(1),registrationNumber:z.string().trim().min(1),
+  phone:z.string().trim().min(7),whatsapp:z.string().trim().min(7),email:z.string().email(),
+  address:z.string().trim().min(4),currency:z.string().trim().length(3),
+  signatureName:z.string().trim().min(2),signatureTitle:z.string().trim().min(2),vatEnabled:z.boolean(),
+});
+
+export async function PATCH(request:Request){
+  const session=await requirePermission("MANAGE_PRACTICE");
+  if(!session)return NextResponse.json({error:"You do not have permission to update practice settings."},{status:403});
+  const body=await request.json();
+  let summary="Practice and document settings updated";
+  if(body.medicalAidId){
+    const parsed=z.object({medicalAidId:z.string(),active:z.boolean(),public:z.boolean(),administrator:z.string().trim().max(120).nullable().optional()}).safeParse(body);
+    if(!parsed.success)return NextResponse.json({error:"Check the medical aid settings."},{status:400});
+    await db.medicalAid.update({where:{id:parsed.data.medicalAidId},data:{active:parsed.data.active,public:parsed.data.public,administrator:parsed.data.administrator||null}});
+    summary="Medical aid configuration updated";
+  }else if(body.bookingMode){
+    const parsed=z.object({bookingMode:z.enum(["AVAILABLE_TIME","APPOINTMENT_REQUEST"])}).safeParse(body);
+    if(!parsed.success)return NextResponse.json({error:"Check the booking mode."},{status:400});
+    await db.practiceSetting.update({where:{id:"practice"},data:parsed.data});
+    summary=`Booking mode changed to ${parsed.data.bookingMode}`;
+  }else{
+    const current=await db.practiceSetting.findUnique({where:{id:"practice"}});
+    const parsed=detailsSchema.safeParse({...current,...body});
+    if(!parsed.success)return NextResponse.json({error:"Check the settings you entered."},{status:400});
+    await db.practiceSetting.update({where:{id:"practice"},data:parsed.data});
+  }
+  await db.activityLog.create({data:{userId:session.id,action:"PRACTICE_SETTINGS_UPDATED",entityType:"PracticeSetting",entityId:"practice",summary}});
+  return NextResponse.json({ok:true});
+}

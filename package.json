@@ -11,7 +11,9 @@
     "test:e2e:dashboard": "node scripts/dashboard-e2e.cjs",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "db:setup": "prisma db push && tsx prisma/seed.ts"
+    "db:setup": "prisma db push && tsx prisma/seed.ts",
+    "db:backup": "tsx --env-file=.env scripts/db-backup.ts",
+    "db:restore:test": "tsx --env-file=.env scripts/db-restore-test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
