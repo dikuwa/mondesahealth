@@ -1459,8 +1459,12 @@ textarea.input {
 .patient-table col:nth-child(6) {
   width: 15%;
 }
+.patient-table th:last-child,
+.patient-table td:last-child {
+  text-align: right;
+}
 .patient-table .table-actions {
-  justify-content: flex-start;
+  justify-content: flex-end;
 }
 .availability-grid {
   display: grid;

@@ -176,6 +176,25 @@ const widths = process.env.E2E_WIDTH
   });
 
   await page.goto(`${base}/dashboard/patients`, { waitUntil: "networkidle" });
+  const patientInsets = await page.evaluate(() => {
+    const card = document.querySelector(".dashboard-card"),
+      first = document.querySelector(".patient-table tbody td:first-child b"),
+      last = document.querySelector(
+        ".patient-table tbody td:last-child .table-actions",
+      );
+    if (!card || !first || !last) return null;
+    const cardBox = card.getBoundingClientRect(),
+      firstBox = first.getBoundingClientRect(),
+      lastBox = last.getBoundingClientRect();
+    return {
+      left: Math.round(firstBox.left - cardBox.left),
+      right: Math.round(cardBox.right - lastBox.right),
+    };
+  });
+  report.interactions.patientCardBalanced = Boolean(
+    patientInsets && Math.abs(patientInsets.left - patientInsets.right) <= 8,
+  );
+  report.interactions.patientCardInsets = patientInsets;
   await page.getByLabel("Search patients").fill("Demo Patient");
   await page.getByRole("button", { name: "Edit Demo Patient" }).click();
   const birthInput = page.getByRole("textbox", { name: "Date of birth" });
