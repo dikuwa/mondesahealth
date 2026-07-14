@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
@@ -44,7 +44,8 @@ export function PatientManager({
   funds: Fund[];
 }) {
   const router = useRouter();
-  const [query, setQuery] = useState(""),
+  const [patients, setPatients] = useState(initial),
+    [query, setQuery] = useState(""),
     [editing, setEditing] = useState<Patient | null>(null),
     [open, setOpen] = useState(false),
     [saving, setSaving] = useState(false),
@@ -56,13 +57,14 @@ export function PatientManager({
     [birthDate, setBirthDate] = useState("");
   const visible = useMemo(
     () =>
-      initial.filter((p) =>
+      patients.filter((p) =>
         `${p.fullName} ${p.patientNumber} ${p.phone} ${p.email || ""}`
           .toLowerCase()
           .includes(query.trim().toLowerCase()),
       ),
-    [initial, query],
+    [patients, query],
   );
+  useEffect(() => setPatients(initial), [initial]);
   function show(patient?: Patient) {
     setEditing(patient || null);
     setGender(patient?.gender || "");
@@ -99,6 +101,30 @@ export function PatientManager({
       toast.success(editing ? "Patient updated" : "Patient created", {
         id: toastId,
       });
+      if (editing) {
+        const fullName = String(form.get("fullName") || editing.fullName),
+          phone = String(form.get("phone") || editing.phone),
+          email = String(form.get("email") || "");
+        setPatients((current) =>
+          current.map((patient) =>
+            patient.id === editing.id
+              ? {
+                  ...patient,
+                  fullName,
+                  phone,
+                  email: email || null,
+                  dateOfBirth: birthDate ? `${birthDate}T00:00:00.000Z` : null,
+                  gender: gender || null,
+                  preferredMethod: method,
+                  medicalAidId: fund,
+                  medicalAid:
+                    funds.find((item) => item.id === fund)?.name || "",
+                  membershipNumber: String(form.get("membershipNumber") || ""),
+                }
+              : patient,
+          ),
+        );
+      }
       setOpen(false);
       router.refresh();
     } catch (error) {
