@@ -1,7 +1,242 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Save } from "lucide-react";
 import toast from "react-hot-toast";
-type Setting={practiceName:string;doctorName:string;practiceNumber:string;registrationNumber:string;phone:string;whatsapp:string;email:string;address:string;currency:string;signatureName:string;signatureTitle:string;vatEnabled:boolean};type Fund={id:string;name:string;abbreviation:string|null;administrator:string|null;public:boolean;active:boolean};
-export function SettingsManager({setting,funds}:{setting:Setting;funds:Fund[]}){const router=useRouter();const[saving,setSaving]=useState(false);async function patch(body:object,message:string){setSaving(true);const id=toast.loading(message);try{const response=await fetch("/api/settings",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw new Error(data.error);toast.success("Settings saved",{id});router.refresh()}catch(error){toast.error(error instanceof Error?error.message:"Could not save settings",{id})}finally{setSaving(false)}}return <div className="dashboard-equal-columns"><form className="card dashboard-card" style={{padding:24}} onSubmit={event=>{event.preventDefault();const data=Object.fromEntries(new FormData(event.currentTarget));patch({...data,vatEnabled:new FormData(event.currentTarget).get("vatEnabled")==="on"},"Saving practice settings…")}}><h2>Practice details</h2>{[["practiceName","Practice"],["doctorName","Practitioner"],["practiceNumber","Practice no."],["registrationNumber","Registration"],["phone","Phone"],["whatsapp","WhatsApp"],["email","Email"],["address","Address"]].map(([name,label])=><div className="field" key={name}><label>{label}</label><input className="input" name={name} type={name==="email"?"email":"text"} defaultValue={setting[name as keyof Setting] as string} required/></div>)}<button className="btn btn-primary" disabled={saving}>{saving&&<Loader2 className="toast-spinner" size={17}/>} Save practice</button></form><form className="card dashboard-card" style={{padding:24}} onSubmit={event=>{event.preventDefault();const data=Object.fromEntries(new FormData(event.currentTarget));patch({...setting,...data,vatEnabled:new FormData(event.currentTarget).get("vatEnabled")==="on"},"Saving document settings…")}}><h2>Document settings</h2><p className="muted">Shared across invoices, receipts, claim accounts, statements and batch summaries.</p>{[["currency","Currency"],["signatureName","Signatory"],["signatureTitle","Title"]].map(([name,label])=><div className="field" key={name}><label>{label}</label><input className="input" name={name} defaultValue={setting[name as keyof Setting] as string} required/></div>)}<label className="toggle-label"><input type="checkbox" name="vatEnabled" defaultChecked={setting.vatEnabled}/><span>VAT enabled</span></label><button className="btn btn-primary" disabled={saving}><Save size={17}/> Save documents</button></form><section className="card dashboard-card dashboard-span-all" style={{padding:24}}><h2>Medical aids</h2><div className="table-scroll"><table className="data-table"><thead><tr><th>Fund</th><th>Administrator</th><th>Public</th><th>Active</th></tr></thead><tbody>{funds.map(fund=><tr key={fund.id}><td><b>{fund.name}</b><small style={{display:"block"}}>{fund.abbreviation}</small></td><td>{fund.administrator||"Not configured"}</td><td><input aria-label={`${fund.name} public`} type="checkbox" checked={fund.public} disabled={saving} onChange={event=>patch({medicalAidId:fund.id,public:event.target.checked,active:fund.active,administrator:fund.administrator},"Updating medical aid…")}/></td><td><input aria-label={`${fund.name} active`} type="checkbox" checked={fund.active} disabled={saving} onChange={event=>patch({medicalAidId:fund.id,active:event.target.checked,public:fund.public,administrator:fund.administrator},"Updating medical aid…")}/></td></tr>)}</tbody></table></div></section></div>}
+
+type Setting = {
+  practiceName: string;
+  doctorName: string;
+  practiceNumber: string;
+  registrationNumber: string;
+  phone: string;
+  whatsapp: string;
+  email: string;
+  address: string;
+  currency: string;
+  signatureName: string;
+  signatureTitle: string;
+  vatEnabled: boolean;
+};
+
+type Fund = {
+  id: string;
+  name: string;
+  abbreviation: string | null;
+  administrator: string | null;
+  public: boolean;
+  active: boolean;
+};
+
+export function SettingsManager({
+  setting,
+  funds,
+}: {
+  setting: Setting;
+  funds: Fund[];
+}) {
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
+
+  async function patch(body: object, message: string) {
+    setSaving(true);
+    const id = toast.loading(message);
+    try {
+      const response = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      toast.success("Settings saved", { id });
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not save settings",
+        { id },
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="dashboard-equal-columns settings-grid">
+      <form
+        className="card dashboard-card settings-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const data = Object.fromEntries(new FormData(event.currentTarget));
+          patch(
+            {
+              ...data,
+              vatEnabled:
+                new FormData(event.currentTarget).get("vatEnabled") === "on",
+            },
+            "Saving practice settings…",
+          );
+        }}
+      >
+        <h2>Practice details</h2>
+        <div className="settings-fields">
+          {[
+            ["practiceName", "Practice"],
+            ["doctorName", "Practitioner"],
+            ["practiceNumber", "Practice no."],
+            ["registrationNumber", "Registration"],
+            ["phone", "Phone"],
+            ["whatsapp", "WhatsApp"],
+            ["email", "Email"],
+            ["address", "Address"],
+          ].map(([name, label]) => (
+            <div className="field" key={name}>
+              <label htmlFor={`setting-${name}`}>{label}</label>
+              <input
+                id={`setting-${name}`}
+                className="input"
+                name={name}
+                type={name === "email" ? "email" : "text"}
+                defaultValue={setting[name as keyof Setting] as string}
+                required
+              />
+            </div>
+          ))}
+        </div>
+        <div className="settings-form-actions">
+          <button className="btn btn-primary" disabled={saving}>
+            {saving && <Loader2 className="toast-spinner" size={17} />} Save
+            practice
+          </button>
+        </div>
+      </form>
+
+      <form
+        className="card dashboard-card settings-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const data = Object.fromEntries(new FormData(event.currentTarget));
+          patch(
+            {
+              ...setting,
+              ...data,
+              vatEnabled:
+                new FormData(event.currentTarget).get("vatEnabled") === "on",
+            },
+            "Saving document settings…",
+          );
+        }}
+      >
+        <div className="settings-card-heading">
+          <h2>Document settings</h2>
+          <p className="muted">
+            Shared across invoices, receipts, claim accounts, statements and
+            batch summaries.
+          </p>
+        </div>
+        <div className="settings-fields">
+          {[
+            ["currency", "Currency"],
+            ["signatureName", "Signatory"],
+            ["signatureTitle", "Title"],
+          ].map(([name, label]) => (
+            <div className="field" key={name}>
+              <label htmlFor={`setting-${name}`}>{label}</label>
+              <input
+                id={`setting-${name}`}
+                className="input"
+                name={name}
+                defaultValue={setting[name as keyof Setting] as string}
+                required
+              />
+            </div>
+          ))}
+        </div>
+        <label className="toggle-label settings-checkbox-row">
+          <input
+            type="checkbox"
+            name="vatEnabled"
+            defaultChecked={setting.vatEnabled}
+          />
+          <span>VAT enabled</span>
+        </label>
+        <div className="settings-form-actions">
+          <button className="btn btn-primary" disabled={saving}>
+            {saving ? (
+              <Loader2 className="toast-spinner" size={17} />
+            ) : (
+              <Save size={17} />
+            )}
+            Save documents
+          </button>
+        </div>
+      </form>
+
+      <section className="card dashboard-card dashboard-span-all settings-funds">
+        <h2>Medical aids</h2>
+        <div className="table-scroll">
+          <table className="data-table settings-funds-table">
+            <thead>
+              <tr>
+                <th>Fund</th>
+                <th>Administrator</th>
+                <th>Public</th>
+                <th>Active</th>
+              </tr>
+            </thead>
+            <tbody>
+              {funds.map((fund) => (
+                <tr key={fund.id}>
+                  <td>
+                    <b>{fund.name}</b>
+                    <small>{fund.abbreviation}</small>
+                  </td>
+                  <td>{fund.administrator || "Not configured"}</td>
+                  <td>
+                    <input
+                      aria-label={`${fund.name} public`}
+                      type="checkbox"
+                      checked={fund.public}
+                      disabled={saving}
+                      onChange={(event) =>
+                        patch(
+                          {
+                            medicalAidId: fund.id,
+                            public: event.target.checked,
+                            active: fund.active,
+                            administrator: fund.administrator,
+                          },
+                          "Updating medical aid…",
+                        )
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      aria-label={`${fund.name} active`}
+                      type="checkbox"
+                      checked={fund.active}
+                      disabled={saving}
+                      onChange={(event) =>
+                        patch(
+                          {
+                            medicalAidId: fund.id,
+                            active: event.target.checked,
+                            public: fund.public,
+                            administrator: fund.administrator,
+                          },
+                          "Updating medical aid…",
+                        )
+                      }
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}

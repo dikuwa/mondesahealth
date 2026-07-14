@@ -214,9 +214,70 @@ const widths = process.env.E2E_WIDTH
     .isVisible();
   await page.locator(".confirmation-actions .btn-light").click();
 
+  await page.goto(`${base}/dashboard/settings`, { waitUntil: "networkidle" });
+  const settingsMetrics = await page.evaluate(() => {
+    const forms = [...document.querySelectorAll(".settings-form")];
+    const practiceFields = forms[0]?.querySelector(".settings-fields");
+    const practiceActions = forms[0]?.querySelector(".settings-form-actions");
+    const vatRow = forms[1]?.querySelector(".settings-checkbox-row");
+    const documentActions = forms[1]?.querySelector(".settings-form-actions");
+    const checkbox = document.querySelector(
+      '.settings-funds-table input[type="checkbox"]',
+    );
+    if (
+      !practiceFields ||
+      !practiceActions ||
+      !vatRow ||
+      !documentActions ||
+      !checkbox
+    )
+      return null;
+    const style = getComputedStyle(checkbox);
+    return {
+      practiceButtonGap: Math.round(
+        practiceActions.getBoundingClientRect().top -
+          practiceFields.getBoundingClientRect().bottom,
+      ),
+      documentButtonGap: Math.round(
+        documentActions.getBoundingClientRect().top -
+          vatRow.getBoundingClientRect().bottom,
+      ),
+      checkboxAppearance: style.appearance,
+      checkboxWidth: Math.round(checkbox.getBoundingClientRect().width),
+      checkboxRadius: style.borderRadius,
+    };
+  });
+  report.interactions.settingsControlSpacing = Boolean(
+    settingsMetrics &&
+      settingsMetrics.practiceButtonGap >= 20 &&
+      settingsMetrics.documentButtonGap >= 20,
+  );
+  report.interactions.settingsBrandedCheckbox = Boolean(
+    settingsMetrics &&
+      settingsMetrics.checkboxAppearance === "none" &&
+      settingsMetrics.checkboxWidth === 20 &&
+      settingsMetrics.checkboxRadius === "6px",
+  );
+  report.interactions.settingsMetrics = settingsMetrics;
+  await page.screenshot({
+    path: "e2e-artifacts/dashboard/settings-controls-desktop.png",
+    fullPage: true,
+  });
+
   await page.goto(`${base}/book`, { waitUntil: "networkidle" });
   report.interactions.bookingNativeSelects =
     (await page.locator("select").count()) === 0;
+  report.interactions.bookingBrandedCheckbox = await page
+    .locator('input[type="checkbox"]')
+    .first()
+    .evaluate((element) => {
+      const style = getComputedStyle(element);
+      return (
+        style.appearance === "none" &&
+        Math.round(element.getBoundingClientRect().width) === 20 &&
+        style.borderRadius === "6px"
+      );
+    });
   await page.getByLabel("Gender (optional)").click();
   report.interactions.bookingCustomOptions =
     (await page.getByRole("option").count()) >= 5;
