@@ -5,6 +5,7 @@ import { Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { DatePicker } from "@/components/ui/date-picker";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 type Patient = {
   id: string;
@@ -47,7 +48,8 @@ export function PatientManager({
     [editing, setEditing] = useState<Patient | null>(null),
     [open, setOpen] = useState(false),
     [saving, setSaving] = useState(false),
-    [deleting, setDeleting] = useState("");
+    [deleting, setDeleting] = useState(""),
+    [pendingArchive, setPendingArchive] = useState<Patient | null>(null);
   const [gender, setGender] = useState(""),
     [method, setMethod] = useState("WHATSAPP"),
     [fund, setFund] = useState(""),
@@ -89,7 +91,7 @@ export function PatientManager({
           email: form.get("email"),
           preferredMethod: method,
           medicalAidId: fund,
-          membershipNumber: form.get("membershipNumber"),
+          membershipNumber: String(form.get("membershipNumber") || ""),
         }),
       });
       const data = await response.json();
@@ -109,12 +111,6 @@ export function PatientManager({
     }
   }
   async function archive(patient: Patient) {
-    if (
-      !window.confirm(
-        `Archive ${patient.fullName}? Their linked appointments, claims and invoices will be preserved.`,
-      )
-    )
-      return;
     setDeleting(patient.id);
     const toastId = toast.loading("Archiving patient…");
     try {
@@ -125,6 +121,7 @@ export function PatientManager({
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       toast.success("Patient archived", { id: toastId });
+      setPendingArchive(null);
       router.refresh();
     } catch (error) {
       toast.error(
@@ -154,7 +151,15 @@ export function PatientManager({
       </div>
       <div className="card dashboard-card" style={{ padding: 20 }}>
         <div className="table-scroll">
-          <table className="data-table">
+          <table className="data-table patient-table">
+            <colgroup>
+              <col />
+              <col />
+              <col />
+              <col />
+              <col />
+              <col />
+            </colgroup>
             <thead>
               <tr>
                 <th>Patient</th>
@@ -196,7 +201,7 @@ export function PatientManager({
                       <button
                         className="icon-action danger-action"
                         disabled={deleting === p.id}
-                        onClick={() => archive(p)}
+                        onClick={() => setPendingArchive(p)}
                         aria-label={`Archive ${p.fullName}`}
                       >
                         {deleting === p.id ? (
@@ -265,6 +270,7 @@ export function PatientManager({
               <div className="field">
                 <label>Gender</label>
                 <CustomSelect
+                  ariaLabel="Gender"
                   value={gender}
                   onChange={setGender}
                   options={genders}
@@ -291,6 +297,7 @@ export function PatientManager({
               <div className="field">
                 <label>Preferred communication</label>
                 <CustomSelect
+                  ariaLabel="Preferred communication"
                   value={method}
                   onChange={setMethod}
                   options={communication}
@@ -299,6 +306,7 @@ export function PatientManager({
               <div className="field">
                 <label>Medical aid</label>
                 <CustomSelect
+                  ariaLabel="Medical aid"
                   value={fund}
                   onChange={setFund}
                   options={[
@@ -334,6 +342,16 @@ export function PatientManager({
           </form>
         </div>
       )}
+      <ConfirmationDialog
+        open={!!pendingArchive}
+        title={`Archive ${pendingArchive?.fullName || "patient"}?`}
+        description="This removes the patient from active lists while preserving linked appointments, claims, invoices, payments and audit history."
+        confirmLabel="Archive patient"
+        danger
+        busy={!!deleting}
+        onCancel={() => setPendingArchive(null)}
+        onConfirm={() => pendingArchive && archive(pendingArchive)}
+      />
     </>
   );
 }

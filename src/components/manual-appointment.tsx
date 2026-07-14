@@ -5,12 +5,27 @@ import { CalendarPlus, Loader2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { DatePicker } from "@/components/ui/date-picker";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 type PatientOption = {
   id: string;
   fullName: string;
   patientNumber: string;
   phone: string;
+};
+type AppointmentPayload = {
+  patientMode: string;
+  patientId: string;
+  fullName: FormDataEntryValue | null;
+  phone: FormDataEntryValue | null;
+  email: FormDataEntryValue | null;
+  whatsapp: FormDataEntryValue | null;
+  source: string;
+  timing: string;
+  date: string;
+  time: string;
+  reason: FormDataEntryValue | null;
+  notes: FormDataEntryValue | null;
 };
 export function ManualAppointment({ patients }: { patients: PatientOption[] }) {
   const router = useRouter();
@@ -24,7 +39,10 @@ export function ManualAppointment({ patients }: { patients: PatientOption[] }) {
     [slots, setSlots] = useState<string[]>([]),
     [loadingSlots, setLoadingSlots] = useState(false),
     [saving, setSaving] = useState(false),
-    [sameWhatsapp, setSameWhatsapp] = useState(true);
+    [sameWhatsapp, setSameWhatsapp] = useState(true),
+    [pendingWalkIn, setPendingWalkIn] = useState<AppointmentPayload | null>(
+      null,
+    );
   useEffect(() => {
     if (!open) return;
     const close = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
@@ -54,32 +72,40 @@ export function ManualAppointment({ patients }: { patients: PatientOption[] }) {
   }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if(timing==="NOW"&&!window.confirm("Create this walk-in at the current time? Review the live schedule for overlapping appointments before continuing."))return;
+    const form = new FormData(event.currentTarget);
+    const payload = {
+      patientMode: mode,
+      patientId,
+      fullName: form.get("fullName"),
+      phone: form.get("phone"),
+      email: form.get("email"),
+      whatsapp: sameWhatsapp ? form.get("phone") : form.get("whatsapp"),
+      source,
+      timing,
+      date,
+      time,
+      reason: form.get("reason"),
+      notes: form.get("notes"),
+    };
+    if (timing === "NOW") {
+      setPendingWalkIn(payload);
+      return;
+    }
+    await createAppointment(payload);
+  }
+  async function createAppointment(payload: AppointmentPayload) {
     setSaving(true);
     const toastId = toast.loading("Creating appointment…");
-    const form = new FormData(event.currentTarget);
     try {
       const response = await fetch("/api/appointments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          patientMode: mode,
-          patientId,
-          fullName: form.get("fullName"),
-          phone: form.get("phone"),
-          email: form.get("email"),
-          whatsapp: sameWhatsapp ? form.get("phone") : form.get("whatsapp"),
-          source,
-          timing,
-          date,
-          time,
-          reason: form.get("reason"),
-          notes: form.get("notes"),
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       toast.success(`Appointment ${data.reference} created`, { id: toastId });
+      setPendingWalkIn(null);
       setOpen(false);
       setDate("");
       setPatientId("");
@@ -205,7 +231,8 @@ export function ManualAppointment({ patients }: { patients: PatientOption[] }) {
               )}
               <div className="field dashboard-span-all">
                 <label>When</label>
-                <CustomSelect ariaLabel="When"
+                <CustomSelect
+                  ariaLabel="When"
                   value={timing}
                   onChange={setTiming}
                   options={[
@@ -227,7 +254,8 @@ export function ManualAppointment({ patients }: { patients: PatientOption[] }) {
                   </div>
                   <div className="field">
                     <label>Available time</label>
-                    <CustomSelect ariaLabel="Available time"
+                    <CustomSelect
+                      ariaLabel="Available time"
                       value={time}
                       onChange={setTime}
                       disabled={!date || loadingSlots}
@@ -245,10 +273,10 @@ export function ManualAppointment({ patients }: { patients: PatientOption[] }) {
               )}
               <div className="field dashboard-span-all">
                 <label>Reason for visit</label>
-                  <input
-                    className="input"
-                    name="reason"
-                    aria-label="Reason for visit"
+                <input
+                  className="input"
+                  name="reason"
+                  aria-label="Reason for visit"
                   placeholder="e.g. Follow-up consultation"
                   required
                 />
@@ -287,6 +315,15 @@ export function ManualAppointment({ patients }: { patients: PatientOption[] }) {
           </form>
         </div>
       )}
+      <ConfirmationDialog
+        open={!!pendingWalkIn}
+        title="Create walk-in now?"
+        description="The appointment will use the current time. Review today’s schedule first because an existing consultation may overlap."
+        confirmLabel="Create walk-in"
+        busy={saving}
+        onCancel={() => setPendingWalkIn(null)}
+        onConfirm={() => pendingWalkIn && createAppointment(pendingWalkIn)}
+      />
     </>
   );
 }

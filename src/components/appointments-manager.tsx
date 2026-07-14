@@ -485,6 +485,7 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
                         className="btn btn-primary"
                         href={`${share.whatsapp.split("?text=")[0]}?text=${encodeURIComponent(share.message)}`}
                         target="_blank"
+                        rel="noopener noreferrer"
                       >
                         <MessageCircle size={16} /> Open WhatsApp
                       </a>
@@ -497,7 +498,12 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
                       </Link>
                     )}
                     {share.email ? (
-                      <a className="btn btn-light" href={`${share.email.split("&body=")[0]}&body=${encodeURIComponent(share.message)}`}>
+                      <a
+                        className="btn btn-light"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        href={`${share.email.split("&body=")[0]}&body=${encodeURIComponent(share.message)}`}
+                      >
                         <Mail size={16} /> Open email
                       </a>
                     ) : (
