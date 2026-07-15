@@ -169,7 +169,11 @@ export function SiteChrome({ children, site }: { children: React.ReactNode; site
               <Phone size={17} />
               Call us
             </a>
-            <Link className="btn btn-primary site-book-button" href="/book">
+            <Link
+              className="btn btn-primary site-book-button"
+              href="/book"
+              aria-label="Book a GP appointment"
+            >
               <Clock3 size={17} />
               <span className="site-book-label">Book GP</span> <span className="desktop-nav">appointment</span>
             </Link>
