@@ -100,6 +100,7 @@ export function SiteChrome({ children, site }: { children: React.ReactNode; site
     <>
       <a className="skip-link" href="#main-content">Skip to main content</a>
       <header
+        className="site-header"
         style={{
           borderBottom: "1px solid #dce4df",
           position: "sticky",

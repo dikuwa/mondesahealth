@@ -43,6 +43,10 @@ a {
   display: inline-flex;
   align-items: center;
 }
+.site-header {
+  /* Keep the primary booking action above the mobile drawer backdrop. */
+  z-index: 60 !important;
+}
 .site-brand { min-width: 44px; }
 footer a { display: inline-flex; min-height: 44px; align-items: center; }
 button,
