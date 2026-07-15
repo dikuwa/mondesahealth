@@ -1309,34 +1309,159 @@ textarea.input {
 /* Homepage grid layouts */
 .hero-grid {
   display: grid;
-  grid-template-columns: .92fr 1.08fr;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
-  gap: 58px;
+  gap: 0;
+  padding-bottom: 28px;
+}
+.hero-media {
+  height: 420px;
+}
+.home-info-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1px;
+  background: #e1e8e4;
 }
 .about-grid {
   display: grid;
-  grid-template-columns: .85fr 1.15fr;
-  gap: 80px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(30px, 6vw, 48px);
   align-items: center;
 }
 .care-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   margin-top: 36px;
 }
 .visit-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 70px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(32px, 6vw, 48px);
 }
 .contact-grid {
   display: grid;
-  grid-template-columns: 1.2fr .8fr;
-  gap: 55px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(28px, 6vw, 44px);
 }
-.contact-grid .card {
-  padding: clamp(28px, 5vw, 58px);
+.hero-actions,
+.contact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  margin-top: 32px;
+}
+.hero-trust {
+  display: grid;
+  gap: 12px;
+  margin-top: 30px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.hero-trust-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.hero-trust-item svg {
+  flex: 0 0 auto;
+  color: var(--green);
+}
+.about-feature,
+.about-copy,
+.visit-intro,
+.visit-steps,
+.contact-copy,
+.opening-hours {
+  min-width: 0;
+}
+.about-values {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 28px;
+}
+.visit-steps {
+  display: grid;
+  gap: 22px;
+}
+.visit-step {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #dce4df;
+}
+.contact-actions {
+  margin-top: 25px;
+}
+.opening-hours {
+  padding: clamp(22px, 5vw, 30px);
+  border-radius: 17px;
+  background: var(--cream);
+}
+.opening-hours-list {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0;
+  color: #5a7068;
+}
+.opening-hours-list > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: baseline;
+}
+.opening-hours-list dt,
+.opening-hours-list dd {
+  margin: 0;
+}
+.opening-hours-list dd {
+  color: var(--ink);
+  font-weight: 750;
+  white-space: nowrap;
+}
+@media (min-width: 600px) {
+  .care-grid,
+  .about-values {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .hero-trust {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+  }
+}
+@media (min-width: 961px) {
+  .hero-grid {
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    gap: 58px;
+    min-height: 690px;
+    padding-bottom: 0;
+  }
+  .hero-media {
+    height: 570px;
+  }
+  .home-info-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .about-grid {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    gap: 80px;
+  }
+  .care-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .visit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 70px;
+  }
+  .contact-grid {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    gap: 55px;
+  }
 }
 .booking-progress {
   height: 7px;
@@ -2017,38 +2142,16 @@ textarea.input {
   }
 }
 @media (max-width: 960px) {
-  .hero-section > .container {
-    grid-template-columns: 1fr !important;
-    gap: 0 !important;
-    padding-bottom: 28px;
+  .home-info-grid {
+    background: transparent;
   }
-  .hero-section > .container > div:last-child {
-    height: 420px !important;
-  }
-  .home-info-strip > .container {
-    grid-template-columns: 1fr !important;
-    background: transparent !important;
-  }
-  .home-info-strip > .container > div {
+  .home-info-grid > div {
     padding-inline: 18px !important;
     border-bottom: 1px solid #e1e8e4;
-  }
-  #care .container > div:last-child {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-  #contact .container > .card {
-    grid-template-columns: 1fr !important;
-    gap: 30px !important;
   }
   .section > .container[style*="grid-template-columns"] {
     grid-template-columns: 1fr !important;
     gap: 32px !important;
-  }
-  .about-grid,
-  .visit-grid,
-  .contact-grid {
-    grid-template-columns: 1fr;
-    gap: clamp(30px, 5vw, 48px);
   }
 }
 @media (max-width: 800px) {
@@ -2394,8 +2497,8 @@ textarea.input {
   .hero-section .display {
     font-size: clamp(2.75rem, 14vw, 3.5rem) !important;
   }
-  .hero-section > .container > div:last-child {
-    height: 340px !important;
+  .hero-media {
+    height: 340px;
     border-radius: 22px 22px 0 22px !important;
   }
   .about-grid > div:first-child {
@@ -2440,9 +2543,6 @@ textarea.input {
   }
   .dashboard-stats {
     grid-template-columns: 1fr;
-  }
-  #care .container > div:last-child {
-    grid-template-columns: 1fr !important;
   }
   .appointment-filter-grid {
     grid-template-columns: 1fr;

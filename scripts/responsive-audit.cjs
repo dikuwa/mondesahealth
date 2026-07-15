@@ -17,7 +17,11 @@ const dashboardRoutes = quick ? [] : [
   "/dashboard/profile",
   "/dashboard/activity",
 ];
-const viewports = quick ? [{ width: 320, height: 720 }, { width: 375, height: 812 }] : [
+const viewports = quick ? [
+  { width: 320, height: 720 },
+  { width: 375, height: 812 },
+  { width: 720, height: 1000 },
+] : [
   { width: 320, height: 720 },
   { width: 375, height: 812 },
   { width: 768, height: 1024 },
@@ -84,6 +88,13 @@ async function measure(page) {
       await page.goto(`${base}${route}`, { waitUntil: "domcontentloaded" });
       await page.waitForTimeout(80);
       report.public[route][viewport.width] = await measure(page);
+      if (quick && route === "/") {
+        fs.mkdirSync("e2e-artifacts/responsive", { recursive: true });
+        await page.screenshot({
+          path: `e2e-artifacts/responsive/home-${viewport.width}.png`,
+          fullPage: true,
+        });
+      }
     }
   }
 

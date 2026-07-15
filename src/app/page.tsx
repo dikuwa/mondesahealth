@@ -38,7 +38,6 @@ export default function Home() {
         <div
           className="container hero-grid"
           style={{
-            minHeight: 690,
             alignItems: "center",
           }}
         >
@@ -68,14 +67,7 @@ export default function Home() {
               Thoughtful, practical healthcare for individuals and families in
               Mondesa and greater Swakopmund.
             </p>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 12,
-                marginTop: 32,
-              }}
-            >
+            <div className="hero-actions">
               <Link className="btn btn-primary" href="/book">
                 Book an appointment <ArrowRight size={17} />
               </Link>
@@ -83,35 +75,26 @@ export default function Home() {
                 <MessageCircle size={17} /> WhatsApp us
               </a>
             </div>
-            <div
-              style={{
-                display: "flex",
-                gap: 24,
-                flexWrap: "wrap",
-                marginTop: 35,
-                fontSize: 13,
-                fontWeight: 700,
-              }}
-            >
-              <span>
+            <div className="hero-trust">
+              <span className="hero-trust-item">
                 <Check
                   size={15}
-                  style={{ verticalAlign: "middle", color: "#1f5a4c" }}
-                />{" "}
-                No patient account needed
+                  aria-hidden="true"
+                />
+                <span>No patient account needed</span>
               </span>
-              <span>
+              <span className="hero-trust-item">
                 <Check
                   size={15}
-                  style={{ verticalAlign: "middle", color: "#1f5a4c" }}
-                />{" "}
-                Medical aid & private patients
+                  aria-hidden="true"
+                />
+                <span>Medical aid &amp; private patients</span>
               </span>
             </div>
           </div>
           <div
+            className="hero-media"
             style={{
-              height: 570,
               position: "relative",
               borderRadius: "30px 30px 0 30px",
               overflow: "hidden",
@@ -153,13 +136,7 @@ export default function Home() {
       </section>
       <section className="home-info-strip" style={{ borderBottom: "1px solid #e1e8e4" }}>
         <div
-          className="container"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3,1fr)",
-            gap: 1,
-            background: "#e1e8e4",
-          }}
+          className="container home-info-grid"
         >
           {[
             [Clock3, "Open weekdays", "08:00–17:00 Mon–Thu · 16:00 Fri"],
@@ -189,6 +166,7 @@ export default function Home() {
       <section id="about" className="section">
         <div className="container about-grid">
           <div
+            className="about-feature"
             style={{
               background: "#dcece6",
               borderRadius: 24,
@@ -209,7 +187,7 @@ export default function Home() {
               </h2>
             </div>
           </div>
-          <div>
+          <div className="about-copy">
             <p style={{ fontSize: 20, lineHeight: 1.65 }}>
               Mondesa Health is a general medical practice built around careful
               listening, clear explanations and dependable follow-through.
@@ -221,14 +199,7 @@ export default function Home() {
               qualifications and practitioner registration details can be
               maintained by the practice owner in dashboard settings.
             </p>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2,1fr)",
-                gap: 14,
-                marginTop: 28,
-              }}
-            >
+            <div className="about-values">
               {[
                 [
                   HeartHandshake,
@@ -292,7 +263,7 @@ export default function Home() {
       </section>
       <section id="visit" className="section">
         <div className="container visit-grid">
-          <div>
+          <div className="visit-intro">
             <div className="eyebrow">Your appointment</div>
             <h2
               className="display"
@@ -304,7 +275,7 @@ export default function Home() {
               View available times
             </Link>
           </div>
-          <div style={{ display: "grid", gap: 24 }}>
+          <div className="visit-steps">
             {[
               [
                 "01",
@@ -322,16 +293,7 @@ export default function Home() {
                 "Bring identification, relevant medication and your medical aid card if applicable.",
               ],
             ].map(([n, t, d]) => (
-              <div
-                key={n}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "48px 1fr",
-                  gap: 17,
-                  borderBottom: "1px solid #dce4df",
-                  paddingBottom: 22,
-                }}
-              >
+              <div className="visit-step" key={n}>
                 <span style={{ color: "#a27936", fontWeight: 800 }}>{n}</span>
                 <div>
                   <b>{t}</b>
@@ -356,7 +318,7 @@ export default function Home() {
         style={{ background: "#dcece6" }}
       >
         <div className="container contact-grid">
-          <div>
+          <div className="contact-copy">
             <div className="eyebrow">Contact & location</div>
             <h2
               className="display"
@@ -368,14 +330,7 @@ export default function Home() {
               Mondesa, Swakopmund, Namibia. Exact directions and parking
               details can be configured by the practice team.
             </p>
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                flexWrap: "wrap",
-                marginTop: 25,
-              }}
-            >
+            <div className="contact-actions">
               <a className="btn btn-primary" href="tel:+264810000000">
                 <Phone size={17} /> Call
               </a>
@@ -384,16 +339,13 @@ export default function Home() {
               </a>
             </div>
           </div>
-          <div style={{ background: "#f7f4ed", borderRadius: 17, padding: 25 }}>
+          <div className="opening-hours">
             <b>Opening hours</b>
-            <p style={{ lineHeight: 2, color: "#5a7068" }}>
-              Monday – Thursday{" "}
-              <span style={{ float: "right" }}>08:00–17:00</span>
-              <br />
-              Friday <span style={{ float: "right" }}>08:00–16:00</span>
-              <br />
-              Weekends <span style={{ float: "right" }}>Closed</span>
-            </p>
+            <dl className="opening-hours-list">
+              <div><dt>Monday – Thursday</dt><dd>08:00–17:00</dd></div>
+              <div><dt>Friday</dt><dd>08:00–16:00</dd></div>
+              <div><dt>Weekends</dt><dd>Closed</dd></div>
+            </dl>
             <p
               style={{
                 fontSize: 12,
