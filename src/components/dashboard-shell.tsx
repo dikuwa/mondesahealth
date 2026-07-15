@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Activity,
   Banknote,
@@ -88,6 +88,43 @@ export function DashboardShell({
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const sidebar = sidebarRef.current;
+    const focusable = sidebar?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    const first = focusable?.[0];
+    const last = focusable?.[focusable.length - 1];
+    first?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMobileOpen(false);
+        menuButtonRef.current?.focus();
+        return;
+      }
+      if (event.key !== "Tab" || !first || !last) return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileOpen]);
 
   return (
     <div
@@ -101,7 +138,7 @@ export function DashboardShell({
         aria-label="Close navigation"
         onClick={() => setMobileOpen(false)}
       />
-      <aside className="dashboard-sidebar" aria-label="Dashboard sidebar">
+      <aside ref={sidebarRef} className="dashboard-sidebar" aria-label="Dashboard sidebar">
         <div className="dashboard-brand-row">
           <Link
             href="/dashboard"
@@ -189,6 +226,7 @@ export function DashboardShell({
         <header className="dashboard-topbar">
           <div className="dashboard-topbar-title">
             <button
+              ref={menuButtonRef}
               className="dashboard-menu-button"
               aria-label="Open dashboard navigation"
               onClick={() => setMobileOpen(true)}

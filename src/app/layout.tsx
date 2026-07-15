@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter_Tight, Onest } from "next/font/google";
 import { SiteChrome } from "@/components/site-chrome";
 import { ToastProvider } from "@/components/toast-provider";
@@ -21,6 +21,12 @@ const interTight = Inter_Tight({
 export const metadata: Metadata = {
   title: { default: "Mondesa Health | General medical practice", template: "%s | Mondesa Health" },
   description: "Calm, thorough general medical care for individuals and families in Mondesa, Swakopmund.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

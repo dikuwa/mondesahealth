@@ -151,7 +151,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-      <section style={{ borderBottom: "1px solid #e1e8e4" }}>
+      <section className="home-info-strip" style={{ borderBottom: "1px solid #e1e8e4" }}>
         <div
           className="container"
           style={{

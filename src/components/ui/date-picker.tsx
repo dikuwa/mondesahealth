@@ -47,7 +47,7 @@ export function DatePicker({
   disabled,
   className,
 }: Props) {
-  const selected = value ? parseISO(value) : null;
+  const selected = useMemo(() => (value ? parseISO(value) : null), [value]);
   const [open, setOpen] = useState(false),
     [month, setMonth] = useState(startOfMonth(selected || new Date())),
     [typed, setTyped] = useState(
@@ -62,9 +62,11 @@ export function DatePicker({
     return () => document.removeEventListener("mousedown", close);
   }, []);
   useEffect(() => {
+    // This controlled input keeps its editable display and visible month aligned with external form resets.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTyped(selected ? format(selected, "dd/MM/yyyy") : "");
     if (selected) setMonth(startOfMonth(selected));
-  }, [value]);
+  }, [selected]);
   const days = useMemo(() => {
     const start = startOfMonth(month);
     return [

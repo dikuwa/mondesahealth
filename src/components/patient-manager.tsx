@@ -64,7 +64,11 @@ export function PatientManager({
       ),
     [patients, query],
   );
-  useEffect(() => setPatients(initial), [initial]);
+  useEffect(() => {
+    // Refresh the optimistic client list after the server component supplies updated records.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPatients(initial);
+  }, [initial]);
   function show(patient?: Patient) {
     setEditing(patient || null);
     setGender(patient?.gender || "");

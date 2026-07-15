@@ -25,7 +25,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
   // Handle viewport changes
   useEffect(() => {
     const checkMobile = () => {
-      const mobile = window.innerWidth < MOBILE_BREAKPOINT;
+      const mobile = window.innerWidth <= MOBILE_BREAKPOINT;
       setIsMobile(mobile);
       if (!mobile) {
         setMobileOpen(false);
@@ -119,6 +119,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
         >
           <Link
             href="/"
+            className="site-brand"
             aria-label="Mondesa Health home"
             style={{
               display: "flex",
@@ -140,7 +141,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
             >
               <Stethoscope size={20} />
             </span>
-            <span>
+            <span className="site-brand-copy">
               MONDESA <span style={{ color: "#8c6526" }}>HEALTH</span>
             </span>
           </Link>
@@ -165,9 +166,9 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
               <Phone size={17} />
               Call us
             </a>
-            <Link className="btn btn-primary" href="/book">
+            <Link className="btn btn-primary site-book-button" href="/book">
               <Clock3 size={17} />
-              Book <span className="desktop-nav">appointment</span>
+              <span className="site-book-label">Book</span> <span className="desktop-nav">appointment</span>
             </Link>
             {isMobile && (
               <button
