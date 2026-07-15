@@ -2886,7 +2886,11 @@ textarea.input {
 
 /* Final public-mobile pass: keep actions compact and preserve comfortable page gutters. */
 @media (max-width: 800px) {
-  .container { width: min(100% - 32px, 1160px); }
+  .container {
+    width: 100%;
+    max-width: 1160px;
+    padding-inline: 16px;
+  }
   /* Keep public action controls compact on touch screens.  A previous
      deployment allowed flex/grid stretching to turn these pills into tall
      cards, especially in the hero and contact sections. */
@@ -2936,10 +2940,22 @@ textarea.input {
   .service-listing-actions .btn {
     min-height: 52px;
   }
+  .hero-copy,
+  .about-copy,
+  .visit-intro,
+  .contact-copy {
+    padding-inline: 0;
+  }
+  .hero-media,
+  .about-feature,
+  .directory-featured,
+  .map-frame {
+    width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
-  .container { width: min(100% - 32px, 1160px); }
+  .container { width: 100%; padding-inline: 16px; }
   .site-book-button { min-width: 52px; }
   .hero-actions,
   .contact-actions { gap: 10px; }
