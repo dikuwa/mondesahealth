@@ -3111,6 +3111,91 @@ textarea.input {
 .claim-line-total, .claim-total { display: flex; justify-content: flex-end; gap: 16px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
 .claim-total { font-size: 1.15rem; }
 .icd-pickers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+
+/* Public experience: one coherent type and spacing scale.  Keep this block
+   scoped to the public shell so dashboard and forms retain their denser UI. */
+main {
+  --public-max: 1160px;
+}
+main .container {
+  width: min(var(--public-max), calc(100% - 48px));
+}
+main .section {
+  padding-block: clamp(72px, 8vw, 120px);
+}
+main .eyebrow {
+  font-size: 0.78rem;
+  line-height: 1.25;
+  letter-spacing: 0.16em;
+}
+main h1,
+main h2,
+main h3 {
+  text-wrap: balance;
+}
+main h2.display {
+  font-size: clamp(2.5rem, 4.4vw, 4.2rem);
+  line-height: 0.98;
+}
+main p {
+  text-wrap: pretty;
+}
+.polyclinic-hero .hero-grid {
+  min-height: 680px;
+  padding-block: 72px;
+}
+.polyclinic-hero .hero-copy h1 {
+  max-width: 700px;
+  margin: 18px 0 24px;
+  font-size: clamp(4rem, 6.2vw, 6.5rem);
+  line-height: 0.92;
+  letter-spacing: -0.06em;
+}
+.polyclinic-hero .hero-copy > p {
+  max-width: 580px;
+  margin: 0;
+  font-size: clamp(1.05rem, 1.5vw, 1.22rem);
+  line-height: 1.65;
+}
+.hero-actions { margin-top: 30px; }
+.hero-trust { margin-top: 26px; }
+.about-feature h2 { font-size: clamp(2.6rem, 4.5vw, 4.8rem); }
+.about-copy .about-lead { font-size: clamp(1.35rem, 2.1vw, 1.75rem) !important; line-height: 1.4 !important; }
+.directory-heading h2 { font-size: clamp(2.5rem, 4.2vw, 4.2rem); }
+.visit-intro h2,
+.contact-copy h2,
+.closing-cta h2 { font-size: clamp(2.6rem, 4.4vw, 4.5rem); line-height: 0.98; }
+.visit-step b,
+.value-item b,
+.home-info-item b { font-size: 1rem; line-height: 1.35; }
+.home-info-item { min-height: 98px; }
+.directory-featured-actions { min-width: 190px; }
+
+@media (max-width: 960px) {
+  main .container { width: min(var(--public-max), calc(100% - 36px)); }
+  .polyclinic-hero .hero-grid { min-height: 0; padding-block: 44px 56px; }
+  .polyclinic-hero .hero-copy h1 { font-size: clamp(3.4rem, 10vw, 5rem); }
+  main .section { padding-block: 72px; }
+}
+@media (max-width: 600px) {
+  main .container { width: calc(100% - 32px); }
+  main .section { padding-block: 60px; }
+  .polyclinic-hero .hero-grid { padding-block: 28px 44px; }
+  .polyclinic-hero .hero-copy h1 { margin: 14px 0 20px; font-size: clamp(2.8rem, 13vw, 4rem); line-height: .95; }
+  .polyclinic-hero .hero-copy > p { font-size: 1rem; line-height: 1.6; }
+  main h2.display,
+  .about-feature h2,
+  .directory-heading h2,
+  .visit-intro h2,
+  .contact-copy h2,
+  .closing-cta h2 { font-size: clamp(2.35rem, 11vw, 3.5rem); }
+  .about-feature { padding: 28px; min-height: 360px; border-radius: 24px; }
+  .hero-media { min-height: 340px; height: 340px; border-radius: 22px 22px 0 22px; }
+  .hero-media-note { right: 12px; bottom: 12px; left: 12px; padding: 14px; }
+  .hero-media-note b { font-size: .98rem; }
+  .hero-media-note span { font-size: .8rem; }
+  .home-info-item { min-height: 74px; padding-block: 18px; }
+}
 .icd-search { position: relative; min-width: 0; }
 .icd-search .search-box { width: 100%; }
 .icd-results { position: absolute; z-index: 35; top: calc(100% + 6px); right: 0; left: 0; max-height: 320px; overflow-y: auto; border: 1px solid #cfdad5; border-radius: 12px; background: #fff; box-shadow: 0 18px 45px #18332d26; }
