@@ -4,11 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Clock3, LogIn, Menu, Phone, Stethoscope, X } from "lucide-react";
+import type { PublicSiteConfig } from "@/lib/public-site";
 
 const MOBILE_BREAKPOINT = 800;
 
-export function SiteChrome({ children }: { children: React.ReactNode }) {
+export function SiteChrome({ children, site }: { children: React.ReactNode; site: PublicSiteConfig }) {
   const pathname = usePathname();
+  const telephoneHref = `tel:${site.phone.replace(/[^\d+]/g, "")}`;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -143,6 +145,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
             </span>
             <span className="site-brand-copy">
               MONDESA <span style={{ color: "#8c6526" }}>HEALTH</span>
+              <small>POLYCLINIC</small>
             </span>
           </Link>
           <nav
@@ -157,18 +160,18 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
             }}
           >
             <Link href="/#about">About</Link>
-            <Link href="/#care">What we help with</Link>
+            <Link href="/services">Services</Link>
             <Link href="/#visit">Your visit</Link>
-            <Link href="/#contact">Contact</Link>
+            <Link href="/#contact">Location</Link>
           </nav>
           <div style={{ display: "flex", gap: 9, alignItems: "center" }}>
-            <a className="btn btn-light desktop-nav" href="tel:+264810000000">
+            <a className="btn btn-light desktop-nav" href={telephoneHref}>
               <Phone size={17} />
               Call us
             </a>
             <Link className="btn btn-primary site-book-button" href="/book">
               <Clock3 size={17} />
-              <span className="site-book-label">Book</span> <span className="desktop-nav">appointment</span>
+              <span className="site-book-label">Book GP</span> <span className="desktop-nav">appointment</span>
             </Link>
             {isMobile && (
               <button
@@ -251,7 +254,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
               About
             </Link>
             <Link
-              href="/#care"
+              href="/services"
               onClick={closeDrawer}
               style={{
                 minHeight: 44,
@@ -263,7 +266,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
                 fontWeight: 750,
               }}
             >
-              What we help with
+              Services
             </Link>
             <Link
               href="/#visit"
@@ -293,7 +296,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
                 fontWeight: 750,
               }}
             >
-              Contact
+              Location
             </Link>
             <Link
               href="/policies"
@@ -323,28 +326,26 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
             <div>
               <h3 style={{ fontSize: 27, margin: "0 0 12px" }}>Care that listens.</h3>
               <p style={{ color: "#c8dad4", maxWidth: 430, lineHeight: 1.7 }}>
-                General medical care for the Mondesa and greater Swakopmund community. Every patient is treated with dignity, attention and respect.
+                {site.publicDescription}
               </p>
             </div>
             <div>
               <b>Visit</b>
               <p style={{ color: "#c8dad4", lineHeight: 1.7 }}>
-                Mondesa<br />
-                Swakopmund, Namibia<br />
-                Mon–Thu 08:00–17:00<br />
-                Fri 08:00–16:00
+                {site.address}<br />
+                {site.locationNote}
               </p>
             </div>
             <div>
               <b>Contact</b>
               <p style={{ color: "#c8dad4", lineHeight: 1.7 }}>
-                +264 81 000 0000<br />
-                hello@mondesahealth.na
+                <a href={telephoneHref}>{site.phone}</a>
+                {site.email && <><br /><a href={`mailto:${site.email}`}>{site.email}</a></>}
               </p>
             </div>
           </div>
           <div className="footer-meta">
-            <span>© 2026 Mondesa Health · Designed by Flextech Media</span>
+            <span>© 2026 {site.practiceName} · Designed by Flextech Media</span>
             <div className="footer-links">
               <Link href="/policies">Privacy · Booking terms · Medical disclaimer</Link>
               <Link href="/login">

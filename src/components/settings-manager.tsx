@@ -18,6 +18,15 @@ type Setting = {
   signatureName: string;
   signatureTitle: string;
   vatEnabled: boolean;
+  tagline: string;
+  publicDescription: string;
+  locationNote: string;
+  mapsUrl: string;
+  mapLatitude: number | null;
+  mapLongitude: number | null;
+  publicHours: string | null;
+  showEmail: boolean;
+  showWhatsapp: boolean;
 };
 
 type Fund = {
@@ -171,6 +180,46 @@ export function SettingsManager({
             Save documents
           </button>
         </div>
+      </form>
+
+      <form
+        className="card dashboard-card settings-form dashboard-span-all"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const form = event.currentTarget;
+          const data = Object.fromEntries(new FormData(form));
+          patch(
+            {
+              ...setting,
+              ...data,
+              mapLatitude: data.mapLatitude === "" ? null : Number(data.mapLatitude),
+              mapLongitude: data.mapLongitude === "" ? null : Number(data.mapLongitude),
+              publicHours: data.publicHours || null,
+              showEmail: new FormData(form).has("showEmail"),
+              showWhatsapp: new FormData(form).has("showWhatsapp"),
+            },
+            "Saving public site settings…",
+          );
+        }}
+      >
+        <div className="settings-card-heading">
+          <h2>Public site</h2>
+          <p className="muted">These confirmed details appear on the public website. Email, WhatsApp and hours stay hidden until you publish them.</p>
+        </div>
+        <div className="settings-fields settings-public-fields">
+          <div className="field settings-wide"><label htmlFor="setting-tagline">Tagline</label><input id="setting-tagline" className="input" name="tagline" defaultValue={setting.tagline} required /></div>
+          <div className="field settings-wide"><label htmlFor="setting-publicDescription">Public description</label><textarea id="setting-publicDescription" className="input" name="publicDescription" defaultValue={setting.publicDescription} required /></div>
+          <div className="field"><label htmlFor="setting-locationNote">Location note</label><input id="setting-locationNote" className="input" name="locationNote" defaultValue={setting.locationNote} /></div>
+          <div className="field"><label htmlFor="setting-mapsUrl">Google Maps URL</label><input id="setting-mapsUrl" className="input" name="mapsUrl" type="url" defaultValue={setting.mapsUrl} /></div>
+          <div className="field"><label htmlFor="setting-mapLatitude">Latitude</label><input id="setting-mapLatitude" className="input" name="mapLatitude" type="number" step="any" min="-90" max="90" defaultValue={setting.mapLatitude ?? ""} /></div>
+          <div className="field"><label htmlFor="setting-mapLongitude">Longitude</label><input id="setting-mapLongitude" className="input" name="mapLongitude" type="number" step="any" min="-180" max="180" defaultValue={setting.mapLongitude ?? ""} /></div>
+          <div className="field settings-wide"><label htmlFor="setting-publicHours">Opening hours (optional)</label><textarea id="setting-publicHours" className="input" name="publicHours" defaultValue={setting.publicHours ?? ""} placeholder="Leave blank until confirmed" /></div>
+        </div>
+        <div className="settings-visibility">
+          <label className="toggle-label settings-checkbox-row"><input type="checkbox" name="showEmail" defaultChecked={setting.showEmail} /><span>Show email publicly</span></label>
+          <label className="toggle-label settings-checkbox-row"><input type="checkbox" name="showWhatsapp" defaultChecked={setting.showWhatsapp} /><span>Show WhatsApp publicly</span></label>
+        </div>
+        <div className="settings-form-actions"><button className="btn btn-primary" disabled={saving}>{saving ? <Loader2 className="toast-spinner" size={17} /> : <Save size={17} />}Save public site</button></div>
       </form>
 
       <section className="card dashboard-card dashboard-span-all settings-funds">

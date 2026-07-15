@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { roleDefaults } from "../src/lib/permissions";
 import { passwordSchema } from "../src/lib/password";
+import { bootstrapPolyclinic } from "./polyclinic-data";
 
 const db = new PrismaClient();
 
@@ -11,7 +12,7 @@ async function main() {
   const ownerName=process.env.OWNER_NAME||"Practice Owner";
   if(process.env.NODE_ENV==="production"&&!process.env.OWNER_PASSWORD)throw new Error("OWNER_PASSWORD is required when seeding production.");
   passwordSchema.parse(ownerPassword);
-  await db.practiceSetting.upsert({ where: { id: "practice" }, update: {}, create: { id: "practice" } });
+  await bootstrapPolyclinic(db);
 
   await db.user.upsert({
     where: { email: ownerEmail },

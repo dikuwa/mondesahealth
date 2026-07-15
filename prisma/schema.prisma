@@ -162,6 +162,68 @@ model PracticeSetting {
   signatureName      String  @default("Dr Helena Ndeitunga")
   signatureTitle     String  @default("Medical Practitioner")
   vatEnabled         Boolean @default(false)
+  tagline            String  @default("Your Health. Your Choice. Your Community.")
+  publicDescription  String  @default("Mondesa Health Polyclinic brings multiple healthcare disciplines together in one trusted community healthcare destination.")
+  locationNote       String  @default("")
+  mapsUrl            String  @default("")
+  mapLatitude        Float?
+  mapLongitude       Float?
+  publicHours        String?
+  showEmail          Boolean @default(false)
+  showWhatsapp       Boolean @default(false)
+}
+
+model Department {
+  id             String              @id @default(cuid())
+  slug           String              @unique
+  name           String
+  categoryLabel  String
+  summary        String
+  description    String
+  status         String              @default("COMING_SOON")
+  public         Boolean             @default(true)
+  bookingEnabled Boolean             @default(false)
+  sortOrder      Int                 @default(0)
+  services       DepartmentService[]
+  providers      Provider[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([public, sortOrder])
+  @@index([status])
+}
+
+model DepartmentService {
+  id           String     @id @default(cuid())
+  departmentId String
+  name         String
+  description  String?
+  public       Boolean    @default(true)
+  sortOrder    Int        @default(0)
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([departmentId, name])
+  @@index([departmentId, public, sortOrder])
+}
+
+model Provider {
+  id             String     @id @default(cuid())
+  departmentId   String
+  displayName    String
+  practiceName   String?
+  biography      String?
+  phone          String?
+  email          String?
+  operatingHours String?
+  public         Boolean    @default(false)
+  sortOrder      Int        @default(0)
+  department     Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([departmentId, public, sortOrder])
 }
 
 model Claim {

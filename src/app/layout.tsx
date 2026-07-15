@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter_Tight, Onest } from "next/font/google";
 import { SiteChrome } from "@/components/site-chrome";
 import { ToastProvider } from "@/components/toast-provider";
+import { getPublicSiteConfig } from "@/lib/public-site";
 import "./globals.css";
 
 const onest = Onest({
@@ -19,9 +20,11 @@ const interTight = Inter_Tight({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Mondesa Health | General medical practice", template: "%s | Mondesa Health" },
-  description: "Calm, thorough general medical care for individuals and families in Mondesa, Swakopmund.",
+  title: { default: "Mondesa Health Polyclinic", template: "%s | Mondesa Health Polyclinic" },
+  description: "One trusted community destination for primary care and expanding healthcare services in Mondesa, Swakopmund.",
 };
+
+export const dynamic = "force-dynamic";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -29,9 +32,10 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const site = await getPublicSiteConfig();
   return <html lang="en" className={`${onest.variable} ${interTight.variable}`} data-scroll-behavior="smooth"><body>
-    <SiteChrome>{children}</SiteChrome>
+    <SiteChrome site={site}>{children}</SiteChrome>
     <ToastProvider/>
   </body></html>;
 }

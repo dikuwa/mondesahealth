@@ -4,7 +4,7 @@ const fs = require("node:fs");
 
 const base = process.env.E2E_BASE_URL || "http://localhost:3000";
 const quick = process.env.E2E_QUICK === "1";
-const publicRoutes = quick ? ["/"] : ["/", "/book", "/login", "/policies"];
+const publicRoutes = quick ? ["/"] : ["/", "/services", "/services/general-practice", "/services/dental-practice", "/book", "/login", "/policies"];
 const dashboardRoutes = quick ? [] : [
   "/dashboard",
   "/dashboard/appointments",
@@ -13,6 +13,7 @@ const dashboardRoutes = quick ? [] : [
   "/dashboard/finance",
   "/dashboard/availability",
   "/dashboard/settings",
+  "/dashboard/services",
   "/dashboard/users",
   "/dashboard/profile",
   "/dashboard/activity",

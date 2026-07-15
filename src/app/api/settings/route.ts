@@ -9,6 +9,10 @@ const detailsSchema=z.object({
   phone:z.string().trim().min(7),whatsapp:z.string().trim().min(7),email:z.string().email(),
   address:z.string().trim().min(4),currency:z.string().trim().length(3),
   signatureName:z.string().trim().min(2),signatureTitle:z.string().trim().min(2),vatEnabled:z.boolean(),
+  tagline:z.string().trim().min(10).max(160),publicDescription:z.string().trim().min(20).max(1000),
+  locationNote:z.string().trim().max(240),mapsUrl:z.union([z.literal(""),z.string().url()]),
+  mapLatitude:z.number().min(-90).max(90).nullable(),mapLongitude:z.number().min(-180).max(180).nullable(),
+  publicHours:z.string().trim().max(1000).nullable(),showEmail:z.boolean(),showWhatsapp:z.boolean(),
 });
 
 export async function PATCH(request:Request){

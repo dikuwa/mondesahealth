@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Activity,
   Banknote,
+  Building2,
   CalendarDays,
   ChevronLeft,
   ExternalLink,
@@ -52,6 +53,7 @@ const sections = [
   {
     label: "System",
     items: [
+      ["Services & providers", "/dashboard/services", Building2, "MANAGE_PRACTICE"],
       ["Settings", "/dashboard/settings", Settings, "MANAGE_PRACTICE"],
       ["Staff users", "/dashboard/users", UserCog, "MANAGE_USERS"],
       ["Activity log", "/dashboard/activity", Activity, "VIEW_ACTIVITY"],
@@ -67,6 +69,7 @@ const pageNames: Record<string, string> = {
   "/dashboard/finance": "Finance",
   "/dashboard/availability": "Availability",
   "/dashboard/settings": "Settings",
+  "/dashboard/services": "Services & providers",
   "/dashboard/activity": "Activity log",
   "/dashboard/users": "Staff users",
   "/dashboard/profile": "Profile & security",
