@@ -2880,6 +2880,48 @@ textarea.input {
   .site-brand-copy { display: none; }
 }
 
+/* Final public-mobile pass: keep actions compact and preserve comfortable page gutters. */
+@media (max-width: 800px) {
+  .container { width: min(100% - 32px, 1160px); }
+  .site-book-button {
+    position: relative;
+    z-index: 2;
+    min-width: 52px;
+    width: auto;
+    min-height: 48px;
+    padding-inline: 15px;
+    pointer-events: auto;
+  }
+  .directory-featured-actions,
+  .service-listing-actions {
+    align-items: stretch;
+  }
+  .directory-featured-actions .btn,
+  .service-listing-actions .btn,
+  .hero-actions .btn,
+  .contact-actions .btn {
+    width: 100%;
+    min-height: 56px;
+    flex: 0 0 auto;
+    padding-inline: 18px;
+  }
+  .directory-featured-actions .btn,
+  .service-listing-actions .btn {
+    min-height: 52px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container { width: min(100% - 32px, 1160px); }
+  .site-book-button { min-width: 52px; }
+  .hero-actions,
+  .contact-actions { gap: 10px; }
+  .hero-actions .btn,
+  .contact-actions .btn { min-height: 54px; }
+  .directory-featured-actions .btn,
+  .service-listing-actions .btn { min-height: 50px; }
+}
+
 /* Medical-aid claims */
 .claim-filters, .manager-actions, .batch-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .claim-filters .search-box { min-width: min(340px, 100%); }
