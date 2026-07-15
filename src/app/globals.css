@@ -2965,6 +2965,39 @@ textarea.input {
   .service-listing-actions .btn { min-height: 50px; }
 }
 
+/* Public type hierarchy: the hero headline is the page's single H1. */
+.polyclinic-hero .hero-copy h1 {
+  max-width: 700px;
+  margin: 18px 0 25px;
+  font-size: clamp(3.75rem, 5.5vw, 6.25rem);
+  line-height: .94;
+  letter-spacing: -.055em;
+}
+.polyclinic-about .about-feature h2 {
+  max-width: 560px;
+  font-size: clamp(2.5rem, 4.2vw, 4.5rem);
+  line-height: .97;
+}
+.polyclinic-about .about-lead {
+  max-width: 650px;
+}
+
+@media (max-width: 960px) {
+  .polyclinic-hero .hero-copy h1 {
+    font-size: clamp(3.25rem, 10vw, 5rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .polyclinic-hero .hero-copy h1 {
+    margin-top: 15px;
+    font-size: clamp(2.65rem, 13.5vw, 3.5rem);
+  }
+  .polyclinic-about .about-feature h2 {
+    font-size: clamp(2.25rem, 10vw, 3rem);
+  }
+}
+
 /* Medical-aid claims */
 .claim-filters, .manager-actions, .batch-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .claim-filters .search-box { min-width: min(340px, 100%); }
