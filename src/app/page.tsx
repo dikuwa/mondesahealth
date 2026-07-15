@@ -28,6 +28,7 @@ export default function Home() {
   return (
     <main>
       <section
+        className="hero-section"
         style={{
           background:
             "linear-gradient(100deg,#f7f4ed 0%,#f7f4ed 46%,#dcece6 100%)",
@@ -35,13 +36,10 @@ export default function Home() {
         }}
       >
         <div
-          className="container"
+          className="container hero-grid"
           style={{
             minHeight: 690,
-            display: "grid",
-            gridTemplateColumns: ".92fr 1.08fr",
             alignItems: "center",
-            gap: 58,
           }}
         >
           <div
@@ -189,15 +187,7 @@ export default function Home() {
         </div>
       </section>
       <section id="about" className="section">
-        <div
-          className="container"
-          style={{
-            display: "grid",
-            gridTemplateColumns: ".85fr 1.15fr",
-            gap: 80,
-            alignItems: "center",
-          }}
-        >
+        <div className="container about-grid">
           <div
             style={{
               background: "#dcece6",
@@ -284,14 +274,7 @@ export default function Home() {
               guide the consultation.
             </p>
           </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4,1fr)",
-              gap: 14,
-              marginTop: 36,
-            }}
-          >
+          <div className="care-grid">
             {care.map((item, i) => (
               <div
                 className="card"
@@ -308,10 +291,7 @@ export default function Home() {
         </div>
       </section>
       <section id="visit" className="section">
-        <div
-          className="container"
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 70 }}
-        >
+        <div className="container visit-grid">
           <div>
             <div className="eyebrow">Your appointment</div>
             <h2
@@ -370,73 +350,61 @@ export default function Home() {
           </div>
         </div>
       </section>
-      <section
+<section
         id="contact"
         className="section"
         style={{ background: "#dcece6" }}
       >
-        <div className="container">
-          <div
-            className="card"
-            style={{
-              padding: "clamp(28px,5vw,58px)",
-              display: "grid",
-              gridTemplateColumns: "1.2fr .8fr",
-              gap: 55,
-            }}
-          >
-            <div>
-              <div className="eyebrow">Contact & location</div>
-              <h2
-                className="display"
-                style={{ fontSize: 48, margin: "16px 0" }}
-              >
-                Care close to home.
-              </h2>
-              <p style={{ lineHeight: 1.75, color: "#60736d" }}>
-                Mondesa, Swakopmund, Namibia. Exact directions and parking
-                details can be configured by the practice team.
-              </p>
-              <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  flexWrap: "wrap",
-                  marginTop: 25,
-                }}
-              >
-                <a className="btn btn-primary" href="tel:+264810000000">
-                  <Phone size={17} /> Call
-                </a>
-                <a className="btn btn-light" href="https://wa.me/264810000000" target="_blank" rel="noopener noreferrer">
-                  <MessageCircle size={17} /> WhatsApp
-                </a>
-              </div>
-            </div>
-            <div
-              style={{ background: "#f7f4ed", borderRadius: 17, padding: 25 }}
+        <div className="container contact-grid">
+          <div>
+            <div className="eyebrow">Contact & location</div>
+            <h2
+              className="display"
+              style={{ fontSize: 48, margin: "16px 0" }}
             >
-              <b>Opening hours</b>
-              <p style={{ lineHeight: 2, color: "#5a7068" }}>
-                Monday – Thursday{" "}
-                <span style={{ float: "right" }}>08:00–17:00</span>
-                <br />
-                Friday <span style={{ float: "right" }}>08:00–16:00</span>
-                <br />
-                Weekends <span style={{ float: "right" }}>Closed</span>
-              </p>
-              <p
-                style={{
-                  fontSize: 12,
-                  borderTop: "1px solid #ded8cd",
-                  paddingTop: 13,
-                  color: "#7a6d59",
-                }}
-              >
-                For a medical emergency, call 112 or go to the nearest emergency
-                department. Online booking is not an emergency service.
-              </p>
+              Care close to home.
+            </h2>
+            <p style={{ lineHeight: 1.75, color: "#60736d" }}>
+              Mondesa, Swakopmund, Namibia. Exact directions and parking
+              details can be configured by the practice team.
+            </p>
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                marginTop: 25,
+              }}
+            >
+              <a className="btn btn-primary" href="tel:+264810000000">
+                <Phone size={17} /> Call
+              </a>
+              <a className="btn btn-light" href="https://wa.me/264810000000" target="_blank" rel="noopener noreferrer">
+                <MessageCircle size={17} /> WhatsApp
+              </a>
             </div>
+          </div>
+          <div style={{ background: "#f7f4ed", borderRadius: 17, padding: 25 }}>
+            <b>Opening hours</b>
+            <p style={{ lineHeight: 2, color: "#5a7068" }}>
+              Monday – Thursday{" "}
+              <span style={{ float: "right" }}>08:00–17:00</span>
+              <br />
+              Friday <span style={{ float: "right" }}>08:00–16:00</span>
+              <br />
+              Weekends <span style={{ float: "right" }}>Closed</span>
+            </p>
+            <p
+              style={{
+                fontSize: 12,
+                borderTop: "1px solid #ded8cd",
+                paddingTop: 13,
+                color: "#7a6d59",
+              }}
+            >
+              For a medical emergency, call 112 or go to the nearest emergency
+              department. Online booking is not an emergency service.
+            </p>
           </div>
         </div>
       </section>
