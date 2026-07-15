@@ -25,6 +25,12 @@ model User {
   payments             Payment[]
   logs                 ActivityLog[]
   appointmentResponses AppointmentChangeRequest[] @relation("ChangeResponder")
+  icd10Imports         Icd10Import[]              @relation("Icd10Importer")
+  consentsCaptured     MedicalAidConsent[]        @relation("ConsentCapturer")
+  claimsCreated        Claim[]                    @relation("ClaimCreator")
+  claimEvents          ClaimStatusEvent[]
+  batchesSubmitted     ClaimBatch[]               @relation("BatchSubmitter")
+  claimAttachments     ClaimAttachment[]
 }
 
 model Patient {
@@ -53,43 +59,64 @@ model Patient {
   claims            Claim[]
   invoices          Invoice[]
   payments          Payment[]
+  consents          MedicalAidConsent[]
 }
 
 model MedicalAid {
-  id                     String              @id @default(cuid())
-  name                   String              @unique
-  normalizedName         String              @unique
-  abbreviation           String?
-  administrator          String?
-  claimsEmail            String?
-  supportEmail           String?
-  phone                  String?
-  portalUrl              String?
-  submissionInstructions String?
-  active                 Boolean             @default(true)
-  public                 Boolean             @default(true)
-  sortOrder              Int                 @default(0)
-  memberships            PatientMedicalAid[]
+  id                        String              @id @default(cuid())
+  name                      String              @unique
+  normalizedName            String              @unique
+  abbreviation              String?
+  administrator             String?
+  claimsEmail               String?
+  supportEmail              String?
+  phone                     String?
+  portalUrl                 String?
+  submissionInstructions    String?
+  postalAddress             String?
+  physicalAddress           String?
+  acceptedSubmissionMethods String              @default("[]")
+  coverSheetRequired        Boolean             @default(false)
+  serviceDateRangeRequired  Boolean             @default(false)
+  active                    Boolean             @default(true)
+  public                    Boolean             @default(true)
+  sortOrder                 Int                 @default(0)
+  memberships               PatientMedicalAid[]
+  claims                    Claim[]
+  batches                   ClaimBatch[]
+  createdAt                 DateTime            @default(now())
+  updatedAt                 DateTime            @default(now()) @updatedAt
 }
 
 model PatientMedicalAid {
-  id               String      @id @default(cuid())
-  patientId        String
-  medicalAidId     String?
-  customFundName   String?
-  membershipNumber String?
-  plan             String?
-  principalName    String?
-  principalId      String?
-  dependantCode    String?
-  relationship     String?
-  effectiveDate    DateTime?
-  expiryDate       DateTime?
-  current          Boolean     @default(true)
-  verified         Boolean     @default(false)
-  patient          Patient     @relation(fields: [patientId], references: [id])
-  medicalAid       MedicalAid? @relation(fields: [medicalAidId], references: [id])
-  createdAt        DateTime    @default(now())
+  id                     String              @id @default(cuid())
+  patientId              String
+  medicalAidId           String?
+  customFundName         String?
+  membershipNumber       String?
+  plan                   String?
+  principalName          String?
+  principalId            String?
+  dependantCode          String?
+  relationship           String?
+  beneficiarySuffix      String?
+  effectiveDate          DateTime?
+  expiryDate             DateTime?
+  preAuthorisationNumber String?
+  directBillingEnabled   Boolean             @default(true)
+  reimbursementOnly      Boolean             @default(false)
+  notes                  String?
+  current                Boolean             @default(true)
+  verified               Boolean             @default(false)
+  patient                Patient             @relation(fields: [patientId], references: [id])
+  medicalAid             MedicalAid?         @relation(fields: [medicalAidId], references: [id])
+  consents               MedicalAidConsent[]
+  claims                 Claim[]
+  attachments            ClaimAttachment[]
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @default(now()) @updatedAt
+
+  @@index([patientId, current])
 }
 
 model Appointment {
@@ -171,6 +198,11 @@ model PracticeSetting {
   publicHours        String?
   showEmail          Boolean @default(false)
   showWhatsapp       Boolean @default(false)
+  claimContactName   String  @default("")
+  claimPhone         String  @default("")
+  claimEmail         String  @default("")
+  claimPostalAddress String  @default("")
+  consentWording     String  @default("I understand that diagnosis information may be represented using ICD-10 codes and disclosed to the selected medical-aid fund or its administrator for the purpose of processing and assessing my medical-aid claim.")
 }
 
 model Department {
@@ -227,61 +259,121 @@ model Provider {
 }
 
 model Claim {
-  id                 String           @id @default(cuid())
-  claimNumber        String           @unique
-  patientId          String
-  appointmentId      String           @unique
-  status             String           @default("DRAFT")
-  consultationDate   DateTime
-  practitioner       String
-  practiceNumber     String
-  medicalAidSnapshot String?
-  membershipSnapshot String?
-  principalSnapshot  String?
-  dependantSnapshot  String?
-  planSnapshot       String?
-  primaryDiagnosis   String?
-  primaryIcd10       String?
-  amountSubmitted    Float            @default(0)
-  amountApproved     Float            @default(0)
-  amountReceived     Float            @default(0)
-  patientShortfall   Float            @default(0)
-  patient            Patient          @relation(fields: [patientId], references: [id])
-  appointment        Appointment      @relation(fields: [appointmentId], references: [id])
-  lines              ClaimLine[]
-  batches            ClaimBatchItem[]
-  payments           Payment[]
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  id                       String             @id @default(cuid())
+  claimNumber              String             @unique
+  patientId                String
+  appointmentId            String?            @unique
+  patientMedicalAidId      String?
+  medicalAidFundId         String?
+  createdByUserId          String?
+  originalClaimId          String?
+  status                   String             @default("DRAFT")
+  claimType                String             @default("DIRECT_MEDICAL_AID")
+  submissionType           String             @default("FIRST_SUBMISSION")
+  isResubmission           Boolean            @default(false)
+  serviceDateFrom          DateTime?
+  serviceDateTo            DateTime?
+  consultationDate         DateTime
+  practitioner             String
+  practiceNumber           String
+  medicalAidSnapshot       String?
+  membershipSnapshot       String?
+  principalSnapshot        String?
+  dependantSnapshot        String?
+  planSnapshot             String?
+  primaryDiagnosis         String?
+  primaryIcd10             String?
+  amountSubmitted          Float              @default(0)
+  amountApproved           Float              @default(0)
+  amountReceived           Float              @default(0)
+  patientShortfall         Float              @default(0)
+  patientSnapshot          String?
+  membershipDetailSnapshot String?
+  providerSnapshot         String?
+  practiceSnapshot         String?
+  consentSnapshot          String?
+  validationState          String?
+  internalNotes            String?
+  submittedAt              DateTime?
+  acknowledgedAt           DateTime?
+  patient                  Patient            @relation(fields: [patientId], references: [id])
+  appointment              Appointment?       @relation(fields: [appointmentId], references: [id])
+  patientMedicalAid        PatientMedicalAid? @relation(fields: [patientMedicalAidId], references: [id])
+  medicalAidFund           MedicalAid?        @relation(fields: [medicalAidFundId], references: [id])
+  createdBy                User?              @relation("ClaimCreator", fields: [createdByUserId], references: [id])
+  originalClaim            Claim?             @relation("ClaimResubmissions", fields: [originalClaimId], references: [id])
+  resubmissions            Claim[]            @relation("ClaimResubmissions")
+  lines                    ClaimLine[]
+  batches                  ClaimBatchItem[]
+  payments                 Payment[]
+  statusEvents             ClaimStatusEvent[]
+  attachments              ClaimAttachment[]
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+
+  @@index([status, updatedAt])
+  @@index([patientId, serviceDateFrom])
+  @@index([medicalAidFundId, status])
 }
 
 model ClaimLine {
-  id            String  @id @default(cuid())
-  claimId       String
-  tariffCode    String?
-  description   String
-  icd10         String?
-  quantity      Float   @default(1)
-  rate          Float
-  claimed       Float
-  approved      Float   @default(0)
-  rejected      Float   @default(0)
-  patientAmount Float   @default(0)
-  claim         Claim   @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  id                           String                   @id @default(cuid())
+  claimId                      String
+  serviceDate                  DateTime?
+  procedureItemId              String?
+  procedureCodeSnapshot        String?
+  procedureDescriptionSnapshot String?
+  tariffCode                   String?
+  description                  String
+  icd10                        String?
+  quantity                     Float                    @default(1)
+  rate                         Float
+  claimed                      Float
+  approved                     Float                    @default(0)
+  rejected                     Float                    @default(0)
+  patientAmount                Float                    @default(0)
+  modifier                     String?
+  nappiCode                    String?
+  medicationDescription        String?
+  referralDiagnosis            String?
+  preAuthorisationNumber       String?
+  clinicalClaimNote            String?
+  sortOrder                    Int                      @default(0)
+  claim                        Claim                    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  procedureItem                MedicalAidProcedureItem? @relation(fields: [procedureItemId], references: [id])
+  diagnosisCodes               ClaimLineIcd10Code[]
+
+  @@index([claimId, sortOrder])
 }
 
 model ClaimBatch {
-  id               String           @id @default(cuid())
-  reference        String           @unique
-  medicalAidName   String
-  periodStart      DateTime
-  periodEnd        DateTime
-  totalAmount      Float
-  status           String           @default("DRAFT")
-  submissionMethod String?
-  submittedAt      DateTime?
-  items            ClaimBatchItem[]
-  createdAt        DateTime         @default(now())
+  id                  String            @id @default(cuid())
+  reference           String            @unique
+  medicalAidName      String
+  medicalAidFundId    String?
+  submissionType      String            @default("FIRST_SUBMISSION")
+  datePrepared        DateTime          @default(now())
+  serviceDateFrom     DateTime?
+  serviceDateTo       DateTime?
+  totalClaims         Int               @default(0)
+  periodStart         DateTime
+  periodEnd           DateTime
+  totalAmount         Float
+  status              String            @default("DRAFT")
+  submissionMethod    String?
+  submittedAt         DateTime?
+  submissionReference String?
+  submittedByUserId   String?
+  acknowledgedAt      DateTime?
+  notes               String?
+  medicalAidFund      MedicalAid?       @relation(fields: [medicalAidFundId], references: [id])
+  submittedBy         User?             @relation("BatchSubmitter", fields: [submittedByUserId], references: [id])
+  items               ClaimBatchItem[]
+  attachments         ClaimAttachment[]
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @default(now()) @updatedAt
+
+  @@index([medicalAidFundId, status])
 }
 
 model ClaimBatchItem {
@@ -291,6 +383,147 @@ model ClaimBatchItem {
   claim   Claim      @relation(fields: [claimId], references: [id])
 
   @@id([batchId, claimId])
+}
+
+model MedicalAidConsent {
+  id                    String             @id @default(cuid())
+  patientId             String
+  patientMedicalAidId   String?
+  consentStatus         String             @default("NOT_CAPTURED")
+  consentDate           DateTime           @default(now())
+  patientOrGuardianName String
+  relationshipToPatient String?
+  capturedByUserId      String
+  signatureData         String?
+  notes                 String?
+  patient               Patient            @relation(fields: [patientId], references: [id])
+  patientMedicalAid     PatientMedicalAid? @relation(fields: [patientMedicalAidId], references: [id])
+  capturedBy            User               @relation("ConsentCapturer", fields: [capturedByUserId], references: [id])
+  createdAt             DateTime           @default(now())
+
+  @@index([patientId, consentDate])
+}
+
+model Icd10Import {
+  id               String      @id @default(cuid())
+  versionName      String      @unique
+  sourceFilename   String
+  importedAt       DateTime    @default(now())
+  importedByUserId String?
+  totalRows        Int         @default(0)
+  importedRows     Int         @default(0)
+  skippedRows      Int         @default(0)
+  invalidRows      Int         @default(0)
+  active           Boolean     @default(false)
+  notes            String?
+  importedBy       User?       @relation("Icd10Importer", fields: [importedByUserId], references: [id])
+  codes            Icd10Code[]
+
+  @@index([active, importedAt])
+}
+
+model Icd10Code {
+  id                        String               @id @default(cuid())
+  importId                  String
+  code                      String
+  description               String
+  threeCharacterCode        String?
+  threeCharacterDescription String?
+  chapter                   String?
+  chapterDescription        String?
+  groupCode                 String?
+  groupDescription          String?
+  validForClinicalUse       Boolean              @default(false)
+  validForPrimary           Boolean              @default(false)
+  validAsterisk             Boolean              @default(false)
+  validDagger               Boolean              @default(false)
+  validSequelae             Boolean              @default(false)
+  ageRange                  String?
+  minimumAge                Int?
+  maximumAge                Int?
+  genderRestriction         String?
+  status                    String?
+  startDate                 DateTime?
+  endDate                   DateTime?
+  comment                   String?
+  import                    Icd10Import          @relation(fields: [importId], references: [id], onDelete: Cascade)
+  claimLines                ClaimLineIcd10Code[]
+  createdAt                 DateTime             @default(now())
+  updatedAt                 DateTime             @updatedAt
+
+  @@unique([importId, code])
+  @@index([code])
+  @@index([description])
+  @@index([importId, validForClinicalUse, validForPrimary])
+}
+
+model MedicalAidProcedureItem {
+  id                       String      @id @default(cuid())
+  code                     String      @unique
+  name                     String
+  description              String?
+  category                 String?
+  defaultAmount            Float       @default(0)
+  requiresNappiCode        Boolean     @default(false)
+  requiresPreAuthorisation Boolean     @default(false)
+  active                   Boolean     @default(true)
+  claimLines               ClaimLine[]
+  createdAt                DateTime    @default(now())
+  updatedAt                DateTime    @updatedAt
+}
+
+model ClaimLineIcd10Code {
+  id                  String     @id @default(cuid())
+  claimLineId         String
+  icd10CodeId         String?
+  codeSnapshot        String
+  descriptionSnapshot String
+  position            String     @default("SECONDARY")
+  isPrimary           Boolean    @default(false)
+  sortOrder           Int        @default(0)
+  claimLine           ClaimLine  @relation(fields: [claimLineId], references: [id], onDelete: Cascade)
+  icd10Code           Icd10Code? @relation(fields: [icd10CodeId], references: [id])
+  createdAt           DateTime   @default(now())
+
+  @@unique([claimLineId, codeSnapshot])
+  @@index([claimLineId, isPrimary])
+}
+
+model ClaimStatusEvent {
+  id                   String   @id @default(cuid())
+  claimId              String
+  previousStatus       String?
+  newStatus            String
+  reason               String?
+  rejectionCode        String?
+  rejectionDescription String?
+  changedByUserId      String
+  claim                Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  changedBy            User     @relation(fields: [changedByUserId], references: [id])
+  createdAt            DateTime @default(now())
+
+  @@index([claimId, createdAt])
+}
+
+model ClaimAttachment {
+  id                  String             @id @default(cuid())
+  claimId             String?
+  batchId             String?
+  patientMedicalAidId String?
+  attachmentType      String
+  filename            String
+  mimeType            String
+  fileSize            Int
+  data                Bytes
+  uploadedByUserId    String
+  claim               Claim?             @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  batch               ClaimBatch?        @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  patientMedicalAid   PatientMedicalAid? @relation(fields: [patientMedicalAidId], references: [id], onDelete: Cascade)
+  uploadedBy          User               @relation(fields: [uploadedByUserId], references: [id])
+  createdAt           DateTime           @default(now())
+
+  @@index([claimId, createdAt])
+  @@index([batchId, createdAt])
 }
 
 model Invoice {

@@ -41,6 +41,7 @@ const sections = [
     label: "Operations",
     items: [
       ["Medical aid claims", "/dashboard/claims", FileHeart, "MANAGE_CLAIMS"],
+      ["Claim batches", "/dashboard/claim-batches", FileHeart, "MANAGE_CLAIM_BATCHES"],
       ["Finance", "/dashboard/finance", Banknote, "MANAGE_FINANCE"],
       [
         "Availability",
@@ -54,6 +55,7 @@ const sections = [
     label: "System",
     items: [
       ["Services & providers", "/dashboard/services", Building2, "MANAGE_PRACTICE"],
+      ["Medical aid", "/dashboard/medical-aid", FileHeart, "MANAGE_MEDICAL_AID_SETTINGS"],
       ["Settings", "/dashboard/settings", Settings, "MANAGE_PRACTICE"],
       ["Staff users", "/dashboard/users", UserCog, "MANAGE_USERS"],
       ["Activity log", "/dashboard/activity", Activity, "VIEW_ACTIVITY"],
@@ -66,6 +68,8 @@ const pageNames: Record<string, string> = {
   "/dashboard/appointments": "Appointments",
   "/dashboard/patients": "Patients",
   "/dashboard/claims": "Medical aid claims",
+  "/dashboard/claim-batches": "Claim batches",
+  "/dashboard/medical-aid": "Medical aid settings",
   "/dashboard/finance": "Finance",
   "/dashboard/availability": "Availability",
   "/dashboard/settings": "Settings",

@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { CreditCard, Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import Link from "next/link";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -221,6 +222,7 @@ export function PatientManager({
                   <td>{p.visits}</td>
                   <td>
                     <div className="table-actions">
+                      <Link className="icon-action" href={`/dashboard/patients/${p.id}/medical-aid`} aria-label={`Benefits profile for ${p.fullName}`} title="Medical aid"><CreditCard size={16}/></Link>
                       <button
                         className="icon-action"
                         onClick={() => show(p)}

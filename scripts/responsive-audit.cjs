@@ -10,6 +10,8 @@ const dashboardRoutes = quick ? [] : [
   "/dashboard/appointments",
   "/dashboard/patients",
   "/dashboard/claims",
+  "/dashboard/claim-batches",
+  "/dashboard/medical-aid",
   "/dashboard/finance",
   "/dashboard/availability",
   "/dashboard/settings",

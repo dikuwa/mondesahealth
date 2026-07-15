@@ -27,6 +27,11 @@ type Setting = {
   publicHours: string | null;
   showEmail: boolean;
   showWhatsapp: boolean;
+  claimContactName: string;
+  claimPhone: string;
+  claimEmail: string;
+  claimPostalAddress: string;
+  consentWording: string;
 };
 
 type Fund = {
@@ -220,6 +225,21 @@ export function SettingsManager({
           <label className="toggle-label settings-checkbox-row"><input type="checkbox" name="showWhatsapp" defaultChecked={setting.showWhatsapp} /><span>Show WhatsApp publicly</span></label>
         </div>
         <div className="settings-form-actions"><button className="btn btn-primary" disabled={saving}>{saving ? <Loader2 className="toast-spinner" size={17} /> : <Save size={17} />}Save public site</button></div>
+      </form>
+
+      <form className="card dashboard-card settings-form dashboard-span-all" onSubmit={(event) => {
+        event.preventDefault(); const data = Object.fromEntries(new FormData(event.currentTarget));
+        patch({ ...setting, ...data }, "Saving medical-aid claim settings…");
+      }}>
+        <div className="settings-card-heading"><h2>Practice claim details</h2><p className="muted">Used for claim validation, statements and batch documents. Configure confirmed details before marking claims ready.</p></div>
+        <div className="settings-fields settings-public-fields">
+          <div className="field"><label htmlFor="claim-contact-name">Claim contact person</label><input id="claim-contact-name" className="input" name="claimContactName" defaultValue={setting.claimContactName} /></div>
+          <div className="field"><label htmlFor="claim-phone">Claim telephone</label><input id="claim-phone" className="input" name="claimPhone" defaultValue={setting.claimPhone} /></div>
+          <div className="field"><label htmlFor="claim-email">Claim email</label><input id="claim-email" className="input" name="claimEmail" type="email" defaultValue={setting.claimEmail} /></div>
+          <div className="field"><label htmlFor="claim-postal">Postal address</label><input id="claim-postal" className="input" name="claimPostalAddress" defaultValue={setting.claimPostalAddress} /></div>
+          <div className="field settings-wide"><label htmlFor="consent-wording">ICD-10 disclosure consent wording</label><textarea id="consent-wording" className="input" name="consentWording" defaultValue={setting.consentWording} required /></div>
+        </div>
+        <div className="settings-form-actions"><button className="btn btn-primary" disabled={saving}>{saving ? <Loader2 className="toast-spinner" size={17} /> : <Save size={17} />}Save claim details</button></div>
       </form>
 
       <section className="card dashboard-card dashboard-span-all settings-funds">

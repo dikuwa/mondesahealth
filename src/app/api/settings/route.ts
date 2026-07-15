@@ -13,6 +13,8 @@ const detailsSchema=z.object({
   locationNote:z.string().trim().max(240),mapsUrl:z.union([z.literal(""),z.string().url()]),
   mapLatitude:z.number().min(-90).max(90).nullable(),mapLongitude:z.number().min(-180).max(180).nullable(),
   publicHours:z.string().trim().max(1000).nullable(),showEmail:z.boolean(),showWhatsapp:z.boolean(),
+  claimContactName:z.string().trim().max(160),claimPhone:z.string().trim().max(80),claimEmail:z.union([z.literal(""),z.string().email()]),
+  claimPostalAddress:z.string().trim().max(500),consentWording:z.string().trim().min(20).max(2000),
 });
 
 export async function PATCH(request:Request){

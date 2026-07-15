@@ -80,7 +80,14 @@ const displayDate = (date) =>
   await page.getByLabel(/I consent to Mondesa/).check();
   await page.getByLabel(/I understand online booking/).check();
   await page.screenshot({ path: "e2e-artifacts/booking-mobile.png", fullPage: true });
+  const bookingResponsePromise = page.waitForResponse(
+    (response) => response.url().endsWith("/api/bookings") && response.request().method() === "POST",
+  );
   await page.getByRole("button", { name: requestMode ? "Send request" : "Book appointment" }).click();
+  const bookingResponse = await bookingResponsePromise;
+  report.bookingApiStatus = bookingResponse.status();
+  if (!bookingResponse.ok())
+    throw new Error(`Booking API failed: ${JSON.stringify(await bookingResponse.json())}`);
   await page.locator("#main-content").getByText("Booking received").waitFor();
   report.bookingConfirmed = true;
   report.secureManageLink = await page.getByRole("link", { name: /Manage appointment/ }).isVisible();
