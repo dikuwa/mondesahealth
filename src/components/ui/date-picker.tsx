@@ -114,6 +114,7 @@ export function DatePicker({
       ) {
         onChange(format(parsed, "yyyy-MM-dd"));
         setMonth(startOfMonth(parsed));
+        setOpen(false);
       }
     }
   }

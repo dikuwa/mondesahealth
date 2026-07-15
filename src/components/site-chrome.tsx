@@ -2,10 +2,34 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Clock3, LogIn, Menu, Phone, Stethoscope } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Clock3, LogIn, Menu, Phone, Stethoscope, X } from "lucide-react";
 
 export function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && mobileOpen) {
+        setMobileOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
 
   if (pathname.startsWith("/dashboard")) return <>{children}</>;
 
@@ -17,7 +41,37 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
         <nav className="desktop-nav" aria-label="Main navigation" style={{display:"flex",gap:25,alignItems:"center",fontSize:14,fontWeight:700}}>
           <Link href="/#about">About</Link><Link href="/#care">What we help with</Link><Link href="/#visit">Your visit</Link><Link href="/#contact">Contact</Link>
         </nav>
-        <div style={{display:"flex",gap:9,alignItems:"center"}}><a className="btn btn-light desktop-nav" href="tel:+264810000000"><Phone size={17}/> Call us</a><Link className="btn btn-primary" href="/book"><Clock3 size={17}/> Book <span className="desktop-nav">appointment</span></Link><details className="mobile-menu"><summary aria-label="Open navigation"><Menu size={20}/></summary><nav aria-label="Mobile navigation"><Link href="/#about">About</Link><Link href="/#care">What we help with</Link><Link href="/#visit">Your visit</Link><Link href="/#contact">Contact</Link><Link href="/policies">Privacy & policies</Link></nav></details></div>
+        <div style={{display:"flex",gap:9,alignItems:"center"}}>
+          <a className="btn btn-light desktop-nav" href="tel:+264810000000"><Phone size={17}/> Call us</a>
+          <Link className="btn btn-primary" href="/book"><Clock3 size={17}/> Book <span className="desktop-nav">appointment</span></Link>
+          <div className="mobile-menu-wrapper" ref={menuRef}>
+            <button
+              className="mobile-menu-toggle"
+              aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-nav"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              style={{width:44,height:44,border:"1px solid #d4ddd8",borderRadius:12,display:"grid",placeItems:"center",background:"#fff"}}
+            >
+              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+            {mobileOpen && (
+              <div
+                className="mobile-menu-backdrop"
+                aria-hidden="true"
+                onClick={() => setMobileOpen(false)}
+                style={{position:"fixed",inset:0,zIndex:49,background:"#102d2778",backdropFilter:"blur(2px)"}}
+              />
+            )}
+            <nav id="mobile-nav" aria-label="Mobile navigation" style={{position:"fixed",right:0,top:74,zIndex:50,width:"min(310px,calc(100vw - 42px))",maxHeight:"calc(100vh - 74px)",overflowY:"auto",background:"#fff",border:"1px solid #dce4df",borderRadius:"0 0 0 16px",boxShadow:"18px 0 50px #09271f35",padding:"16px 16px 24px",display:"grid",gap:4}}>
+              <Link href="/#about" onClick={() => setMobileOpen(false)} style={{minHeight:44,display:"flex",alignItems:"center",padding:"0 12px",borderRadius:9,fontSize:14,fontWeight:750}}>About</Link>
+              <Link href="/#care" onClick={() => setMobileOpen(false)} style={{minHeight:44,display:"flex",alignItems:"center",padding:"0 12px",borderRadius:9,fontSize:14,fontWeight:750}}>What we help with</Link>
+              <Link href="/#visit" onClick={() => setMobileOpen(false)} style={{minHeight:44,display:"flex",alignItems:"center",padding:"0 12px",borderRadius:9,fontSize:14,fontWeight:750}}>Your visit</Link>
+              <Link href="/#contact" onClick={() => setMobileOpen(false)} style={{minHeight:44,display:"flex",alignItems:"center",padding:"0 12px",borderRadius:9,fontSize:14,fontWeight:750}}>Contact</Link>
+              <Link href="/policies" onClick={() => setMobileOpen(false)} style={{minHeight:44,display:"flex",alignItems:"center",padding:"0 12px",borderRadius:9,fontSize:14,fontWeight:750}}>Privacy & policies</Link>
+            </nav>
+          </div>
+        </div>
       </div>
     </header>
     <div id="main-content" tabIndex={-1}>{children}</div>

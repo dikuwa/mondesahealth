@@ -1,34 +1,81 @@
 import { createHash, randomBytes } from "crypto";
-import { addMinutes, addDays } from "date-fns";
+import { addDays, addMinutes, format, isValid, parse } from "date-fns";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { availableSlots } from "@/lib/slots";
 import { normalizePhone, ref, validNamibianPhone } from "@/lib/utils";
 
-const schema = z.object({
-  fullName: z.string().min(3).max(120),
+const validDate = (value: string) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = parse(value, "yyyy-MM-dd", new Date());
+  return isValid(parsed) && format(parsed, "yyyy-MM-dd") === value;
+};
+
+const schema = z
+  .object({
+  fullName: z.string().trim().min(3).max(120),
   phone: z
     .string()
     .refine(validNamibianPhone, "Enter a valid Namibian phone number."),
   sameWhatsapp: z.boolean(),
-  whatsapp: z.string().optional(),
+  whatsapp: z.string().max(30).optional(),
   email: z.union([z.literal(""), z.string().email()]),
-  dateOfBirth: z.string(),
-  gender: z.string().optional(),
-  communication: z.string(),
-  reason: z.string().min(3).max(160),
+  dateOfBirth: z
+    .string()
+    .refine(validDate, "Enter a valid date of birth.")
+    .refine(
+      (value) => new Date(`${value}T00:00:00`) <= new Date(),
+      "Date of birth cannot be in the future.",
+    ),
+  gender: z.enum(["", "Female", "Male", "Other", "Prefer not to say"]),
+  communication: z.enum(["WHATSAPP", "SMS", "EMAIL", "PHONE"]),
+  reason: z.string().trim().min(3).max(160),
   notes: z.string().max(800).optional(),
-  paymentType: z.string(),
+  paymentType: z.enum(["PRIVATE", "MEDICAL_AID", "NOT_SURE"]),
   medicalAidId: z.string().optional(),
   customFundName: z.string().max(100).optional(),
   membershipNumber: z.string().max(60).optional(),
-  date: z.string(),
+  date: z.string().refine(validDate, "Choose a valid appointment date."),
   time: z.string().optional(),
-  period: z.string(),
+  period: z.enum(["ANYTIME", "MORNING", "AFTERNOON"]),
   consent: z.literal(true),
   emergency: z.literal(true),
-});
+  })
+  .superRefine((body, context) => {
+    if (
+      body.communication === "WHATSAPP" &&
+      !body.sameWhatsapp &&
+      !validNamibianPhone(body.whatsapp || "")
+    )
+      context.addIssue({
+        code: "custom",
+        path: ["whatsapp"],
+        message: "Enter a valid WhatsApp number.",
+      });
+    if (body.communication === "EMAIL" && !body.email)
+      context.addIssue({
+        code: "custom",
+        path: ["email"],
+        message: "Add an email address for email communication.",
+      });
+    if (body.paymentType === "MEDICAL_AID" && !body.medicalAidId)
+      context.addIssue({
+        code: "custom",
+        path: ["medicalAidId"],
+        message: "Choose your medical aid fund.",
+      });
+    if (
+      body.paymentType === "MEDICAL_AID" &&
+      body.medicalAidId === "OTHER" &&
+      !body.customFundName?.trim()
+    )
+      context.addIssue({
+        code: "custom",
+        path: ["customFundName"],
+        message: "Enter the name of your medical aid fund.",
+      });
+  });
 export async function POST(request: Request) {
   try {
     const body = schema.parse(await request.json());
@@ -39,6 +86,11 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Booking is temporarily unavailable." },
         { status: 503 },
+      );
+    if (settings.bookingMode === "AVAILABLE_TIME" && !body.time)
+      return NextResponse.json(
+        { error: "Choose an available appointment time." },
+        { status: 400 },
       );
     const startAt =
       settings.bookingMode === "AVAILABLE_TIME" && body.time

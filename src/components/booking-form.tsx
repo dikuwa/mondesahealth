@@ -1,12 +1,54 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarCheck2,
+  CheckCircle2,
+  Clock3,
+  Copy,
+  ExternalLink,
+  Loader2,
+  RotateCcw,
+} from "lucide-react";
+import { format, parseISO } from "date-fns";
 import toast from "react-hot-toast";
-import { NativeSelect } from "@/components/ui/native-select";
 import { DatePicker } from "@/components/ui/date-picker";
+import { NativeSelect } from "@/components/ui/native-select";
+import { validNamibianPhone } from "@/lib/utils";
 
 type Fund = { id: string; name: string; abbreviation: string | null };
+
+const initialForm = {
+  fullName: "",
+  phone: "",
+  sameWhatsapp: true,
+  whatsapp: "",
+  email: "",
+  dateOfBirth: "",
+  gender: "",
+  patientType: "NEW",
+  communication: "WHATSAPP",
+  reason: "",
+  notes: "",
+  paymentType: "PRIVATE",
+  medicalAidId: "",
+  customFundName: "",
+  membershipNumber: "",
+  date: "",
+  time: "",
+  period: "ANYTIME",
+  consent: false,
+  emergency: false,
+};
+
+type BookingValues = typeof initialForm;
+
+function readableDate(value: string) {
+  return value ? format(parseISO(value), "EEEE, d MMMM yyyy") : "";
+}
 
 export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
   const [step, setStep] = useState(1);
@@ -14,76 +56,123 @@ export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [slots, setSlots] = useState<string[]>([]);
   const [reference, setReference] = useState("");
-  const [form, setForm] = useState({
-    fullName: "",
-    phone: "",
-    sameWhatsapp: true,
-    whatsapp: "",
-    email: "",
-    dateOfBirth: "",
-    gender: "",
-    patientType: "NEW",
-    communication: "WHATSAPP",
-    reason: "",
-    notes: "",
-    paymentType: "PRIVATE",
-    medicalAidId: "",
-    customFundName: "",
-    membershipNumber: "",
-    date: "",
-    time: "",
-    period: "ANYTIME",
-    consent: false,
-    emergency: false,
-  });
-  const update = (key: string, value: string | boolean) =>
-    setForm((v) => ({ ...v, [key]: value }));
+  const [manageUrl, setManageUrl] = useState("");
+  const [error, setError] = useState("");
+  const [form, setForm] = useState<BookingValues>(initialForm);
+  const stepHeading = useRef<HTMLHeadingElement>(null);
+  const slotsRequest = useRef<AbortController | null>(null);
+  const today = format(new Date(), "yyyy-MM-dd");
+
+  useEffect(() => {
+    if (step > 1 && step < 4) stepHeading.current?.focus();
+  }, [step]);
+
+  function update<K extends keyof BookingValues>(
+    key: K,
+    value: BookingValues[K],
+  ) {
+    setForm((current) => ({ ...current, [key]: value }));
+    if (error) setError("");
+  }
+
+  function showError(message: string) {
+    setError(message);
+    toast.error(message);
+  }
+
   async function chooseDate(date: string) {
     update("date", date);
     update("time", "");
     setSlots([]);
+    slotsRequest.current?.abort();
     if (!date || mode !== "AVAILABLE_TIME") return;
+
+    const controller = new AbortController();
+    slotsRequest.current = controller;
     setSlotsLoading(true);
     try {
-      const response = await fetch(`/api/slots?date=${date}`);
+      const response = await fetch(`/api/slots?date=${date}`, {
+        signal: controller.signal,
+      });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       setSlots(data.slots || []);
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Could not load appointment times.",
-      );
+    } catch (caught) {
+      if (caught instanceof DOMException && caught.name === "AbortError") return;
+      const message =
+        caught instanceof Error
+          ? caught.message
+          : "Could not load appointment times.";
+      setError(message);
+      toast.error(message);
     } finally {
-      setSlotsLoading(false);
+      if (slotsRequest.current === controller) setSlotsLoading(false);
     }
   }
+
+  function validateCurrentStep() {
+    if (step === 1) {
+      if (form.fullName.trim().length < 3)
+        return "Enter the patient’s full legal name.";
+      if (!validNamibianPhone(form.phone))
+        return "Enter a valid Namibian cellphone number.";
+      if (!form.dateOfBirth) return "Enter a valid date of birth.";
+      if (form.email && !/^\S+@\S+\.\S+$/.test(form.email))
+        return "Enter a valid email address.";
+      if (form.communication === "EMAIL" && !form.email)
+        return "Add an email address for email communication.";
+      if (
+        form.communication === "WHATSAPP" &&
+        !form.sameWhatsapp &&
+        !validNamibianPhone(form.whatsapp)
+      )
+        return "Add a valid WhatsApp number for WhatsApp communication.";
+    }
+    if (step === 2) {
+      if (!form.date) return "Choose a preferred appointment date.";
+      if (mode === "AVAILABLE_TIME" && !form.time)
+        return "Choose one of the available appointment times.";
+      if (form.reason.trim().length < 3)
+        return "Tell us briefly why you are visiting.";
+    }
+    if (step === 3 && form.paymentType === "MEDICAL_AID") {
+      if (!form.medicalAidId) return "Choose your medical aid fund.";
+      if (form.medicalAidId === "OTHER" && !form.customFundName.trim())
+        return "Enter the name of your medical aid fund.";
+    }
+    return "";
+  }
+
   function next() {
-    if (step === 1 && (!form.fullName || !form.phone || !form.dateOfBirth)) {
-      toast.error("Please complete your name, phone and date of birth.");
+    const message = validateCurrentStep();
+    if (message) {
+      showError(message);
       return;
     }
-    if (
-      step === 2 &&
-      (!form.date || (mode === "AVAILABLE_TIME" && !form.time) || !form.reason)
-    ) {
-      toast.error(
-        "Please choose a date and tell us briefly why you are visiting.",
-      );
-      return;
-    }
-    setStep((s) => s + 1);
+    setError("");
+    setStep((current) => current + 1);
   }
+
   async function submit() {
+    const message = validateCurrentStep();
+    if (message) {
+      showError(message);
+      return;
+    }
     if (!form.consent || !form.emergency) {
-      toast.error(
-        "Please accept the booking consent and emergency acknowledgement.",
+      showError(
+        "Accept the booking consent and emergency acknowledgement to continue.",
       );
       return;
     }
+
     setLoading(true);
-    const id = toast.loading("Reserving your appointment…");
+    setError("");
+    const toastId = toast.loading(
+      mode === "AVAILABLE_TIME"
+        ? "Reserving your appointment…"
+        : "Sending your appointment request…",
+    );
     try {
       const response = await fetch("/api/bookings", {
         method: "POST",
@@ -93,159 +182,205 @@ export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
       const data = await response.json();
       if (!response.ok)
         throw new Error(data.error || "Booking could not be completed.");
-      toast.success("Booking received", { id });
+      toast.success(
+        mode === "AVAILABLE_TIME"
+          ? "Appointment booked"
+          : "Appointment request sent",
+        { id: toastId },
+      );
       setReference(data.reference);
+      setManageUrl(data.manageUrl || "");
       setStep(4);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Booking failed.", {
-        id,
-      });
+    } catch (caught) {
+      const nextError =
+        caught instanceof Error ? caught.message : "Booking failed.";
+      setError(nextError);
+      toast.error(nextError, { id: toastId });
     } finally {
       setLoading(false);
     }
   }
+
+  async function copyManagementLink() {
+    if (!manageUrl) return;
+    try {
+      await navigator.clipboard.writeText(
+        new URL(manageUrl, window.location.origin).toString(),
+      );
+      toast.success("Secure appointment link copied");
+    } catch {
+      toast.error("Could not copy the link. Open it and copy from the browser.");
+    }
+  }
+
+  function restart() {
+    setForm(initialForm);
+    setSlots([]);
+    setReference("");
+    setManageUrl("");
+    setError("");
+    setStep(1);
+  }
+
   if (step === 4)
     return (
-      <div className="card" style={{ padding: 40, textAlign: "center" }}>
-        <CheckCircle2
-          size={52}
-          color="#1f5a4c"
-          style={{ margin: "0 auto 18px" }}
-        />
+      <section className="card booking-success" aria-live="polite">
+        <span className="booking-success-icon">
+          <CheckCircle2 size={30} aria-hidden="true" />
+        </span>
         <div className="eyebrow">Booking received</div>
-        <h2 className="display" style={{ fontSize: 40, margin: "12px" }}>
-          Thank you, {form.fullName.split(" ")[0]}.
-        </h2>
-        <p style={{ color: "#5c716a", lineHeight: 1.7 }}>
+        <h2 className="display">
           {mode === "AVAILABLE_TIME"
-            ? "Your appointment has been reserved. Keep the secure link in your confirmation to manage it."
-            : "Your appointment is not confirmed until Mondesa Health contacts you."}
+            ? "Your appointment is booked."
+            : "Your request is with the practice."}
+        </h2>
+        <p>
+          Thank you, {form.fullName.trim().split(" ")[0]}.{" "}
+          {mode === "AVAILABLE_TIME"
+            ? "Keep the secure link below if you need to manage your appointment."
+            : "Mondesa Health will contact you before the appointment is confirmed."}
         </p>
-        <div
-          style={{
-            background: "#f7f4ed",
-            borderRadius: 12,
-            padding: 15,
-            marginTop: 22,
-          }}
-        >
-          <small>Appointment reference</small>
-          <b style={{ display: "block", marginTop: 5 }}>{reference}</b>
+        <div className="booking-success-details">
+          <div>
+            <span>Reference</span>
+            <b>{reference}</b>
+          </div>
+          <div>
+            <span>{mode === "AVAILABLE_TIME" ? "Appointment" : "Preferred date"}</span>
+            <b>
+              {readableDate(form.date)}
+              {form.time ? ` at ${form.time}` : ""}
+            </b>
+          </div>
         </div>
-      </div>
+        {manageUrl && (
+          <div className="booking-success-actions">
+            <Link className="btn btn-primary" href={manageUrl}>
+              Manage appointment <ExternalLink size={17} aria-hidden="true" />
+            </Link>
+            <button className="btn btn-light" type="button" onClick={copyManagementLink}>
+              <Copy size={17} aria-hidden="true" /> Copy secure link
+            </button>
+          </div>
+        )}
+        <button className="booking-restart" type="button" onClick={restart}>
+          <RotateCcw size={15} aria-hidden="true" /> Book another appointment
+        </button>
+      </section>
     );
+
   return (
-    <div className="card" style={{ overflow: "hidden" }}>
-      <div style={{ height: 5, background: "#e5ece8" }}>
-        <div
-          style={{
-            height: "100%",
-            width: `${(step / 3) * 100}%`,
-            background: "#1f5a4c",
-            transition: "width .25s",
-          }}
-        />
+    <section className="card booking-form-card" aria-labelledby="booking-step-title">
+      <div
+        className="booking-progress"
+        role="progressbar"
+        aria-label="Booking progress"
+        aria-valuemin={1}
+        aria-valuemax={3}
+        aria-valuenow={step}
+      >
+        <span style={{ width: `${(step / 3) * 100}%` }} />
       </div>
-      <div style={{ padding: "clamp(22px,5vw,42px)" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 27,
-          }}
-        >
+      <div className="booking-form-body">
+        <header className="booking-step-header">
           <div>
             <div className="eyebrow">Step {step} of 3</div>
-            <h2
-              style={{
-                fontSize: 28,
-                letterSpacing: "-.035em",
-                margin: "8px 0 0",
-              }}
-            >
+            <h2 id="booking-step-title" ref={stepHeading} tabIndex={-1}>
               {step === 1
                 ? "Your details"
                 : step === 2
                   ? "Choose your appointment"
-                  : "Payment & consent"}
+                  : "Review and consent"}
             </h2>
           </div>
-          <span style={{ fontSize: 13, color: "#61746e" }}>
-            About 3 minutes
-          </span>
-        </div>
+          <span>About 3 minutes</span>
+        </header>
+
+        {error && (
+          <div className="booking-error" role="alert">
+            {error}
+          </div>
+        )}
+
         {step === 1 && (
-          <div
-            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}
-          >
-            <div className="field" style={{ gridColumn: "1/-1" }}>
-              <label>Full legal name *</label>
+          <div className="booking-field-grid">
+            <div className="field booking-span-all">
+              <label htmlFor="booking-full-name">Full legal name *</label>
               <input
-                aria-label="Full legal name *"
+                id="booking-full-name"
                 className="input"
                 value={form.fullName}
-                onChange={(e) => update("fullName", e.target.value)}
+                onChange={(event) => update("fullName", event.target.value)}
                 autoComplete="name"
+                required
               />
             </div>
             <div className="field">
-              <label>Main cellphone *</label>
+              <label htmlFor="booking-phone">Main cellphone *</label>
               <input
-                aria-label="Main cellphone *"
+                id="booking-phone"
                 className="input"
                 placeholder="081 123 4567"
                 value={form.phone}
-                onChange={(e) => update("phone", e.target.value)}
+                onChange={(event) => update("phone", event.target.value)}
                 inputMode="tel"
+                autoComplete="tel"
+                required
               />
             </div>
             <div className="field">
-              <label>Email (optional)</label>
+              <label htmlFor="booking-email">Email (optional)</label>
               <input
-                aria-label="Email (optional)"
+                id="booking-email"
                 className="input"
                 type="email"
                 value={form.email}
-                onChange={(e) => update("email", e.target.value)}
+                onChange={(event) => update("email", event.target.value)}
+                autoComplete="email"
               />
             </div>
-            <label
-              style={{
-                gridColumn: "1/-1",
-                display: "flex",
-                gap: 10,
-                alignItems: "center",
-                fontSize: 14,
-              }}
-            >
+            <label className="booking-choice booking-span-all">
               <input
                 type="checkbox"
                 checked={form.sameWhatsapp}
-                onChange={(e) => update("sameWhatsapp", e.target.checked)}
-              />{" "}
-              This cellphone is also my WhatsApp number
+                onChange={(event) =>
+                  update("sameWhatsapp", event.target.checked)
+                }
+              />
+              <span>This cellphone is also my WhatsApp number</span>
             </label>
             {!form.sameWhatsapp && (
-              <div className="field" style={{ gridColumn: "1/-1" }}>
-                <label>WhatsApp number *</label>
+              <div className="field booking-span-all">
+                <label htmlFor="booking-whatsapp">WhatsApp number *</label>
                 <input
-                  aria-label="WhatsApp number *"
+                  id="booking-whatsapp"
                   className="input"
                   value={form.whatsapp}
-                  onChange={(e) => update("whatsapp", e.target.value)}
+                  onChange={(event) =>
+                    update("whatsapp", event.target.value)
+                  }
+                  inputMode="tel"
+                  autoComplete="tel"
                 />
               </div>
             )}
             <div className="field">
-              <label>Date of birth *</label>
-            <DatePicker ariaLabel="Date of birth *" value={form.dateOfBirth} onChange={(value)=>update("dateOfBirth",value)} max={new Date().toISOString().slice(0,10)}/>
+              <label htmlFor="booking-dob">Date of birth *</label>
+              <DatePicker
+                id="booking-dob"
+                ariaLabel="Date of birth *"
+                value={form.dateOfBirth}
+                onChange={(value) => update("dateOfBirth", value)}
+                max={today}
+              />
             </div>
             <div className="field">
-              <label>Gender (optional)</label>
+              <label htmlFor="booking-gender">Gender (optional)</label>
               <NativeSelect
+                id="booking-gender"
                 aria-label="Gender (optional)"
                 value={form.gender}
-                onChange={(e) => update("gender", e.target.value)}
+                onChange={(event) => update("gender", event.target.value)}
               >
                 <option value="">Select</option>
                 <option>Female</option>
@@ -255,22 +390,30 @@ export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
               </NativeSelect>
             </div>
             <div className="field">
-              <label>Patient *</label>
+              <label htmlFor="booking-patient-type">Patient *</label>
               <NativeSelect
+                id="booking-patient-type"
                 aria-label="Patient *"
                 value={form.patientType}
-                onChange={(e) => update("patientType", e.target.value)}
+                onChange={(event) =>
+                  update("patientType", event.target.value)
+                }
               >
                 <option value="NEW">New patient</option>
                 <option value="RETURNING">Returning patient</option>
               </NativeSelect>
             </div>
             <div className="field">
-              <label>Preferred communication *</label>
+              <label htmlFor="booking-communication">
+                Preferred communication *
+              </label>
               <NativeSelect
+                id="booking-communication"
                 aria-label="Preferred communication *"
                 value={form.communication}
-                onChange={(e) => update("communication", e.target.value)}
+                onChange={(event) =>
+                  update("communication", event.target.value)
+                }
               >
                 <option value="WHATSAPP">WhatsApp</option>
                 <option value="SMS">SMS</option>
@@ -280,59 +423,47 @@ export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
             </div>
           </div>
         )}
+
         {step === 2 && (
-          <div style={{ display: "grid", gap: 18 }}>
+          <div className="booking-field-stack">
             <div className="field">
-              <label>Preferred date *</label>
-            <DatePicker ariaLabel="Preferred date *" min={new Date().toISOString().slice(0,10)} value={form.date} onChange={chooseDate}/>
+              <label htmlFor="booking-date">Preferred date *</label>
+              <DatePicker
+                id="booking-date"
+                ariaLabel="Preferred date *"
+                min={today}
+                value={form.date}
+                onChange={chooseDate}
+              />
             </div>
             {mode === "AVAILABLE_TIME" ? (
               <div className="field">
-                <label>Available time *</label>
+                <span className="field-label">Available time *</span>
                 {!form.date ? (
-                  <p style={{ color: "#6a7c76", fontSize: 14 }}>
+                  <p className="booking-field-help">
                     Choose a date to see live availability.
                   </p>
                 ) : slotsLoading ? (
-                  <p className="inline-loading">
+                  <p className="inline-loading" aria-live="polite">
                     <Loader2 className="toast-spinner" size={17} /> Loading
                     available times…
                   </p>
                 ) : slots.length ? (
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(4,1fr)",
-                      gap: 9,
-                    }}
-                  >
+                  <div className="booking-slot-grid" aria-label="Available times">
                     {slots.map((slot) => (
                       <button
                         type="button"
                         key={slot}
                         onClick={() => update("time", slot)}
-                        className="btn"
-                        style={{
-                          border: "1px solid #cbd7d1",
-                          background: form.time === slot ? "#1f5a4c" : "white",
-                          color: form.time === slot ? "white" : "#18332d",
-                          borderRadius: 10,
-                          padding: 8,
-                        }}
+                        className={`booking-time-option${form.time === slot ? " is-selected" : ""}`}
+                        aria-pressed={form.time === slot}
                       >
-                        {slot}
+                        <Clock3 size={15} aria-hidden="true" /> {slot}
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <p
-                    style={{
-                      background: "#fff4e2",
-                      padding: 13,
-                      borderRadius: 10,
-                      fontSize: 14,
-                    }}
-                  >
+                  <p className="booking-notice">
                     No available times on this date. Please choose another
                     weekday.
                   </p>
@@ -341,63 +472,75 @@ export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
             ) : (
               <>
                 <div className="field">
-                  <label>Preferred part of day</label>
+                  <label htmlFor="booking-period">Preferred part of day</label>
                   <NativeSelect
+                    id="booking-period"
                     aria-label="Preferred part of day"
                     value={form.period}
-                    onChange={(e) => update("period", e.target.value)}
+                    onChange={(event) => update("period", event.target.value)}
                   >
                     <option value="ANYTIME">Anytime</option>
                     <option value="MORNING">Morning</option>
                     <option value="AFTERNOON">Afternoon</option>
                   </NativeSelect>
                 </div>
-                <p
-                  style={{
-                    background: "#fff4e2",
-                    padding: 13,
-                    borderRadius: 10,
-                    fontSize: 14,
-                  }}
-                >
-                  Your appointment is not confirmed until Mondesa Health
-                  contacts you.
+                <p className="booking-notice">
+                  This is a request. Mondesa Health will contact you before the
+                  appointment is confirmed.
                 </p>
               </>
             )}
             <div className="field">
-              <label>Reason for visit *</label>
+              <label htmlFor="booking-reason">Reason for visit *</label>
               <input
-                aria-label="Reason for visit *"
+                id="booking-reason"
                 className="input"
                 maxLength={160}
                 placeholder="A short general description is enough"
                 value={form.reason}
-                onChange={(e) => update("reason", e.target.value)}
+                onChange={(event) => update("reason", event.target.value)}
+                required
               />
-              <small style={{ color: "#70827c" }}>
-                Please do not include a detailed diagnosis.
+              <small className="booking-field-help">
+                Please do not include a detailed diagnosis. {form.reason.length}/160
               </small>
             </div>
             <div className="field">
-              <label>Additional notes (optional)</label>
+              <label htmlFor="booking-notes">Additional notes (optional)</label>
               <textarea
-                aria-label="Additional notes (optional)"
+                id="booking-notes"
                 className="input"
+                maxLength={800}
                 value={form.notes}
-                onChange={(e) => update("notes", e.target.value)}
+                onChange={(event) => update("notes", event.target.value)}
               />
             </div>
           </div>
         )}
+
         {step === 3 && (
-          <div style={{ display: "grid", gap: 18 }}>
+          <div className="booking-field-stack">
+            <div className="booking-review-card">
+              <CalendarCheck2 size={20} aria-hidden="true" />
+              <div>
+                <span>{mode === "AVAILABLE_TIME" ? "Appointment" : "Preferred date"}</span>
+                <b>
+                  {readableDate(form.date)}
+                  {form.time ? ` at ${form.time}` : ""}
+                </b>
+              </div>
+            </div>
             <div className="field">
-              <label>How will you pay for your consultation?</label>
+              <label htmlFor="booking-payment">
+                How will you pay for your consultation?
+              </label>
               <NativeSelect
+                id="booking-payment"
                 aria-label="How will you pay for your consultation?"
                 value={form.paymentType}
-                onChange={(e) => update("paymentType", e.target.value)}
+                onChange={(event) =>
+                  update("paymentType", event.target.value)
+                }
               >
                 <option value="PRIVATE">Private or cash</option>
                 <option value="MEDICAL_AID">Medical aid</option>
@@ -407,17 +550,20 @@ export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
             {form.paymentType === "MEDICAL_AID" && (
               <>
                 <div className="field">
-                  <label>Medical aid fund *</label>
+                  <label htmlFor="booking-medical-aid">Medical aid fund *</label>
                   <NativeSelect
+                    id="booking-medical-aid"
                     aria-label="Medical aid fund *"
                     value={form.medicalAidId}
-                    onChange={(e) => update("medicalAidId", e.target.value)}
+                    onChange={(event) =>
+                      update("medicalAidId", event.target.value)
+                    }
                   >
                     <option value="">Select your fund</option>
-                    {funds.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.name}
-                        {f.abbreviation ? ` — ${f.abbreviation}` : ""}
+                    {funds.map((fund) => (
+                      <option key={fund.id} value={fund.id}>
+                        {fund.name}
+                        {fund.abbreviation ? ` — ${fund.abbreviation}` : ""}
                       </option>
                     ))}
                     <option value="OTHER">Other</option>
@@ -425,85 +571,73 @@ export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
                 </div>
                 {form.medicalAidId === "OTHER" && (
                   <div className="field">
-                    <label>Medical aid name *</label>
+                    <label htmlFor="booking-fund-name">Medical aid name *</label>
                     <input
-                      aria-label="Medical aid name *"
+                      id="booking-fund-name"
                       className="input"
                       value={form.customFundName}
-                      onChange={(e) => update("customFundName", e.target.value)}
+                      onChange={(event) =>
+                        update("customFundName", event.target.value)
+                      }
                     />
                   </div>
                 )}
                 <div className="field">
-                  <label>Membership number (optional now)</label>
+                  <label htmlFor="booking-membership">
+                    Membership number (optional now)
+                  </label>
                   <input
-                    aria-label="Membership number (optional now)"
+                    id="booking-membership"
                     className="input"
                     value={form.membershipNumber}
-                    onChange={(e) => update("membershipNumber", e.target.value)}
+                    onChange={(event) =>
+                      update("membershipNumber", event.target.value)
+                    }
                   />
                 </div>
               </>
             )}
-            <label
-              style={{
-                display: "flex",
-                gap: 11,
-                alignItems: "flex-start",
-                fontSize: 14,
-                lineHeight: 1.5,
-              }}
-            >
+            <label className="booking-choice is-consent">
               <input
                 type="checkbox"
                 checked={form.consent}
-                onChange={(e) => update("consent", e.target.checked)}
-                style={{ marginTop: 4 }}
-              />{" "}
-              I consent to Mondesa Health using this information to arrange my
-              appointment and contact me about my care.
+                onChange={(event) => update("consent", event.target.checked)}
+              />
+              <span>
+                I consent to Mondesa Health using this information to arrange
+                my appointment and contact me about my care.
+              </span>
             </label>
-            <label
-              style={{
-                display: "flex",
-                gap: 11,
-                alignItems: "flex-start",
-                fontSize: 14,
-                lineHeight: 1.5,
-              }}
-            >
+            <label className="booking-choice is-consent">
               <input
                 type="checkbox"
                 checked={form.emergency}
-                onChange={(e) => update("emergency", e.target.checked)}
-                style={{ marginTop: 4 }}
-              />{" "}
-              I understand online booking is not for emergencies. For urgent
-              help, I will call 112 or visit an emergency department.
+                onChange={(event) => update("emergency", event.target.checked)}
+              />
+              <span>
+                I understand online booking is not for emergencies. For urgent
+                help, I will call 112 or visit an emergency department.
+              </span>
             </label>
           </div>
         )}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginTop: 30,
-          }}
-        >
-          {step > 1 ? (
+
+        <div className={`booking-actions${step === 1 ? " is-single" : ""}`}>
+          {step > 1 && (
             <button
               className="btn btn-light"
               type="button"
-              onClick={() => setStep((s) => s - 1)}
+              onClick={() => {
+                setError("");
+                setStep((current) => current - 1);
+              }}
             >
-              <ArrowLeft size={17} /> Back
+              <ArrowLeft size={17} aria-hidden="true" /> Back
             </button>
-          ) : (
-            <span />
           )}
           {step < 3 ? (
             <button className="btn btn-primary" type="button" onClick={next}>
-              Continue <ArrowRight size={17} />
+              Continue <ArrowRight size={17} aria-hidden="true" />
             </button>
           ) : (
             <button
@@ -512,12 +646,12 @@ export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
               type="button"
               onClick={submit}
             >
-              {loading ? <Loader2 className="animate-spin" size={18} /> : null}{" "}
-              Submit booking
+              {loading && <Loader2 className="toast-spinner" size={18} />}
+              {mode === "AVAILABLE_TIME" ? "Book appointment" : "Send request"}
             </button>
           )}
         </div>
       </div>
-    </div>
+    </section>
   );
 }
