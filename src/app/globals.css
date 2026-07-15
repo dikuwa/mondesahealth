@@ -697,6 +697,63 @@ textarea.input {
   gap: 18px;
   margin-bottom: 26px;
 }
+.dashboard-page-title {
+  margin: 8px 0 0;
+  font-size: clamp(1.9rem, 2.8vw, 2.35rem);
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  font-weight: 700;
+}
+.dashboard-stat {
+  padding: 20px;
+}
+.dashboard-stat-label {
+  color: #6b7e78;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.dashboard-stat-value {
+  display: block;
+  margin: 10px 0 4px;
+  font-size: clamp(1.65rem, 2.4vw, 1.95rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+.dashboard-stat-note {
+  color: #768780;
+  font-size: 12px;
+}
+.dashboard-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.dashboard-inline-empty {
+  padding: 45px 20px;
+  text-align: center;
+  border: 1px dashed #bfcfc8;
+  border-radius: 16px;
+}
+.dashboard-inline-empty p {
+  margin: 8px 0 0;
+  color: #6c7d77;
+  font-size: 13px;
+}
+.dashboard-quick-actions {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.dashboard-quick-action {
+  min-height: 40px;
+  padding-inline: 14px;
+  font-size: 12px;
+}
 .dashboard-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
@@ -2238,6 +2295,42 @@ textarea.input {
   .dashboard-shell,
   .dashboard-shell.is-collapsed {
     display: block;
+  }
+  .dashboard-content {
+    padding: 22px 14px 34px;
+  }
+  .dashboard-page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .dashboard-page-heading > :last-child {
+    width: 100%;
+  }
+  .dashboard-page-heading > :last-child .btn {
+    width: 100%;
+  }
+  .dashboard-page-title {
+    font-size: clamp(1.75rem, 8vw, 2.15rem);
+  }
+  .dashboard-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .dashboard-stat {
+    padding: 15px;
+  }
+  .dashboard-stat-value {
+    font-size: 1.55rem;
+  }
+  .dashboard-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard-quick-action {
+    width: 100%;
+    padding-inline: 10px;
   }
   .dashboard-sidebar {
     position: fixed;
