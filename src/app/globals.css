@@ -132,7 +132,8 @@ summary,
 .display {
   font-family: var(--font-inter-tight), sans-serif;
   font-weight: 650;
-  letter-spacing: -0.045em;
+  /* Tracking is reserved for large page/display headings. */
+  letter-spacing: normal;
   line-height: 0.98;
 }
 .btn {
@@ -1353,6 +1354,7 @@ textarea.input {
   margin: 18px 0 24px;
   font-size: clamp(2.65rem, 4.3vw, 4.15rem);
   line-height: 0.98;
+  letter-spacing: -0.01em;
   overflow-wrap: anywhere;
 }
 .booking-intro-copy {
@@ -2792,7 +2794,7 @@ textarea.input {
 .closing-cta h2 { max-width: 700px; margin: 13px auto 25px; }
 
 .services-hero, .service-detail-hero { padding: clamp(70px, 10vw, 130px) 0; background: var(--cream); }
-.services-hero h1 { max-width: 900px; margin: 15px 0 22px; font-size: clamp(3.1rem, 6vw, 6.1rem); line-height: .94; letter-spacing: -.055em; }
+.services-hero h1 { max-width: 900px; margin: 15px 0 22px; font-size: clamp(3.1rem, 6vw, 6.1rem); line-height: .94; }
 .services-hero p { max-width: 680px; color: #587069; font-size: 1.08rem; line-height: 1.7; }
 .services-list { display: grid; }
 .service-listing { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 28px; align-items: center; padding: 34px 0; border-bottom: 1px solid var(--line); }
@@ -3077,7 +3079,7 @@ textarea.input {
   margin: 18px 0 25px;
   font-size: clamp(3.75rem, 5.5vw, 6.25rem);
   line-height: .94;
-  letter-spacing: -.055em;
+  letter-spacing: -.025em;
 }
 .polyclinic-about .about-feature h2 {
   max-width: 560px;
@@ -3146,6 +3148,12 @@ main h2,
 main h3 {
   text-wrap: balance;
 }
+main h1.display,
+main h2.display,
+.services-hero h1,
+.service-detail-heading h1 {
+  letter-spacing: -0.025em;
+}
 main h2.display {
   font-size: clamp(2.5rem, 4.4vw, 4.2rem);
   line-height: 0.98;
@@ -3162,7 +3170,7 @@ main p {
   margin: 18px 0 24px;
   font-size: clamp(4rem, 6.2vw, 6.5rem);
   line-height: 0.92;
-  letter-spacing: -0.06em;
+  letter-spacing: -0.025em;
 }
 .polyclinic-hero .hero-copy > p {
   max-width: 580px;
@@ -3210,6 +3218,8 @@ main p {
   .home-info-item { min-height: 74px; padding-block: 18px; }
 }
 .booking-progress { padding: 25px 34px 19px; }
+.booking-intro h1,
+.booking-step-header h2 { letter-spacing: normal; }
 @media (max-width: 600px) {
   .booking-progress { padding: 20px 18px 15px; }
   .booking-progress-line { top: 33px; right: 48px; left: 48px; }
