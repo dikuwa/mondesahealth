@@ -279,7 +279,14 @@ export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
         aria-valuemax={3}
         aria-valuenow={step}
       >
-        <span style={{ width: `${(step / 3) * 100}%` }} />
+        <div className="booking-progress-line" aria-hidden="true"><span style={{ width: `${((step - 1) / 2) * 100}%` }} /></div>
+        <ol className="booking-progress-steps">
+          {[[1, "Your details"], [2, "Appointment"], [3, "Review"]].map(([number, label]) => (
+            <li className={step > Number(number) ? "is-complete" : step === Number(number) ? "is-current" : ""} key={number}>
+              <span>{number}</span><small>{label}</small>
+            </li>
+          ))}
+        </ol>
       </div>
       <div className="booking-form-body">
         <header className="booking-step-header">

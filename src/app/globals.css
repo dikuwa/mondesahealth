@@ -1351,7 +1351,8 @@ textarea.input {
 .booking-intro h1 {
   max-width: 560px;
   margin: 18px 0 24px;
-  font-size: clamp(3.25rem, 6vw, 5.45rem);
+  font-size: clamp(2.65rem, 4.3vw, 4.15rem);
+  line-height: 0.98;
   overflow-wrap: anywhere;
 }
 .booking-intro-copy {
@@ -1368,6 +1369,12 @@ textarea.input {
   border-color: #cfdbd5;
   box-shadow: 0 24px 64px #18332d14;
 }
+.booking-trust-list { display: grid; gap: 18px; margin-top: 30px; }
+.booking-trust-list > div { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: start; gap: 11px; }
+.booking-trust-list > div > svg { margin-top: 2px; color: var(--green); }
+.booking-trust-list > div > span { display: grid; gap: 4px; min-width: 0; }
+.booking-trust-list b { font-size: .95rem; line-height: 1.3; }
+.booking-trust-list small { color: #60756d; font-size: .82rem; line-height: 1.45; }
 
 /* Homepage grid layouts */
 .hero-grid {
@@ -1527,18 +1534,24 @@ textarea.input {
   }
 }
 .booking-progress {
-  height: 7px;
-  overflow: hidden;
-  border-radius: 20px 20px 0 0;
-  background: #e3ebe7;
+  position: relative;
+  padding: 25px 34px 19px;
+  border-bottom: 1px solid #e2eae6;
+  background: #fbfdfc;
 }
-.booking-progress span {
+.booking-progress-line { position: absolute; top: 38px; right: 70px; left: 70px; height: 4px; overflow: hidden; border-radius: 99px; background: #dce8e2; }
+.booking-progress-line > span {
   display: block;
   height: 100%;
-  border-radius: inherit;
+  border-radius: 99px;
   background: var(--green);
   transition: width 0.25s ease;
 }
+.booking-progress-steps { position: relative; z-index: 1; display: flex; justify-content: space-between; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.booking-progress-steps li { display: grid; justify-items: center; gap: 7px; min-width: 74px; color: #71837c; font-size: 11px; font-weight: 750; }
+.booking-progress-steps li > span { display: grid; width: 28px; height: 28px; place-items: center; border: 2px solid #cbdad3; border-radius: 50%; background: #fbfdfc; color: #61756c; font-size: 12px; transition: .2s ease; }
+.booking-progress-steps li.is-current > span, .booking-progress-steps li.is-complete > span { border-color: var(--green); background: var(--green); color: #fff; }
+.booking-progress-steps li.is-current, .booking-progress-steps li.is-complete { color: var(--ink); }
 .booking-form-body {
   padding: clamp(24px, 4vw, 42px);
 }
@@ -2232,7 +2245,7 @@ textarea.input {
   }
   .booking-intro h1 {
     margin-block: 15px 18px;
-    font-size: clamp(3rem, 13vw, 4.5rem);
+    font-size: clamp(2.55rem, 11vw, 3.8rem);
   }
   .booking-intro-copy {
     font-size: 16px;
@@ -2779,7 +2792,7 @@ textarea.input {
 .closing-cta h2 { max-width: 700px; margin: 13px auto 25px; }
 
 .services-hero, .service-detail-hero { padding: clamp(70px, 10vw, 130px) 0; background: var(--cream); }
-.services-hero h1 { max-width: 900px; margin: 15px 0 22px; }
+.services-hero h1 { max-width: 900px; margin: 15px 0 22px; font-size: clamp(3.1rem, 6vw, 6.1rem); line-height: .94; letter-spacing: -.055em; }
 .services-hero p { max-width: 680px; color: #587069; font-size: 1.08rem; line-height: 1.7; }
 .services-list { display: grid; }
 .service-listing { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 28px; align-items: center; padding: 34px 0; border-bottom: 1px solid var(--line); }
@@ -3195,6 +3208,16 @@ main p {
   .hero-media-note b { font-size: .98rem; }
   .hero-media-note span { font-size: .8rem; }
   .home-info-item { min-height: 74px; padding-block: 18px; }
+}
+.booking-progress { padding: 25px 34px 19px; }
+@media (max-width: 600px) {
+  .booking-progress { padding: 20px 18px 15px; }
+  .booking-progress-line { top: 33px; right: 48px; left: 48px; }
+  .booking-progress-steps li { min-width: 0; }
+  .services-hero h1 { font-size: clamp(2.75rem, 12vw, 4rem); }
+}
+@media (max-width: 390px) {
+  .booking-progress-steps li small { display: none; }
 }
 .icd-search { position: relative; min-width: 0; }
 .icd-search .search-box { width: 100%; }
