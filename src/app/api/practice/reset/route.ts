@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       } });
 
       await tx.activityLog.deleteMany();
-    });
+    }, { timeout: 120_000, maxWait: 15_000 });
     return NextResponse.json({ ok: true, counts: await count() });
   } catch (error) {
     console.error("Practice reset failed", error);
