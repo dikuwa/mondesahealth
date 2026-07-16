@@ -145,7 +145,8 @@ export function SiteChrome({ children, site }: { children: React.ReactNode; site
               <Stethoscope size={20} />
             </span>
             <span className="site-brand-copy">
-              MONDESA <span style={{ color: "#8c6526" }}>HEALTH</span>
+              <strong>MONDESA</strong>
+              <strong style={{ color: "#8c6526" }}>HEALTH</strong>
               <small>POLYCLINIC</small>
             </span>
           </Link>

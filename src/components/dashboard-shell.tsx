@@ -160,7 +160,9 @@ export function DashboardShell({
               <HeartPulse size={20} />
             </span>
             <span className="dashboard-brand-copy">
-              MONDESA <em>HEALTH</em>
+              <strong>MONDESA</strong>
+              <strong>HEALTH</strong>
+              <small>POLYCLINIC</small>
             </span>
           </Link>
           <button
