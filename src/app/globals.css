@@ -1553,6 +1553,10 @@ textarea.input {
   .hero-media {
     height: 570px;
   }
+  .polyclinic-hero .hero-media {
+    height: 570px;
+    aspect-ratio: auto;
+  }
   .home-info-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
