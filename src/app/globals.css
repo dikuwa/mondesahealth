@@ -2740,10 +2740,13 @@ textarea.input {
 }
 .hero-media {
   position: relative;
+  width: 100%;
+  min-width: 0;
   overflow: hidden;
   border-radius: 28px 28px 0 28px;
   box-shadow: 0 26px 70px #18332d1a;
 }
+.hero-media > img { width: 100% !important; height: 100% !important; object-fit: cover !important; object-position: center center; }
 .hero-media-note {
   position: absolute;
   right: 18px;

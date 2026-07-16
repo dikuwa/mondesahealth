@@ -79,7 +79,7 @@ export default async function Home() {
               fill
               priority
               sizes="(max-width: 960px) calc(100vw - 28px), 55vw"
-              style={{ objectFit: "cover" }}
+              style={{ objectFit: "cover", objectPosition: "center center" }}
             />
             <div className="hero-media-note">
               <div>
