@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { DEFAULT_PRACTICE_CONTENT } from "../../../../../prisma/polyclinic-data";
+import { DEFAULT_PRACTICE_CONTENT } from "../../../../prisma/polyclinic-data";
 
 const contentSchema = z.object({
   hero: z.object({ eyebrow: z.string().max(120), headline: z.string().max(240), description: z.string().max(1000), bookingLabel: z.string().max(80), servicesLabel: z.string().max(80), trustPoints: z.array(z.string().max(120)).length(2) }),

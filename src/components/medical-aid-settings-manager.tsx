@@ -2,9 +2,10 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Database, Loader2, Plus, Save, Upload } from "lucide-react";
+import { Database, Loader2, Plus, Save, Trash2, Upload } from "lucide-react";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 type Fund = { id: string; name: string; abbreviation: string | null; administrator: string | null; active: boolean; public: boolean; acceptedSubmissionMethods: string; coverSheetRequired: boolean; serviceDateRangeRequired: boolean; claimsEmail: string | null; supportEmail: string | null; phone: string | null; portalUrl: string | null; postalAddress: string | null; physicalAddress: string | null; submissionInstructions: string | null; sortOrder: number };
 type Procedure = { id: string; code: string; name: string; description: string | null; category: string | null; defaultAmount: number; requiresNappiCode: boolean; requiresPreAuthorisation: boolean; active: boolean };
@@ -14,6 +15,7 @@ export function MedicalAidSettingsManager({ funds, procedures, imports }: { fund
   const router = useRouter();
   const [tab, setTab] = useState("FUNDS");
   const [saving, setSaving] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{ entity: "FUND" | "PROCEDURE"; id: string; label: string } | null>(null);
 
   async function patch(body: object, message: string, form?: HTMLFormElement) {
     setSaving(true);
@@ -28,6 +30,14 @@ export function MedicalAidSettingsManager({ funds, procedures, imports }: { fund
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save settings", { id: toastId });
     } finally { setSaving(false); }
+  }
+
+  async function remove() {
+    if (!pendingDelete) return;
+    setSaving(true);
+    try { const response = await fetch("/api/medical-aid", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify(pendingDelete) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); toast.success(`${pendingDelete.label} deleted`); setPendingDelete(null); router.refresh(); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete item"); }
+    finally { setSaving(false); }
   }
 
   function saveFund(event: FormEvent<HTMLFormElement>, fund?: Fund) {
@@ -57,14 +67,14 @@ export function MedicalAidSettingsManager({ funds, procedures, imports }: { fund
       <div className="manager-toolbar"><div><h2>Medical-aid funds</h2><p>Provider-neutral configuration. Disable referenced funds instead of deleting them.</p></div></div>
       {funds.map((fund) => <details className="card dashboard-card directory-admin-department" key={fund.id}>
         <summary><span><strong>{fund.name}</strong><small>{fund.abbreviation} · {fund.active ? "Active" : "Disabled"}</small></span><span>{JSON.parse(fund.acceptedSubmissionMethods || "[]").join(", ") || "No method"}</span></summary>
-        <FundForm fund={fund} saving={saving} onSubmit={(event) => saveFund(event, fund)} />
+        <FundForm fund={fund} saving={saving} onSubmit={(event) => saveFund(event, fund)} onDelete={() => setPendingDelete({ entity: "FUND", id: fund.id, label: fund.name })} />
       </details>)}
       <details className="card dashboard-card directory-admin-department"><summary><span><strong>Add medical-aid fund</strong><small>Create an editable provider configuration.</small></span><Plus size={17} /></summary><FundForm saving={saving} onSubmit={saveFund} /></details>
     </div>}
 
     {tab === "PROCEDURES" && <div className="medical-aid-admin-list">
       <div className="manager-toolbar"><div><h2>Procedure items</h2><p>Enter only authorised procedure and tariff information.</p></div></div>
-      {procedures.map((item) => <details className="card dashboard-card directory-admin-department" key={item.id}><summary><span><strong>{item.code} · {item.name}</strong><small>N$ {item.defaultAmount.toFixed(2)} · {item.active ? "Active" : "Disabled"}</small></span></summary><ProcedureForm item={item} saving={saving} onSubmit={(event) => saveProcedure(event, item)} /></details>)}
+      {procedures.map((item) => <details className="card dashboard-card directory-admin-department" key={item.id}><summary><span><strong>{item.code} · {item.name}</strong><small>N$ {item.defaultAmount.toFixed(2)} · {item.active ? "Active" : "Disabled"}</small></span></summary><ProcedureForm item={item} saving={saving} onSubmit={(event) => saveProcedure(event, item)} onDelete={() => setPendingDelete({ entity: "PROCEDURE", id: item.id, label: item.name })} /></details>)}
       <details className="card dashboard-card directory-admin-department"><summary><span><strong>Add procedure item</strong><small>Manual procedure catalogue entry.</small></span><Plus size={17} /></summary><ProcedureForm saving={saving} onSubmit={saveProcedure} /></details>
     </div>}
 
@@ -82,12 +92,13 @@ export function MedicalAidSettingsManager({ funds, procedures, imports }: { fund
       </form>
       <div className="import-history">{imports.map((item) => <article key={item.id}><Database size={18} /><div><b>{item.versionName}</b><span>{item.sourceFilename}</span></div><div><b>{item.importedRows.toLocaleString()} codes</b><span>{item.invalidRows} invalid · {item.skippedRows} skipped</span></div><span className="account-status">{item.active ? "Active" : "Historical"}</span></article>)}</div>
     </section>}
+      <ConfirmationDialog open={Boolean(pendingDelete)} title={`Delete ${pendingDelete?.label || "item"}?`} description="The item will be permanently removed if no records reference it. Referenced items must be disabled instead." confirmLabel="Delete permanently" danger busy={saving} onCancel={() => setPendingDelete(null)} onConfirm={remove} />
   </div>;
 }
 
 function TextField({ name, label, value, type = "text", required = false }: { name: string; label: string; value?: string | number | null; type?: string; required?: boolean }) { return <label className="field"><span>{label}</span><input className="input" name={name} type={type} defaultValue={value ?? ""} required={required} step={type === "number" ? ".01" : undefined} /></label>; }
 
-function FundForm({ fund, saving, onSubmit }: { fund?: Fund; saving: boolean; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
+function FundForm({ fund, saving, onSubmit, onDelete }: { fund?: Fund; saving: boolean; onSubmit: (event: FormEvent<HTMLFormElement>) => void; onDelete?: () => void }) {
   const methods: string[] = fund ? JSON.parse(fund.acceptedSubmissionMethods || "[]") : ["MANUAL"];
   const [method, setMethod] = useState(methods[0] || "MANUAL");
   return <form className="directory-admin-body directory-admin-form" onSubmit={onSubmit}><div className="directory-form-grid">
@@ -95,9 +106,9 @@ function FundForm({ fund, saving, onSubmit }: { fund?: Fund; saving: boolean; on
     <label className="field"><span>Submission method</span><CustomSelect name="submissionMethod" value={method} onChange={setMethod} options={["MANUAL", "EMAIL", "PORTAL", "MEDISWITCH", "EDI", "OTHER"].map((value) => ({ value, label: value }))} /></label>
     <label className="field directory-wide"><span>Submission instructions</span><textarea className="input" name="submissionInstructions" defaultValue={fund?.submissionInstructions ?? ""} /></label>
     {[{ name: "coverSheetRequired", label: "Cover sheet required", checked: fund?.coverSheetRequired ?? false }, { name: "serviceDateRangeRequired", label: "Service-date range required", checked: fund?.serviceDateRangeRequired ?? false }, { name: "active", label: "Active", checked: fund?.active ?? true }, { name: "public", label: "Public booking option", checked: fund?.public ?? false }].map((item) => <label className="toggle-label" key={item.name}><input type="checkbox" name={item.name} defaultChecked={item.checked} /><span>{item.label}</span></label>)}
-  </div><button className="btn btn-primary directory-save" disabled={saving}><Save size={16} />Save fund</button></form>;
+  </div><div className="manager-actions"><button className="btn btn-primary directory-save" disabled={saving}><Save size={16} />Save fund</button>{fund && onDelete && <button type="button" className="btn btn-danger" onClick={onDelete}><Trash2 size={15} />Delete permanently</button>}</div></form>;
 }
 
-function ProcedureForm({ item, saving, onSubmit }: { item?: Procedure; saving: boolean; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
-  return <form className="directory-admin-body directory-admin-form" onSubmit={onSubmit}><div className="directory-form-grid"><TextField name="code" label="Code" value={item?.code} required /><TextField name="name" label="Name" value={item?.name} required /><TextField name="category" label="Category" value={item?.category} /><TextField name="defaultAmount" label="Default amount" type="number" value={item?.defaultAmount ?? 0} required /><label className="field directory-wide"><span>Description</span><textarea className="input" name="description" defaultValue={item?.description ?? ""} /></label>{[{ name: "requiresNappiCode", label: "Requires NAPPI code", checked: item?.requiresNappiCode ?? false }, { name: "requiresPreAuthorisation", label: "Requires pre-authorisation", checked: item?.requiresPreAuthorisation ?? false }, { name: "active", label: "Active", checked: item?.active ?? true }].map((value) => <label className="toggle-label" key={value.name}><input type="checkbox" name={value.name} defaultChecked={value.checked} /><span>{value.label}</span></label>)}</div><button className="btn btn-primary directory-save" disabled={saving}><Save size={16} />Save procedure</button></form>;
+function ProcedureForm({ item, saving, onSubmit, onDelete }: { item?: Procedure; saving: boolean; onSubmit: (event: FormEvent<HTMLFormElement>) => void; onDelete?: () => void }) {
+  return <form className="directory-admin-body directory-admin-form" onSubmit={onSubmit}><div className="directory-form-grid"><TextField name="code" label="Code" value={item?.code} required /><TextField name="name" label="Name" value={item?.name} required /><TextField name="category" label="Category" value={item?.category} /><TextField name="defaultAmount" label="Default amount" type="number" value={item?.defaultAmount ?? 0} required /><label className="field directory-wide"><span>Description</span><textarea className="input" name="description" defaultValue={item?.description ?? ""} /></label>{[{ name: "requiresNappiCode", label: "Requires NAPPI code", checked: item?.requiresNappiCode ?? false }, { name: "requiresPreAuthorisation", label: "Requires pre-authorisation", checked: item?.requiresPreAuthorisation ?? false }, { name: "active", label: "Active", checked: item?.active ?? true }].map((value) => <label className="toggle-label" key={value.name}><input type="checkbox" name={value.name} defaultChecked={value.checked} /><span>{value.label}</span></label>)}</div><div className="manager-actions"><button className="btn btn-primary directory-save" disabled={saving}><Save size={16} />Save procedure</button>{item && onDelete && <button type="button" className="btn btn-danger" onClick={onDelete}><Trash2 size={15} />Delete permanently</button>}</div></form>;
 }

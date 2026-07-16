@@ -98,3 +98,41 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "The directory update could not be saved." }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  const session = await requirePermission("MANAGE_PRACTICE");
+  if (!session) return NextResponse.json({ error: "You do not have permission to delete directory content." }, { status: 403 });
+  const parsed = z.object({ entity: z.enum(["DEPARTMENT", "SERVICE", "PROVIDER"]), id: z.string().min(1) }).safeParse(await request.json());
+  if (!parsed.success) return NextResponse.json({ error: "Choose a directory item to delete." }, { status: 400 });
+  const { entity, id } = parsed.data;
+  try {
+    if (entity === "DEPARTMENT") {
+      const department = await db.department.findUnique({ where: { id }, include: { services: true, providers: true } });
+      if (!department) return NextResponse.json({ error: "Department not found." }, { status: 404 });
+      if (department.bookingEnabled || department.slug === "general-practice") return NextResponse.json({ error: "General Practice is protected while online booking is enabled." }, { status: 409 });
+      await db.$transaction(async (tx) => {
+        await tx.department.delete({ where: { id } });
+        await tx.activityLog.create({ data: { userId: session.id, action: "DEPARTMENT_DELETED", entityType: "Department", entityId: id, summary: `${department.name} deleted with ${department.services.length} services and ${department.providers.length} providers`, beforeJson: JSON.stringify(department) } });
+      });
+      return NextResponse.json({ ok: true });
+    }
+    if (entity === "SERVICE") {
+      const service = await db.departmentService.findUnique({ where: { id } });
+      if (!service) return NextResponse.json({ error: "Service not found." }, { status: 404 });
+      await db.$transaction(async (tx) => {
+        await tx.departmentService.delete({ where: { id } });
+        await tx.activityLog.create({ data: { userId: session.id, action: "DEPARTMENT_SERVICE_DELETED", entityType: "DepartmentService", entityId: id, summary: `${service.name} service deleted`, beforeJson: JSON.stringify(service) } });
+      });
+      return NextResponse.json({ ok: true });
+    }
+    const provider = await db.provider.findUnique({ where: { id } });
+    if (!provider) return NextResponse.json({ error: "Provider not found." }, { status: 404 });
+    await db.$transaction(async (tx) => {
+      await tx.provider.delete({ where: { id } });
+      await tx.activityLog.create({ data: { userId: session.id, action: "PROVIDER_DELETED", entityType: "Provider", entityId: id, summary: `${provider.displayName} provider deleted`, beforeJson: JSON.stringify(provider) } });
+    });
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ error: "The directory item could not be deleted." }, { status: 500 });
+  }
+}

@@ -2,8 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, Save } from "lucide-react";
+import { Loader2, Plus, Save, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 type Service = { id: string; name: string; description: string | null; public: boolean; sortOrder: number };
 type Provider = { id: string; displayName: string; practiceName: string | null; biography: string | null; phone: string | null; email: string | null; operatingHours: string | null; public: boolean; sortOrder: number };
@@ -16,6 +17,7 @@ function formObject(form: HTMLFormElement) {
 export function DirectoryManager({ departments }: { departments: Department[] }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{ entity: "DEPARTMENT" | "SERVICE" | "PROVIDER"; id: string; label: string; detail: string } | null>(null);
 
   async function patch(body: object, message: string, form?: HTMLFormElement) {
     setSaving(true);
@@ -32,6 +34,20 @@ export function DirectoryManager({ departments }: { departments: Department[] })
     } finally {
       setSaving(false);
     }
+  }
+
+  async function remove() {
+    if (!pendingDelete) return;
+    setSaving(true);
+    try {
+      const response = await fetch("/api/directory", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ entity: pendingDelete.entity, id: pendingDelete.id }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      toast.success(`${pendingDelete.label} deleted`);
+      setPendingDelete(null);
+      router.refresh();
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete item"); }
+    finally { setSaving(false); }
   }
 
   function submitDepartment(event: FormEvent<HTMLFormElement>, id?: string) {
@@ -62,6 +78,7 @@ export function DirectoryManager({ departments }: { departments: Department[] })
             <span>Order {department.sortOrder}</span>
           </summary>
           <div className="directory-admin-body">
+            <div className="directory-delete-row"><span>Delete this department and its {department.services.length} services / {department.providers.length} providers.</span><button type="button" className="btn btn-danger" disabled={department.slug === "general-practice" || saving} onClick={() => setPendingDelete({ entity: "DEPARTMENT", id: department.id, label: department.name, detail: `${department.services.length} services and ${department.providers.length} providers will also be permanently deleted.` })}><Trash2 size={15} />Delete department</button></div>
             <form className="directory-admin-form" onSubmit={(event) => submitDepartment(event, department.id)}>
               <h2>Department details</h2>
               <div className="directory-form-grid">
@@ -81,7 +98,7 @@ export function DirectoryManager({ departments }: { departments: Department[] })
             <section className="directory-admin-section">
               <h2>Services</h2>
               <div className="directory-admin-items">
-                {department.services.map((service) => <ChildForm key={service.id} kind="SERVICE" item={service} saving={saving} onSubmit={(event) => submitChild(event, "SERVICE", department.id, service.id)} />)}
+                {department.services.map((service) => <ChildForm key={service.id} kind="SERVICE" item={service} saving={saving} onDelete={() => setPendingDelete({ entity: "SERVICE", id: service.id, label: service.name, detail: "This service will be permanently removed from the directory." })} onSubmit={(event) => submitChild(event, "SERVICE", department.id, service.id)} />)}
                 <ChildForm kind="SERVICE" saving={saving} onSubmit={(event) => submitChild(event, "SERVICE", department.id)} />
               </div>
             </section>
@@ -90,7 +107,7 @@ export function DirectoryManager({ departments }: { departments: Department[] })
               <h2>Providers</h2>
               {department.providers.length === 0 && <p className="muted">No provider profiles have been added. Keep profiles unpublished until all details are confirmed.</p>}
               <div className="directory-admin-items">
-                {department.providers.map((provider) => <ChildForm key={provider.id} kind="PROVIDER" item={provider} saving={saving} onSubmit={(event) => submitChild(event, "PROVIDER", department.id, provider.id)} />)}
+                {department.providers.map((provider) => <ChildForm key={provider.id} kind="PROVIDER" item={provider} saving={saving} onDelete={() => setPendingDelete({ entity: "PROVIDER", id: provider.id, label: provider.displayName, detail: "This provider profile will be permanently removed from the directory." })} onSubmit={(event) => submitChild(event, "PROVIDER", department.id, provider.id)} />)}
                 <ChildForm kind="PROVIDER" saving={saving} onSubmit={(event) => submitChild(event, "PROVIDER", department.id)} />
               </div>
             </section>
@@ -112,6 +129,7 @@ export function DirectoryManager({ departments }: { departments: Department[] })
           <SaveButton saving={saving} label="Add department" />
         </form>
       </details>
+      <ConfirmationDialog open={Boolean(pendingDelete)} title={`Delete ${pendingDelete?.label || "item"}?`} description={pendingDelete?.detail || "This action cannot be undone."} confirmLabel="Delete permanently" danger busy={saving} onCancel={() => setPendingDelete(null)} onConfirm={remove} />
     </div>
   );
 }
@@ -124,7 +142,7 @@ function SaveButton({ saving, label }: { saving: boolean; label: string }) {
   return <button className="btn btn-primary directory-save" disabled={saving}>{saving ? <Loader2 className="toast-spinner" size={17} /> : <Save size={17} />}{label}</button>;
 }
 
-function ChildForm({ kind, item, saving, onSubmit }: { kind: "SERVICE" | "PROVIDER"; item?: Service | Provider; saving: boolean; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
+function ChildForm({ kind, item, saving, onSubmit, onDelete }: { kind: "SERVICE" | "PROVIDER"; item?: Service | Provider; saving: boolean; onSubmit: (event: FormEvent<HTMLFormElement>) => void; onDelete?: () => void }) {
   const service = kind === "SERVICE" ? item as Service | undefined : undefined;
   const provider = kind === "PROVIDER" ? item as Provider | undefined : undefined;
   return <details className="directory-admin-item" open={!item}>
@@ -144,6 +162,7 @@ function ChildForm({ kind, item, saving, onSubmit }: { kind: "SERVICE" | "PROVID
       <Field name="sortOrder" label="Order" type="number" value={item?.sortOrder ?? 0} required />
       <label className="toggle-label directory-toggle"><input name="public" type="checkbox" defaultChecked={item?.public ?? false} /><span>Published publicly</span></label>
       <SaveButton saving={saving} label={item ? `Save ${kind.toLowerCase()}` : `Add ${kind.toLowerCase()}`} />
+      {item && onDelete && <button type="button" className="btn btn-danger" onClick={onDelete}><Trash2 size={15} />Delete permanently</button>}
     </form>
   </details>;
 }

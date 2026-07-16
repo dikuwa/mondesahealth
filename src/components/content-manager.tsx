@@ -3,8 +3,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Save } from "lucide-react";
+import type { PracticeContent } from "@/lib/public-site";
 
-export function ContentManager({ initial }: { initial: any }) {
+export function ContentManager({ initial }: { initial: PracticeContent }) {
   const [value, setValue] = useState(JSON.stringify(initial, null, 2));
   const [saving, setSaving] = useState(false);
   const router = useRouter();

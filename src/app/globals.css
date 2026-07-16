@@ -3249,6 +3249,16 @@ main p {
 .batch-claim-picker label { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 11px; border: 1px solid var(--line); border-radius: 10px; }
 .batch-claim-picker label span { display: grid; gap: 3px; color: #60756d; font-size: 12px; }
 .batch-claim-picker label b { color: var(--ink); }
+.practice-reset-card { border-color: #e4b7ad; background: #fffaf8; }
+.practice-reset-card h2 { display: flex; align-items: center; gap: 8px; }
+.practice-reset-card h2 svg { color: #b34b3f; }
+.reset-counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 18px 0; }
+.reset-counts > div { display: grid; gap: 3px; padding: 12px; border: 1px solid #efd8d2; border-radius: 10px; background: #fff; }
+.reset-counts b { font-size: 1.35rem; }
+.reset-counts span { color: #765e59; font-size: 11px; }
+.directory-delete-row { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 18px; padding: 12px; border: 1px solid #efd8d2; border-radius: 10px; color: #765e59; font-size: 12px; }
+.directory-delete-row .btn { flex: 0 0 auto; }
+@media (max-width: 600px) { .directory-delete-row { align-items: stretch; flex-direction: column; } }
 
 @media (max-width: 800px) {
   .claim-editor-toolbar, .batch-heading { align-items: stretch; flex-direction: column; }

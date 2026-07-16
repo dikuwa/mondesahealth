@@ -40,3 +40,25 @@ export async function PATCH(request: Request) {
   }
   return NextResponse.json({ error: "Unsupported medical-aid action." }, { status: 400 });
 }
+
+export async function DELETE(request: Request) {
+  const session = await requirePermission("MANAGE_MEDICAL_AID_SETTINGS");
+  if (!session) return NextResponse.json({ error: "You do not have permission to delete medical-aid configuration." }, { status: 403 });
+  const parsed = z.object({ entity: z.enum(["FUND", "PROCEDURE"]), id: z.string().min(1) }).safeParse(await request.json());
+  if (!parsed.success) return NextResponse.json({ error: "Choose a medical-aid item to delete." }, { status: 400 });
+  try {
+    if (parsed.data.entity === "FUND") {
+      const fund = await db.medicalAid.findUnique({ where: { id: parsed.data.id }, include: { memberships: { select: { id: true } }, claims: { select: { id: true } }, batches: { select: { id: true } } } });
+      if (!fund) return NextResponse.json({ error: "Medical-aid fund not found." }, { status: 404 });
+      const references = fund.memberships.length + fund.claims.length + fund.batches.length;
+      if (references) return NextResponse.json({ error: `This fund cannot be deleted because ${references} record${references === 1 ? " is" : "s are"} still referencing it. Disable it instead.` }, { status: 409 });
+      await db.$transaction(async (tx) => { await tx.medicalAid.delete({ where: { id: fund.id } }); await tx.activityLog.create({ data: { userId: session.id, action: "MEDICAL_AID_FUND_DELETED", entityType: "MedicalAid", entityId: fund.id, summary: `${fund.name} fund deleted`, beforeJson: JSON.stringify(fund) } }); });
+      return NextResponse.json({ ok: true });
+    }
+    const procedure = await db.medicalAidProcedureItem.findUnique({ where: { id: parsed.data.id }, include: { claimLines: { select: { id: true } } } });
+    if (!procedure) return NextResponse.json({ error: "Procedure item not found." }, { status: 404 });
+    if (procedure.claimLines.length) return NextResponse.json({ error: "This procedure is referenced by claims. Disable it instead." }, { status: 409 });
+    await db.$transaction(async (tx) => { await tx.medicalAidProcedureItem.delete({ where: { id: procedure.id } }); await tx.activityLog.create({ data: { userId: session.id, action: "PROCEDURE_ITEM_DELETED", entityType: "MedicalAidProcedureItem", entityId: procedure.id, summary: `${procedure.code} procedure deleted`, beforeJson: JSON.stringify(procedure) } }); });
+    return NextResponse.json({ ok: true });
+  } catch { return NextResponse.json({ error: "The medical-aid item could not be deleted." }, { status: 500 }); }
+}
