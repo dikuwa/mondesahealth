@@ -60,6 +60,9 @@ export async function POST(request: Request) {
       await tx.provider.deleteMany();
       await tx.departmentService.deleteMany();
       await tx.department.deleteMany();
+      // Remove dashboard-authored homepage content; the public loader falls back
+      // to its safe defaults until the owner publishes new copy.
+      await tx.practiceContent.deleteMany();
 
       await tx.practiceSetting.upsert({
         where: { id: "practice" },
