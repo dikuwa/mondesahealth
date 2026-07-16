@@ -2856,11 +2856,11 @@ textarea.input {
 .service-detail-heading { display: grid; justify-items: start; }
 .service-detail-heading .service-status { margin-top: 30px; }
 .service-detail-heading .eyebrow { margin: 13px 0 6px; }
-.service-detail-heading h1 { max-width: 850px; margin: 0 0 20px; }
+.service-detail-heading h1 { max-width: 850px; margin: 0 0 20px; font-size: clamp(3.1rem, 5.8vw, 5.75rem); line-height: .94; }
 .service-detail-heading > p:last-of-type { max-width: 760px; margin: 0 0 28px; color: #587069; font-size: 1.08rem; line-height: 1.75; }
 .coming-soon-notice { display: inline-flex; align-items: center; gap: 10px; padding: 14px 16px; border-radius: 12px; background: #fff; font-weight: 750; }
 .service-detail-layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr); gap: clamp(46px, 8vw, 90px); align-items: start; }
-.service-detail-layout h2 { margin: 12px 0 24px; font-size: clamp(1.8rem, 3.5vw, 2.7rem); }
+.service-detail-layout h2 { margin: 12px 0 24px; font-size: clamp(1.8rem, 3.5vw, 2.7rem); line-height: 1.08; letter-spacing: normal; }
 .service-offerings { display: grid; border-top: 1px solid var(--line); }
 .service-offerings > div { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 14px; padding: 20px 0; border-bottom: 1px solid var(--line); }
 .service-offerings > div > span { color: #996f29; font-weight: 850; }
@@ -2872,7 +2872,8 @@ textarea.input {
 .provider-profile p { color: #60766e; line-height: 1.55; }
 .provider-contact { display: grid; gap: 8px; }
 .provider-contact a { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; }
-.provider-empty { color: #61766f; line-height: 1.65; }
+.provider-empty { margin: 0; color: #61766f; line-height: 1.5; }
+.provider-panel > .btn { margin-top: 18px; }
 
 /* Dashboard directory editor */
 .directory-manager { display: grid; gap: 14px; }
@@ -3025,6 +3026,7 @@ textarea.input {
   .service-listing-number { font-size: 12px; }
   .service-listing-actions { grid-column: auto; }
   .service-detail-hero { padding: 55px 0; }
+  .service-detail-heading h1 { font-size: clamp(2.75rem, 12vw, 4rem); }
   .coming-soon-notice { align-items: flex-start; }
   .directory-admin-body { padding: 16px; }
   .directory-admin-department > summary { padding-inline: 15px; }
