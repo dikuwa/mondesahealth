@@ -22,6 +22,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { DashboardNotifications, useNotifications } from "@/components/dashboard-notifications";
 
 const sections = [
   {
@@ -97,6 +98,7 @@ export function DashboardShell({
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { notifications, refresh: refreshNotifications } = useNotifications();
   const sidebarRef = useRef<HTMLElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -201,7 +203,7 @@ export function DashboardShell({
                       title={collapsed ? label : undefined}
                     >
                       <Icon size={18} />
-                      <span>{label}</span>
+                      <span>{label}{label === "Appointments" && notifications.filter((item) => item.type === "APPOINTMENT" && !item.readAt).length > 0 && <i className="dashboard-nav-count">{notifications.filter((item) => item.type === "APPOINTMENT" && !item.readAt).length}</i>}</span>
                     </Link>
                   );
                 })}
@@ -251,6 +253,7 @@ export function DashboardShell({
             </div>
           </div>
           <div className="dashboard-topbar-actions">
+            <DashboardNotifications notifications={notifications} refresh={refreshNotifications} />
             <span className="dashboard-role">
               Secure · {role.replaceAll("_", " ")}
             </span>

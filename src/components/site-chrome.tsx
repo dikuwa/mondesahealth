@@ -350,7 +350,7 @@ export function SiteChrome({ children, site }: { children: React.ReactNode; site
             </div>
           </div>
           <div className="footer-meta">
-            <span>© 2026 {site.practiceName} · Designed by Flextech Media</span>
+            <span>© 2026 {site.practiceName} · Designed by <a href="https://www.flextech-media.com/" target="_blank" rel="noopener noreferrer">Flextech Media</a></span>
             <div className="footer-links">
               <Link href="/policies">Privacy · Booking terms · Medical disclaimer</Link>
               <Link href="/login">

@@ -31,6 +31,21 @@ model User {
   claimEvents          ClaimStatusEvent[]
   batchesSubmitted     ClaimBatch[]               @relation("BatchSubmitter")
   claimAttachments     ClaimAttachment[]
+  notifications        Notification[]
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  href      String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
 }
 
 model Patient {

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { availableSlots } from "@/lib/slots";
 import { normalizePhone, ref, validNamibianPhone } from "@/lib/utils";
+import { notifyStaff } from "@/lib/notifications";
 
 const validDate = (value: string) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -188,6 +189,7 @@ export async function POST(request: Request) {
       });
       return appointment;
     });
+    await notifyStaff({ type: "APPOINTMENT", title: "New appointment", message: `${result.reference} was booked by ${body.fullName}.`, href: "/dashboard/appointments" }).catch(() => undefined);
     return NextResponse.json(
       { reference: result.reference, manageUrl: `/a/${token}` },
       { status: 201 },
