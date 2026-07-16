@@ -1551,8 +1551,7 @@ textarea.input {
     padding-bottom: 0;
   }
   .hero-media {
-    height: auto;
-    aspect-ratio: 16 / 9;
+    height: 570px;
   }
   .home-info-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
