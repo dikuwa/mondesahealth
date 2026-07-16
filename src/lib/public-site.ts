@@ -1,4 +1,7 @@
 import { db } from "@/lib/db";
+import { DEFAULT_PRACTICE_CONTENT } from "../../prisma/polyclinic-data";
+
+export type PracticeContent = typeof DEFAULT_PRACTICE_CONTENT;
 
 export type PublicSiteConfig = {
   practiceName: string;
@@ -13,6 +16,7 @@ export type PublicSiteConfig = {
   mapLatitude: number | null;
   mapLongitude: number | null;
   publicHours: string | null;
+  content: PracticeContent;
 };
 
 export type PublicDepartment = {
@@ -39,6 +43,7 @@ export type PublicDepartment = {
 export async function getPublicSiteConfig(): Promise<PublicSiteConfig> {
   const setting = await db.practiceSetting.findUnique({ where: { id: "practice" } });
   if (!setting) throw new Error("Practice settings are not configured.");
+  const contentRecord = await db.practiceContent.findUnique({ where: { id: "practice" } });
   return {
     practiceName: setting.practiceName,
     tagline: setting.tagline,
@@ -52,6 +57,7 @@ export async function getPublicSiteConfig(): Promise<PublicSiteConfig> {
     mapLatitude: setting.mapLatitude,
     mapLongitude: setting.mapLongitude,
     publicHours: setting.publicHours?.trim() || null,
+    content: (contentRecord?.content as PracticeContent | undefined) || DEFAULT_PRACTICE_CONTENT,
   };
 }
 

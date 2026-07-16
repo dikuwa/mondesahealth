@@ -1,0 +1,7 @@
+CREATE TABLE "PracticeContent" (
+  "id" TEXT NOT NULL DEFAULT 'practice',
+  "content" JSONB NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "PracticeContent_pkey" PRIMARY KEY ("id")
+);

@@ -205,6 +205,13 @@ model PracticeSetting {
   consentWording     String  @default("I understand that diagnosis information may be represented using ICD-10 codes and disclosed to the selected medical-aid fund or its administrator for the purpose of processing and assessing my medical-aid claim.")
 }
 
+model PracticeContent {
+  id        String   @id @default("practice")
+  content   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
 model Department {
   id             String              @id @default(cuid())
   slug           String              @unique

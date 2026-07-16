@@ -43,31 +43,32 @@ export default async function Home() {
     site.mapLatitude !== null && site.mapLongitude !== null
       ? `https://www.google.com/maps?q=${site.mapLatitude},${site.mapLongitude}&z=17&output=embed`
       : null;
+  const content = site.content;
 
   return (
     <main>
       <section className="hero-section polyclinic-hero">
         <div className="container hero-grid">
           <div className="reveal hero-copy">
-            <div className="eyebrow">Integrated community healthcare</div>
-            <h1 className="display">{site.tagline}</h1>
-            <p>{site.publicDescription}</p>
+            <div className="eyebrow">{content.hero.eyebrow}</div>
+            <h1 className="display">{content.hero.headline || site.tagline}</h1>
+            <p>{content.hero.description || site.publicDescription}</p>
             <div className="hero-actions">
               <Link className="btn btn-primary" href="/book">
-                Book GP appointment <ArrowRight size={17} />
+                {content.hero.bookingLabel} <ArrowRight size={17} />
               </Link>
               <Link className="btn btn-light" href="/services">
-                Explore services
+                {content.hero.servicesLabel}
               </Link>
             </div>
             <div className="hero-trust">
               <span className="hero-trust-item">
                 <Check size={15} aria-hidden="true" />
-                <span>No patient account needed</span>
+                <span>{content.hero.trustPoints[0]}</span>
               </span>
               <span className="hero-trust-item">
                 <Check size={15} aria-hidden="true" />
-                <span>More healthcare services as we grow</span>
+                <span>{content.hero.trustPoints[1]}</span>
               </span>
             </div>
           </div>
@@ -114,29 +115,21 @@ export default async function Home() {
           <div className="about-feature">
             <Building2 size={42} aria-hidden="true" />
             <div>
-              <div className="eyebrow">One trusted destination</div>
-              <h2 className="display">Healthcare that grows with your community.</h2>
+              <div className="eyebrow">{content.about.eyebrow}</div>
+              <h2 className="display">{content.about.heading}</h2>
             </div>
           </div>
           <div className="about-copy">
-            <p className="about-lead">
-              Mondesa Health Polyclinic is becoming an integrated healthcare
-              destination where patients can discover services and connect with
-              the right healthcare team.
-            </p>
-            <p>
-              General Practice is available now. Dental, laboratory, optometry,
-              pharmacy, imaging and PHP healthcare access services will be added
-              carefully as each department becomes ready.
-            </p>
+            <p className="about-lead">{content.about.lead}</p>
+            <p>{content.about.body}</p>
             <div className="about-values">
               <div className="value-item">
                 <UsersRound aria-hidden="true" />
-                <div><b>Your choice</b><span>Clear routes to the care you need.</span></div>
+                <div><b>{content.about.values[0].title}</b><span>{content.about.values[0].text}</span></div>
               </div>
               <div className="value-item">
                 <ShieldCheck aria-hidden="true" />
-                <div><b>Trusted care</b><span>Private, respectful and community-centred.</span></div>
+                <div><b>{content.about.values[1].title}</b><span>{content.about.values[1].text}</span></div>
               </div>
             </div>
           </div>
@@ -195,16 +188,12 @@ export default async function Home() {
       <section id="visit" className="section">
         <div className="container visit-grid">
           <div className="visit-intro">
-            <div className="eyebrow">Your appointment</div>
-            <h2 className="display">Simple to arrange. Easy to prepare for.</h2>
-            <Link className="btn btn-primary" href="/book">View GP appointment times</Link>
+            <div className="eyebrow">{content.appointment.eyebrow}</div>
+            <h2 className="display">{content.appointment.heading}</h2>
+            <Link className="btn btn-primary" href="/book">{content.appointment.ctaLabel}</Link>
           </div>
           <div className="visit-steps">
-            {[
-              ["01", "Choose General Practice", "GP appointments are available now. Other departments will open as their teams and services are confirmed."],
-              ["02", "Book an available time", "Choose a date and time online. No patient account is required."],
-              ["03", "Keep your secure link", "Use your private link if you need to review or manage your appointment."],
-            ].map(([number, title, text]) => (
+            {content.appointment.steps.map(({number, title, text}) => (
               <div className="visit-step" key={number}>
                 <span>{number}</span>
                 <div><b>{title}</b><p>{text}</p></div>
@@ -217,15 +206,15 @@ export default async function Home() {
       <section id="contact" className="section contact-section">
         <div className="container contact-grid">
           <div className="contact-copy">
-            <div className="eyebrow">Contact & location</div>
-            <h2 className="display">Healthcare close to home.</h2>
+            <div className="eyebrow">{content.contact.eyebrow}</div>
+            <h2 className="display">{content.contact.heading}</h2>
             <address>
               {site.address}
               {site.locationNote && <span>{site.locationNote}</span>}
             </address>
             <div className="contact-actions">
-              <a className="btn btn-primary" href={telephoneHref}><Phone size={17} /> Call {site.phone}</a>
-              {site.mapsUrl && <a className="btn btn-light" href={site.mapsUrl} target="_blank" rel="noopener noreferrer"><MapPinned size={17} /> Get directions</a>}
+              <a className="btn btn-primary" href={telephoneHref}><Phone size={17} /> {content.contact.phoneLabel} {site.phone}</a>
+              {site.mapsUrl && <a className="btn btn-light" href={site.mapsUrl} target="_blank" rel="noopener noreferrer"><MapPinned size={17} /> {content.contact.directionsLabel}</a>}
             </div>
             {site.publicHours && (
               <div className="public-hours"><b>Opening hours</b><p>{site.publicHours}</p></div>

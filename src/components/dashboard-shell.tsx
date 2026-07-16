@@ -55,6 +55,7 @@ const sections = [
     label: "System",
     items: [
       ["Services & providers", "/dashboard/services", Building2, "MANAGE_PRACTICE"],
+      ["Website content", "/dashboard/content", Building2, "MANAGE_PRACTICE"],
       ["Medical aid", "/dashboard/medical-aid", FileHeart, "MANAGE_MEDICAL_AID_SETTINGS"],
       ["Settings", "/dashboard/settings", Settings, "MANAGE_PRACTICE"],
       ["Staff users", "/dashboard/users", UserCog, "MANAGE_USERS"],
@@ -74,6 +75,7 @@ const pageNames: Record<string, string> = {
   "/dashboard/availability": "Availability",
   "/dashboard/settings": "Settings",
   "/dashboard/services": "Services & providers",
+  "/dashboard/content": "Website content",
   "/dashboard/activity": "Activity log",
   "/dashboard/users": "Staff users",
   "/dashboard/profile": "Profile & security",
