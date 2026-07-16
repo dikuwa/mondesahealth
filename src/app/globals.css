@@ -3160,6 +3160,7 @@ textarea.input {
 .claim-section-nav { position: sticky; top: 64px; z-index: 12; display: flex; gap: 3px; overflow-x: auto; padding: 6px; border: 1px solid var(--line); border-radius: 13px; background: #fff; }
 .claim-section-nav a { display: inline-flex; min-height: 40px; align-items: center; padding: 0 13px; border-radius: 9px; white-space: nowrap; font-size: 12px; font-weight: 750; }
 .claim-section-nav a:hover { background: #edf4f1; }
+.claim-section-nav a.is-active { background: var(--green); color: #fff; }
 .claim-section { scroll-margin-top: 124px; padding: 22px !important; }
 .claim-section h2 { margin: 0 0 18px; font-size: 1.3rem; }
 .claim-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }

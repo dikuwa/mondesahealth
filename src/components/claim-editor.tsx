@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle2, FileDown, Loader2, Plus, Save, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
@@ -69,8 +69,20 @@ export function ClaimEditor({ claim, memberships, funds, procedures, initialLine
   const [attachmentList, setAttachmentList] = useState(attachments);
   const [attachmentType, setAttachmentType] = useState("CLINICAL_SUPPORT");
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [activeSection, setActiveSection] = useState("claim-details");
   const locked = ["SUBMITTED", "ACKNOWLEDGED", "PARTIALLY_PAID", "PAID", "REJECTED", "RESUBMITTED"].includes(claim.status);
   const total = lines.reduce((sum, line) => sum + Number(line.quantity) * Number(line.rate), 0);
+
+  useEffect(() => {
+    const sections = Array.from(document.querySelectorAll<HTMLElement>(".claim-section[id]"));
+    if (!sections.length) return;
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (visible[0]?.target.id) setActiveSection(visible[0].target.id);
+    }, { root: document.querySelector(".dashboard-content"), rootMargin: "-92px 0px -55% 0px", threshold: 0 });
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, []);
 
   function update(index: number, value: Partial<Line>) {
     setLines((current) => current.map((line, position) => position === index ? { ...line, ...value } : line));
@@ -185,7 +197,7 @@ export function ClaimEditor({ claim, memberships, funds, procedures, initialLine
           {!locked && <><button className="btn btn-light" disabled={saving} onClick={save}><Save size={16} />Save draft</button><button className="btn btn-primary" disabled={saving} onClick={validate}>{saving ? <Loader2 className="toast-spinner" size={16} /> : <CheckCircle2 size={16} />}Validate</button></>}
         </div>
       </div>
-      <nav className="claim-section-nav" aria-label="Claim sections"><a href="#claim-details">Claim details</a><a href="#claim-lines">Claim lines</a><a href="#claim-attachments">Attachments</a><a href="#claim-validation">Validation</a><a href="#claim-history">History</a></nav>
+      <nav className="claim-section-nav" aria-label="Claim sections">{[["claim-details", "Claim details"], ["claim-lines", "Claim lines"], ["claim-attachments", "Attachments"], ["claim-validation", "Validation"], ["claim-history", "History"]].map(([id, label]) => <a className={activeSection === id ? "is-active" : ""} aria-current={activeSection === id ? "location" : undefined} href={`#${id}`} key={id} onClick={() => setActiveSection(id)}>{label}</a>)}</nav>
       <section id="claim-details" className="card dashboard-card claim-section">
         <h2>Patient and claim details</h2>
         <div className="claim-form-grid">
