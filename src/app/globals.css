@@ -3345,7 +3345,7 @@ main p {
 @media (max-width: 600px) { .directory-delete-row { align-items: stretch; flex-direction: column; } }
 .content-manager { display: grid; gap: 18px; }
 .content-manager > .muted { margin: 0; }
-.content-section { display: grid; gap: 20px; }
+.content-section { display: grid; gap: 20px; padding: 24px; }
 .content-section .settings-card-heading { margin: 0; }
 .content-section .settings-card-heading h2 { margin: 0 0 5px; font-size: 1.15rem; letter-spacing: normal; }
 .content-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
@@ -3359,7 +3359,7 @@ main p {
 .custom-upload strong { font-size: 13px; }
 .custom-upload small { color: #698078; font-size: 11px; }
 .custom-upload:focus-within { outline: 3px solid #bcd9cc; outline-offset: 2px; }
-@media (max-width: 700px) { .content-fields, .content-repeat-grid { grid-template-columns: 1fr; } .content-fields .content-wide { grid-column: auto; } .content-manager-actions .btn { width: 100%; } }
+@media (max-width: 700px) { .content-section { padding: 18px 16px; } .content-fields, .content-repeat-grid { grid-template-columns: 1fr; } .content-fields .content-wide { grid-column: auto; } .content-manager-actions .btn { width: 100%; } }
 
 @media (max-width: 800px) {
   .claim-editor-toolbar, .batch-heading { align-items: stretch; flex-direction: column; }
