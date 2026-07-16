@@ -64,14 +64,14 @@ export async function POST(request: Request) {
       await tx.practiceSetting.upsert({
         where: { id: "practice" },
         update: {
-          practiceName: "Mondesa Health Polyclinic", doctorName: "", practiceNumber: "", registrationNumber: "",
-          phone: "", whatsapp: "", email: "", address: "", bookingMode: "AVAILABLE_TIME", minNoticeHours: 2,
-          maxAdvanceDays: 60, cancellationPolicy: "", currency: "NAD", signatureName: "", signatureTitle: "",
-          vatEnabled: false, tagline: "", publicDescription: "", locationNote: "", mapsUrl: "", mapLatitude: null,
+          practiceName: "Mondesa Health Polyclinic", doctorName: "Dr Helena Ndeitunga", practiceNumber: "Pending configuration", registrationNumber: "Pending configuration",
+          phone: "+264 81 000 0000", whatsapp: "+264 81 000 0000", email: "hello@mondesahealth.na", address: "Mondesa, Swakopmund, Namibia", bookingMode: "AVAILABLE_TIME", minNoticeHours: 2,
+          maxAdvanceDays: 60, cancellationPolicy: "Please give at least 4 hours' notice when possible.", currency: "NAD", signatureName: "Dr Helena Ndeitunga", signatureTitle: "Medical Practitioner",
+          vatEnabled: false, tagline: "Your Health. Your Choice. Your Community.", publicDescription: "Mondesa Health Polyclinic brings multiple healthcare disciplines together in one trusted community healthcare destination.", locationNote: "", mapsUrl: "", mapLatitude: null,
           mapLongitude: null, publicHours: null, showEmail: false, showWhatsapp: false, claimContactName: "",
           claimPhone: "", claimEmail: "", claimPostalAddress: "",
         },
-        create: { id: "practice", practiceName: "Mondesa Health Polyclinic", doctorName: "", practiceNumber: "", registrationNumber: "", phone: "", whatsapp: "", email: "", address: "", bookingMode: "AVAILABLE_TIME", minNoticeHours: 2, maxAdvanceDays: 60, cancellationPolicy: "", currency: "NAD", signatureName: "", signatureTitle: "", vatEnabled: false, tagline: "", publicDescription: "", locationNote: "", mapsUrl: "", showEmail: false, showWhatsapp: false, claimContactName: "", claimPhone: "", claimEmail: "", claimPostalAddress: "" },
+        create: { id: "practice", practiceName: "Mondesa Health Polyclinic", doctorName: "Dr Helena Ndeitunga", practiceNumber: "Pending configuration", registrationNumber: "Pending configuration", phone: "+264 81 000 0000", whatsapp: "+264 81 000 0000", email: "hello@mondesahealth.na", address: "Mondesa, Swakopmund, Namibia", bookingMode: "AVAILABLE_TIME", minNoticeHours: 2, maxAdvanceDays: 60, cancellationPolicy: "Please give at least 4 hours' notice when possible.", currency: "NAD", signatureName: "Dr Helena Ndeitunga", signatureTitle: "Medical Practitioner", vatEnabled: false, tagline: "Your Health. Your Choice. Your Community.", publicDescription: "Mondesa Health Polyclinic brings multiple healthcare disciplines together in one trusted community healthcare destination.", locationNote: "", mapsUrl: "", showEmail: false, showWhatsapp: false, claimContactName: "", claimPhone: "", claimEmail: "", claimPostalAddress: "" },
       });
 
       // Keep a minimal, protected booking shell so existing /book and /slots routes
