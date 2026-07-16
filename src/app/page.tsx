@@ -74,7 +74,7 @@ export default async function Home() {
           </div>
           <div className="hero-media">
             <Image
-              src="/images/mondesa-doctor-hero.jpg"
+              src="/images/mondesa-hero.webp"
               alt="A doctor listening to a patient during a consultation"
               fill
               priority
