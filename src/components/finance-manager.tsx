@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, WalletCards, X } from "lucide-react";
+import { Copy, Eye, Loader2, Plus, Share2, WalletCards, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { money } from "@/lib/utils";
@@ -13,6 +13,9 @@ type Invoice = {
   total: number;
   paid: number;
   status: string;
+  patientPhone: string;
+  patientWhatsapp: string | null;
+  patientEmail: string | null;
 };
 const paymentMethods = [
   "CASH",
@@ -36,7 +39,16 @@ export function FinanceManager({
   const [payer, setPayer] = useState("PATIENT");
   const [method, setMethod] = useState("EFT");
   const [saving, setSaving] = useState(false);
+  const [viewing, setViewing] = useState<Invoice | null>(null);
+  const [sharing, setSharing] = useState<Invoice | null>(null);
+  const [share, setShare] = useState<{ link: string; message: string; whatsapp: string; email: string | null } | null>(null);
   const invoice = invoices.find((item) => item.id === selected);
+  async function createShare(item: Invoice) {
+    setSharing(item);
+    try { const response = await fetch(`/api/documents/${item.id}/share`, { method: "POST" }); const data = await response.json(); if (!response.ok) throw new Error(data.error); setShare(data); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not create secure share link"); setSharing(null); }
+  }
+  async function copyLink() { if (!share) return; await navigator.clipboard.writeText(share.link); toast.success("Secure link copied"); }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -156,6 +168,7 @@ export function FinanceManager({
                         >
                           <WalletCards size={15} /> Payment
                         </button>
+                        <button className="btn btn-light" onClick={() => setViewing(item)}><Eye size={15} /> View</button>
                         <a
                           className="btn btn-light"
                           href={`/api/documents/${item.id}/pdf`}
@@ -164,6 +177,7 @@ export function FinanceManager({
                         >
                           PDF
                         </a>
+                        <button className="btn btn-light" onClick={() => createShare(item)}><Share2 size={15} /> Share</button>
                       </div>
                     </td>
                   </tr>
@@ -306,6 +320,8 @@ export function FinanceManager({
           </form>
         </div>
       )}
+      {viewing && <div className="appointment-modal finance-preview-modal" role="dialog" aria-modal="true"><button className="appointment-modal-backdrop" aria-label="Close preview" onClick={() => setViewing(null)} /><div className="appointment-panel"><div className="appointment-panel-heading"><div><span className="eyebrow">Invoice preview</span><h2>{viewing.number}</h2></div><button type="button" aria-label="Close" onClick={() => setViewing(null)}><X size={20} /></button></div><iframe className="finance-preview-frame" title={`Preview ${viewing.number}`} src={`/api/documents/${viewing.id}/pdf`} /><div className="appointment-panel-actions"><button className="btn btn-light" onClick={() => setViewing(null)}>Close</button></div></div></div>}
+      {sharing && <div className="appointment-modal" role="dialog" aria-modal="true"><button className="appointment-modal-backdrop" aria-label="Close share" onClick={() => { setSharing(null); setShare(null); }} /><div className="appointment-panel"><div className="appointment-panel-heading"><div><span className="eyebrow">Secure sharing</span><h2>Share {sharing.number}</h2><p>Review the message before opening a sharing option.</p></div><button type="button" aria-label="Close" onClick={() => { setSharing(null); setShare(null); }}><X size={20} /></button></div>{share ? <><div className="share-link-box"><b>Secure link</b><span>{share.link}</span></div><div className="share-actions"><a className="btn btn-primary" href={share.whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp</a>{share.email && <a className="btn btn-light" href={share.email}>Email</a>}<button className="btn btn-light" onClick={copyLink}><Copy size={15} /> Copy link</button>{"share" in navigator && <button className="btn btn-light" onClick={() => navigator.share({ title: `Invoice ${sharing.number}`, text: share.message, url: share.link })}>More sharing options</button>}</div><pre className="share-message-preview">{share.message}</pre></> : <div className="share-loading"><Loader2 className="toast-spinner" size={18} /> Creating secure link…</div>}</div></div>}
     </>
   );
 }
