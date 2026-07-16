@@ -2794,7 +2794,7 @@ textarea.input {
 .closing-cta h2 { max-width: 700px; margin: 13px auto 25px; }
 
 .services-hero, .service-detail-hero { padding: clamp(70px, 10vw, 130px) 0; background: var(--cream); }
-.services-hero h1 { max-width: 900px; margin: 15px 0 22px; font-size: clamp(3.1rem, 6vw, 6.1rem); line-height: .94; }
+.services-hero h1 { max-width: 900px; margin: 15px 0 22px; font-size: clamp(3.1rem, 5.8vw, 5.75rem); line-height: .94; }
 .services-hero p { max-width: 680px; color: #587069; font-size: 1.08rem; line-height: 1.7; }
 .services-list { display: grid; }
 .service-listing { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 28px; align-items: center; padding: 34px 0; border-bottom: 1px solid var(--line); }
@@ -3167,7 +3167,7 @@ main p {
 .polyclinic-hero .hero-copy h1 {
   max-width: 700px;
   margin: 18px 0 24px;
-  font-size: clamp(4rem, 6.2vw, 6.5rem);
+  font-size: clamp(3.5rem, 5.8vw, 5.75rem);
   line-height: 0.92;
   letter-spacing: -0.025em;
 }
@@ -3179,7 +3179,7 @@ main p {
 }
 .hero-actions { margin-top: 30px; }
 .hero-trust { margin-top: 26px; }
-.about-feature h2 { font-size: clamp(2.6rem, 4.5vw, 4.8rem); }
+.about-feature h2 { font-size: clamp(2.6rem, 4.5vw, 4.2rem); }
 .about-copy .about-lead { font-size: clamp(1.35rem, 2.1vw, 1.75rem) !important; line-height: 1.4 !important; }
 .directory-heading h2 { font-size: clamp(2.5rem, 4.2vw, 4.2rem); }
 .visit-intro h2,
@@ -3309,6 +3309,11 @@ main p {
 .content-repeat-item { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: #f8faf9; }
 .content-repeat-item b { font-size: 13px; }
 .content-manager-actions { display: flex; justify-content: flex-end; }
+.custom-upload { position: relative; display: grid; gap: 4px; min-height: 58px; align-content: center; padding: 10px 13px; border: 1px dashed #afc4ba; border-radius: 10px; background: #f7faf8; cursor: pointer; }
+.custom-upload input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
+.custom-upload strong { font-size: 13px; }
+.custom-upload small { color: #698078; font-size: 11px; }
+.custom-upload:focus-within { outline: 3px solid #bcd9cc; outline-offset: 2px; }
 @media (max-width: 700px) { .content-fields, .content-repeat-grid { grid-template-columns: 1fr; } .content-fields .content-wide { grid-column: auto; } .content-manager-actions .btn { width: 100%; } }
 
 @media (max-width: 800px) {

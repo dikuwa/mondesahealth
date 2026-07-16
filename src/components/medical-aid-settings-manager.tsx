@@ -87,7 +87,7 @@ export function MedicalAidSettingsManager({ funds, procedures, imports }: { fund
         finally { setSaving(false); }
       }}>
         <label className="field"><span>Dataset version</span><input className="input" name="versionName" defaultValue="MIT 2021 (16 March 2021)" required /></label>
-        <label className="field"><span>XLSX workbook</span><input className="input" type="file" name="file" accept=".xlsx" required /></label>
+        <div className="field custom-upload-field"><span>XLSX workbook</span><label className="custom-upload"><input type="file" name="file" accept=".xlsx" required onChange={(event) => { const file = event.target.files?.[0]; const name = event.currentTarget.parentElement?.querySelector("strong"); if (name) name.textContent = file?.name || "Choose an XLSX workbook"; }} /><strong>Choose an XLSX workbook</strong><small>Accepted format: .xlsx</small></label></div>
         <button className="btn btn-primary" disabled={saving}>{saving ? <Loader2 className="toast-spinner" size={16} /> : <Upload size={16} />}Import dataset</button>
       </form>
       <div className="import-history">{imports.map((item) => <article key={item.id}><Database size={18} /><div><b>{item.versionName}</b><span>{item.sourceFilename}</span></div><div><b>{item.importedRows.toLocaleString()} codes</b><span>{item.invalidRows} invalid · {item.skippedRows} skipped</span></div><span className="account-status">{item.active ? "Active" : "Historical"}</span></article>)}</div>
