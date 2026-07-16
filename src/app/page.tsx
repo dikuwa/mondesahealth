@@ -238,9 +238,10 @@ export default async function Home() {
 
       <section className="section closing-cta">
         <div className="container">
-          <div className="eyebrow">General Practice is available</div>
-          <h2 className="display">Start with care that listens.</h2>
-          <Link className="btn btn-primary" href="/book">Book GP appointment <ArrowRight size={17} /></Link>
+          <div className="eyebrow">{content.closing.eyebrow}</div>
+          <h2 className="display">{content.closing.heading}</h2>
+          <p>{content.closing.description}</p>
+          <Link className="btn btn-primary" href="/book">{content.closing.bookingLabel} <ArrowRight size={17} /></Link>
         </div>
       </section>
     </main>
