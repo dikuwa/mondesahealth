@@ -5,6 +5,7 @@ import { Loader2, Plus, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { DatePicker } from "@/components/ui/date-picker";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 type Rule = {
   weekday: number;
   active: boolean;
@@ -38,6 +39,7 @@ export function AvailabilityManager({
   const router = useRouter();
   const [rules, setRules] = useState(initialRules);
   const [saving, setSaving] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Block | null>(null);
   const[startDate,setStartDate]=useState(""),[startTime,setStartTime]=useState(""),[endDate,setEndDate]=useState(""),[endTime,setEndTime]=useState("");
   function edit(day: number, patch: Partial<Rule>) {
     setRules((current) =>
@@ -55,6 +57,7 @@ export function AvailabilityManager({
       if (!response.ok) throw new Error(data.error);
       toast.success("Availability updated", { id });
       router.refresh();
+      return true;
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -62,10 +65,12 @@ export function AvailabilityManager({
           : "Could not update availability",
         { id },
       );
+      return false;
     } finally {
       setSaving(false);
     }
   }
+  const invalidRule = rules.find((rule) => rule.active && rule.closeTime <= rule.openTime);
   return (
     <div className="dashboard-equal-columns">
       <form
@@ -73,6 +78,10 @@ export function AvailabilityManager({
         style={{ padding: 24 }}
         onSubmit={(event) => {
           event.preventDefault();
+          if (invalidRule) {
+            toast.error(`${days[invalidRule.weekday]} closing time must be after opening time.`);
+            return;
+          }
           action(
             "/api/availability",
             {
@@ -97,6 +106,12 @@ export function AvailabilityManager({
           </button>
         </div>
         <div className="availability-grid">
+          <div className="availability-row availability-row-header" aria-hidden="true">
+            <span>Day</span>
+            <span>Opens</span>
+            <span>Closes</span>
+            <span>Slot duration</span>
+          </div>
           {rules.map((rule) => (
             <div className="availability-row" key={rule.weekday}>
               <label className="toggle-label">
@@ -109,24 +124,8 @@ export function AvailabilityManager({
                 />
                 <span>{days[rule.weekday]}</span>
               </label>
-              <input
-                className="input"
-                type="time"
-                value={rule.openTime}
-                disabled={!rule.active}
-                onChange={(event) =>
-                  edit(rule.weekday, { openTime: event.target.value })
-                }
-              />
-              <input
-                className="input"
-                type="time"
-                value={rule.closeTime}
-                disabled={!rule.active}
-                onChange={(event) =>
-                  edit(rule.weekday, { closeTime: event.target.value })
-                }
-              />
+              <CustomSelect value={rule.openTime} onChange={(value) => edit(rule.weekday, { openTime: value })} options={timeOptions} disabled={!rule.active} ariaLabel={`${days[rule.weekday]} opening time`} />
+              <CustomSelect value={rule.closeTime} onChange={(value) => edit(rule.weekday, { closeTime: value })} options={timeOptions} disabled={!rule.active} ariaLabel={`${days[rule.weekday]} closing time`} />
               <input
                 className="input"
                 aria-label="Appointment duration in minutes"
@@ -151,20 +150,29 @@ export function AvailabilityManager({
         onSubmit={(event) => {
           event.preventDefault();
           const form = new FormData(event.currentTarget);
+          const nextStart = new Date(`${startDate}T${startTime}:00`);
+          const nextEnd = new Date(`${endDate}T${endTime}:00`);
+          if (Number.isNaN(nextStart.getTime()) || Number.isNaN(nextEnd.getTime()) || nextEnd <= nextStart) {
+            toast.error("End time must be after start time.");
+            return;
+          }
           action(
             "/api/availability",
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                startAt: new Date(`${startDate}T${startTime}:00`).toISOString(),
-                endAt: new Date(`${endDate}T${endTime}:00`).toISOString(),
+                startAt: nextStart.toISOString(),
+                endAt: nextEnd.toISOString(),
                 reason: form.get("reason"),
               }),
             },
             "Adding blocked time…",
-          );
-          event.currentTarget.reset();setStartDate("");setStartTime("");setEndDate("");setEndTime("");
+          ).then((ok) => {
+            if (ok) {
+              event.currentTarget.reset();setStartDate("");setStartTime("");setEndDate("");setEndTime("");
+            }
+          });
         }}
       >
         <h2>Add blocked time</h2>
@@ -195,13 +203,7 @@ export function AvailabilityManager({
               <button
                 className="icon-action"
                 aria-label="Remove blocked time"
-                onClick={() =>
-                  action(
-                    `/api/availability?id=${block.id}`,
-                    { method: "DELETE" },
-                    "Removing blocked time…",
-                  )
-                }
+                onClick={() => setPendingDelete(block)}
               >
                 <Trash2 size={16} />
               </button>
@@ -211,6 +213,22 @@ export function AvailabilityManager({
           <p className="muted">No future blocked times configured.</p>
         )}
       </div>
+      <ConfirmationDialog
+        open={Boolean(pendingDelete)}
+        title="Remove blocked time?"
+        description={pendingDelete ? `${pendingDelete.reason || "This blocked period"} will be removed from the booking calendar.` : ""}
+        confirmLabel="Remove block"
+        danger
+        busy={saving}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => pendingDelete && action(
+          `/api/availability?id=${pendingDelete.id}`,
+          { method: "DELETE" },
+          "Removing blocked time…",
+        ).then((ok) => {
+          if (ok) setPendingDelete(null);
+        })}
+      />
     </div>
   );
 }

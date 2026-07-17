@@ -36,6 +36,12 @@ const communication = [
   { value: "EMAIL", label: "Email" },
   { value: "PHONE", label: "Phone call" },
 ];
+const patientSortOptions = [
+  { value: "NAME_ASC", label: "Name A-Z" },
+  { value: "VISITS_DESC", label: "Most visits" },
+  { value: "NUMBER_ASC", label: "Patient number" },
+  { value: "DOB_ASC", label: "Oldest first" },
+];
 
 export function PatientManager({
   initial,
@@ -49,9 +55,12 @@ export function PatientManager({
     [query, setQuery] = useState(""),
     [editing, setEditing] = useState<Patient | null>(null),
     [open, setOpen] = useState(false),
+    [sort, setSort] = useState("NAME_ASC"),
     [saving, setSaving] = useState(false),
     [deleting, setDeleting] = useState(""),
-    [pendingArchive, setPendingArchive] = useState<Patient | null>(null);
+    [pendingArchive, setPendingArchive] = useState<Patient | null>(null),
+    [dirty, setDirty] = useState(false),
+    [discarding, setDiscarding] = useState(false);
   const [gender, setGender] = useState(""),
     [method, setMethod] = useState("WHATSAPP"),
     [fund, setFund] = useState(""),
@@ -62,8 +71,17 @@ export function PatientManager({
         `${p.fullName} ${p.patientNumber} ${p.phone} ${p.email || ""}`
           .toLowerCase()
           .includes(query.trim().toLowerCase()),
-      ),
-    [patients, query],
+      ).sort((a, b) => {
+        if (sort === "VISITS_DESC") return b.visits - a.visits || a.fullName.localeCompare(b.fullName);
+        if (sort === "NUMBER_ASC") return a.patientNumber.localeCompare(b.patientNumber);
+        if (sort === "DOB_ASC") {
+          const aDate = a.dateOfBirth ? new Date(a.dateOfBirth).getTime() : Number.MAX_SAFE_INTEGER;
+          const bDate = b.dateOfBirth ? new Date(b.dateOfBirth).getTime() : Number.MAX_SAFE_INTEGER;
+          return aDate - bDate;
+        }
+        return a.fullName.localeCompare(b.fullName);
+      }),
+    [patients, query, sort],
   );
   useEffect(() => {
     // Refresh the optimistic client list after the server component supplies updated records.
@@ -76,7 +94,16 @@ export function PatientManager({
     setMethod(patient?.preferredMethod || "WHATSAPP");
     setFund(patient?.medicalAidId || "");
     setBirthDate(patient?.dateOfBirth?.slice(0, 10) || "");
+    setDirty(false);
+    setDiscarding(false);
     setOpen(true);
+  }
+  function closeForm() {
+    if (dirty) {
+      setDiscarding(true);
+      return;
+    }
+    setOpen(false);
   }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -131,6 +158,7 @@ export function PatientManager({
         );
       }
       setOpen(false);
+      setDirty(false);
       router.refresh();
     } catch (error) {
       toast.error(
@@ -176,6 +204,7 @@ export function PatientManager({
             aria-label="Search patients"
           />
         </div>
+        <CustomSelect value={sort} onChange={setSort} options={patientSortOptions} ariaLabel="Sort patients" />
         <button className="btn btn-primary" onClick={() => show()}>
           <Plus size={17} /> Add patient
         </button>
@@ -252,15 +281,35 @@ export function PatientManager({
             <div className="dashboard-empty">No patients match “{query}”.</div>
           )}
         </div>
+        {!!visible.length && (
+          <div className="record-card-list patient-card-list">
+            {visible.map((p) => (
+              <article className="record-card" key={p.id}>
+                <span className="record-card-heading">
+                  <b>{p.fullName}</b>
+                  <small>{p.patientNumber}</small>
+                </span>
+                <span>{p.phone}</span>
+                <small>{p.dateOfBirth ? new Date(p.dateOfBirth).toLocaleDateString("en-NA") : "Missing date of birth for claims"}</small>
+                <small>{p.medicalAid || "Private"} · {p.visits} visit{p.visits === 1 ? "" : "s"}</small>
+                <span className="record-card-actions">
+                  <Link className="icon-action" href={`/dashboard/patients/${p.id}/medical-aid`} aria-label={`Benefits profile for ${p.fullName}`} title="Medical aid"><CreditCard size={16}/></Link>
+                  <button className="icon-action" type="button" onClick={() => show(p)} aria-label={`Edit ${p.fullName}`}><Pencil size={16}/></button>
+                  <button className="icon-action danger-action" type="button" disabled={deleting === p.id} onClick={() => setPendingArchive(p)} aria-label={`Archive ${p.fullName}`}><Trash2 size={16}/></button>
+                </span>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
       {open && (
         <div className="appointment-modal" role="dialog" aria-modal="true">
           <button
             className="appointment-modal-backdrop"
             aria-label="Close patient form"
-            onClick={() => setOpen(false)}
+            onClick={closeForm}
           />
-          <form className="appointment-panel" onSubmit={submit}>
+          <form className="appointment-panel" onSubmit={submit} onChange={() => setDirty(true)}>
             <div className="appointment-panel-heading">
               <div>
                 <span className="eyebrow">Patient record</span>
@@ -272,7 +321,7 @@ export function PatientManager({
               </div>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={closeForm}
                 aria-label="Close patient form"
               >
                 <X size={20} />
@@ -294,7 +343,10 @@ export function PatientManager({
                 </label>
                 <DatePicker
                   value={birthDate}
-                  onChange={setBirthDate}
+                  onChange={(value) => {
+                    setBirthDate(value);
+                    setDirty(true);
+                  }}
                   ariaLabel="Date of birth"
                   max={new Date().toISOString().slice(0, 10)}
                 />
@@ -304,7 +356,10 @@ export function PatientManager({
                 <CustomSelect
                   ariaLabel="Gender"
                   value={gender}
-                  onChange={setGender}
+                  onChange={(value) => {
+                    setGender(value);
+                    setDirty(true);
+                  }}
                   options={genders}
                 />
               </div>
@@ -331,7 +386,10 @@ export function PatientManager({
                 <CustomSelect
                   ariaLabel="Preferred communication"
                   value={method}
-                  onChange={setMethod}
+                  onChange={(value) => {
+                    setMethod(value);
+                    setDirty(true);
+                  }}
                   options={communication}
                 />
               </div>
@@ -340,7 +398,10 @@ export function PatientManager({
                 <CustomSelect
                   ariaLabel="Medical aid"
                   value={fund}
-                  onChange={setFund}
+                  onChange={(value) => {
+                    setFund(value);
+                    setDirty(true);
+                  }}
                   options={[
                     { value: "", label: "Private / none" },
                     ...funds.map((f) => ({ value: f.id, label: f.name })),
@@ -362,7 +423,7 @@ export function PatientManager({
               <button
                 type="button"
                 className="btn btn-light"
-                onClick={() => setOpen(false)}
+                onClick={closeForm}
               >
                 Cancel
               </button>
@@ -383,6 +444,19 @@ export function PatientManager({
         busy={!!deleting}
         onCancel={() => setPendingArchive(null)}
         onConfirm={() => pendingArchive && archive(pendingArchive)}
+      />
+      <ConfirmationDialog
+        open={discarding}
+        title="Discard patient changes?"
+        description="Unsaved patient details will be lost."
+        confirmLabel="Discard changes"
+        danger
+        onCancel={() => setDiscarding(false)}
+        onConfirm={() => {
+          setDiscarding(false);
+          setDirty(false);
+          setOpen(false);
+        }}
       />
     </>
   );

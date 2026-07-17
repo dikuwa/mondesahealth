@@ -24,6 +24,7 @@ import {
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { DatePicker } from "@/components/ui/date-picker";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 type Row = {
   id: string;
@@ -61,6 +62,12 @@ const statuses = [
   "NO_SHOW",
 ];
 const sources = ["ALL", "PUBLIC", "PHONE", "WALK_IN", "WHATSAPP", "STAFF"];
+const sortOptions = [
+  { value: "NEXT_ASC", label: "Next appointment first" },
+  { value: "NEXT_DESC", label: "Latest appointment first" },
+  { value: "PATIENT_ASC", label: "Patient A-Z" },
+  { value: "STATUS_ASC", label: "Status A-Z" },
+];
 const label = (value: string) =>
   value
     .replaceAll("_", " ")
@@ -74,6 +81,7 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
     [quick, setQuick] = useState(params.get("view") || "ALL"),
     [status, setStatus] = useState(params.get("status") || "ALL"),
     [source, setSource] = useState(params.get("source") || "ALL"),
+    [sort, setSort] = useState(params.get("sort") || "NEXT_ASC"),
     [from, setFrom] = useState(params.get("from") || ""),
     [to, setTo] = useState(params.get("to") || ""),
     [selected, setSelected] = useState<Row | null>(null),
@@ -83,6 +91,7 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
     [time, setTime] = useState(""),
     [slots, setSlots] = useState<string[]>([]),
     [reason, setReason] = useState(""),
+    [pendingCancel, setPendingCancel] = useState(false),
     [share, setShare] = useState<{
       message: string;
       link: string;
@@ -95,6 +104,7 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
     view?: string;
     status?: string;
     source?: string;
+    sort?: string;
     from?: string;
     to?: string;
   }) {
@@ -132,14 +142,28 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
           (!from || (!!when && when >= parseISO(from))) &&
           (!to || (!!when && when < new Date(`${to}T23:59:59`)))
         );
+      }).sort((a, b) => {
+        if (sort === "PATIENT_ASC") return a.patient.fullName.localeCompare(b.patient.fullName);
+        if (sort === "STATUS_ASC") return label(a.status).localeCompare(label(b.status));
+        const aTime = a.startAt ? parseISO(a.startAt).getTime() : Number.MAX_SAFE_INTEGER;
+        const bTime = b.startAt ? parseISO(b.startAt).getTime() : Number.MAX_SAFE_INTEGER;
+        return sort === "NEXT_DESC" ? bTime - aTime : aTime - bTime;
       }),
-    [rows, query, status, source, quick, from, to],
+    [rows, query, status, source, quick, from, to, sort],
   );
+  const openDetails = (row: Row) => {
+    setSelected(row);
+    setShare(null);
+    setReason("");
+    setRescheduling(false);
+    setPendingCancel(false);
+  };
   function clear() {
     setQuery("");
     setQuick("ALL");
     setStatus("ALL");
     setSource("ALL");
+    setSort("NEXT_ASC");
     setFrom("");
     setTo("");
     router.replace("?", { scroll: false });
@@ -185,6 +209,7 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
               : "CONFIRMATION",
         );
       setRescheduling(false);
+      setPendingCancel(false);
       router.refresh();
     } catch (error) {
       toast.error(
@@ -280,6 +305,15 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
             placeholder="To date"
             ariaLabel="To date"
           />
+          <CustomSelect
+            value={sort}
+            onChange={(v) => {
+              setSort(v);
+              sync({ sort: v });
+            }}
+            options={sortOptions}
+            ariaLabel="Sort appointments"
+          />
         </div>
         <div className="appointment-filter-meta">
           <b>
@@ -290,7 +324,8 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
             status !== "ALL" ||
             source !== "ALL" ||
             from ||
-            to) && (
+            to ||
+            sort !== "NEXT_ASC") && (
             <button onClick={clear}>
               <X size={15} /> Clear filters
             </button>
@@ -312,7 +347,19 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
             </thead>
             <tbody>
               {visible.map((row) => (
-                <tr key={row.id}>
+                <tr
+                  key={row.id}
+                  className="clickable-row"
+                  tabIndex={0}
+                  role="button"
+                  onClick={() => openDetails(row)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openDetails(row);
+                    }
+                  }}
+                >
                   <td>
                     {row.startAt
                       ? format(parseISO(row.startAt), "dd MMM yyyy · HH:mm")
@@ -320,7 +367,7 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
                   </td>
                   <td>
                     <b>{row.patient.fullName}</b>
-                    <small style={{ display: "block" }}>
+                    <small className="appointment-reason-snippet" title={row.reason} style={{ display: "block" }}>
                       {row.patient.phone} · {row.reason}
                     </small>
                   </td>
@@ -337,11 +384,9 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
                     <button
                       className="icon-action"
                       aria-label={`Manage ${row.reference}`}
-                      onClick={() => {
-                        setSelected(row);
-                        setShare(null);
-                        setReason("");
-                        setRescheduling(false);
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openDetails(row);
                       }}
                     >
                       <MoreHorizontal />
@@ -358,6 +403,21 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
             </div>
           )}
         </div>
+        {!!visible.length && (
+          <div className="record-card-list appointments-card-list">
+            {visible.map((row) => (
+              <button className="record-card" type="button" key={row.id} onClick={() => openDetails(row)}>
+                <span className="record-card-heading">
+                  <b>{row.patient.fullName}</b>
+                  <span className={`appointment-status status-${row.status.toLowerCase()}`}>{label(row.status)}</span>
+                </span>
+                <span>{row.startAt ? format(parseISO(row.startAt), "dd MMM yyyy · HH:mm") : "Awaiting allocation"}</span>
+                <small>{row.patient.phone} · {row.reference}</small>
+                <small className="appointment-reason-snippet" title={row.reason}>{row.reason}</small>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       {selected && (
         <div className="appointment-modal" role="dialog" aria-modal="true">
@@ -381,7 +441,7 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
                   · {label(selected.source)}
                 </p>
               </div>
-              <button onClick={() => setSelected(null)}>
+              <button onClick={() => setSelected(null)} aria-label="Close appointment details">
                 <X />
               </button>
             </div>
@@ -575,7 +635,7 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
                 ) && (
                   <button
                     className="btn btn-danger"
-                    onClick={() => action("CANCEL")}
+                    onClick={() => setPendingCancel(true)}
                   >
                     Cancel
                   </button>
@@ -600,6 +660,16 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
               </div>
             )}
           </div>
+          <ConfirmationDialog
+            open={pendingCancel}
+            title="Cancel this appointment?"
+            description="The appointment will be marked cancelled and a patient message can be prepared after the update."
+            confirmLabel="Cancel appointment"
+            danger
+            busy={saving}
+            onCancel={() => setPendingCancel(false)}
+            onConfirm={() => action("CANCEL")}
+          />
         </div>
       )}
     </>
