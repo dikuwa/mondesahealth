@@ -15,7 +15,10 @@ export function validNamibianPhone(value: string) {
 }
 
 export function money(value: number) {
-  return new Intl.NumberFormat("en-NA", { style: "currency", currency: "NAD" }).format(value);
+  return `N$ ${new Intl.NumberFormat("en-NA", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)}`;
 }
 
 export function mask(value?: string | null) {

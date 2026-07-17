@@ -5,10 +5,16 @@ import { useRouter } from "next/navigation";
 import { Loader2, Plus, Save, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { CustomSelect } from "@/components/ui/custom-select";
 
 type Service = { id: string; name: string; description: string | null; public: boolean; sortOrder: number };
 type Provider = { id: string; displayName: string; practiceName: string | null; biography: string | null; phone: string | null; email: string | null; operatingHours: string | null; public: boolean; sortOrder: number };
 type Department = { id: string; slug: string; name: string; categoryLabel: string; summary: string; description: string; status: string; public: boolean; bookingEnabled: boolean; sortOrder: number; services: Service[]; providers: Provider[] };
+const statusOptions = [
+  { value: "ACTIVE", label: "Active" },
+  { value: "COMING_SOON", label: "Coming soon" },
+  { value: "FUTURE", label: "Future" },
+];
 
 function formObject(form: HTMLFormElement) {
   return Object.fromEntries(new FormData(form));
@@ -86,7 +92,7 @@ export function DirectoryManager({ departments }: { departments: Department[] })
                 <Field name="slug" label="URL slug" value={department.slug} required />
                 <Field name="categoryLabel" label="Category label" value={department.categoryLabel} required />
                 <Field name="sortOrder" label="Order" type="number" value={department.sortOrder} required />
-                <label className="field"><span>Status</span><select className="input" name="status" defaultValue={department.status}><option value="ACTIVE">Active</option><option value="COMING_SOON">Coming soon</option><option value="FUTURE">Future</option></select></label>
+                <DirectoryStatusSelect value={department.status} />
                 <label className="toggle-label directory-toggle"><input name="public" type="checkbox" defaultChecked={department.public} /><span>Published publicly</span></label>
                 <label className="field directory-wide"><span>Summary</span><textarea className="input" name="summary" defaultValue={department.summary} required /></label>
                 <label className="field directory-wide"><span>Description</span><textarea className="input directory-description" name="description" defaultValue={department.description} required /></label>
@@ -121,7 +127,7 @@ export function DirectoryManager({ departments }: { departments: Department[] })
           <div className="directory-form-grid">
             <Field name="name" label="Name" required /><Field name="slug" label="URL slug" required />
             <Field name="categoryLabel" label="Category label" required /><Field name="sortOrder" label="Order" type="number" value={departments.length + 1} required />
-            <label className="field"><span>Status</span><select className="input" name="status" defaultValue="COMING_SOON"><option value="ACTIVE">Active</option><option value="COMING_SOON">Coming soon</option><option value="FUTURE">Future</option></select></label>
+            <DirectoryStatusSelect value="COMING_SOON" />
             <label className="toggle-label directory-toggle"><input name="public" type="checkbox" /><span>Published publicly</span></label>
             <label className="field directory-wide"><span>Summary</span><textarea className="input" name="summary" required /></label>
             <label className="field directory-wide"><span>Description</span><textarea className="input directory-description" name="description" required /></label>
@@ -140,6 +146,11 @@ function Field({ name, label, value, type = "text", required = false }: { name: 
 
 function SaveButton({ saving, label }: { saving: boolean; label: string }) {
   return <button className="btn btn-primary directory-save" disabled={saving}>{saving ? <Loader2 className="toast-spinner" size={17} /> : <Save size={17} />}{label}</button>;
+}
+
+function DirectoryStatusSelect({ value }: { value: string }) {
+  const [status, setStatus] = useState(value);
+  return <label className="field"><span>Status</span><CustomSelect name="status" value={status} onChange={setStatus} options={statusOptions} /></label>;
 }
 
 function ChildForm({ kind, item, saving, onSubmit, onDelete }: { kind: "SERVICE" | "PROVIDER"; item?: Service | Provider; saving: boolean; onSubmit: (event: FormEvent<HTMLFormElement>) => void; onDelete?: () => void }) {

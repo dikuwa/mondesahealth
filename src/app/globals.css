@@ -1015,6 +1015,10 @@ textarea.input {
   background: #e3f0ea;
   font-weight: 800;
 }
+.staff-avatar-image {
+  background-position: center;
+  background-size: cover;
+}
 .staff-cell div {
   display: grid;
   gap: 2px;
@@ -2182,6 +2186,9 @@ textarea.input {
   display: none;
   gap: 12px;
 }
+.record-card-list .record-card {
+  pointer-events: none;
+}
 .record-card {
   display: grid;
   gap: 7px;
@@ -2207,6 +2214,31 @@ textarea.input {
 .record-card-actions {
   justify-content: flex-end;
   margin-top: 4px;
+}
+.claims-toolbar {
+  align-items: flex-end;
+}
+.claims-toolbar .claim-filters {
+  flex: 1 1 620px;
+}
+.claims-toolbar .manager-actions {
+  flex: 0 0 auto;
+}
+.claims-card-list .record-card a {
+  color: var(--ink);
+  text-decoration: none;
+}
+.staff-card-list .record-card-heading {
+  align-items: flex-start;
+}
+.staff-card-list .staff-cell {
+  min-width: 0;
+}
+.staff-card-list .staff-cell div {
+  min-width: 0;
+}
+.staff-card-list .staff-cell small {
+  overflow-wrap: anywhere;
 }
 .footer-meta {
   border-top: 1px solid #ffffff25;
@@ -2727,11 +2759,33 @@ textarea.input {
   }
   .appointments-table,
   .patient-table,
-  .finance-table {
+  .finance-table,
+  .claims-table,
+  .staff-table {
     display: none;
   }
   .record-card-list {
     display: grid;
+  }
+  .record-card-list .record-card {
+    pointer-events: auto;
+  }
+  .staff-table-wrap {
+    display: none;
+  }
+  .claims-table-wrap {
+    display: none;
+  }
+  .claims-toolbar {
+    align-items: stretch;
+  }
+  .claims-toolbar .claim-filters,
+  .claims-toolbar .manager-actions {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+  .claims-toolbar .manager-actions .btn {
+    flex: 1 1 150px;
   }
   .status-control {
     min-width: 155px;
@@ -2986,9 +3040,11 @@ textarea.input {
 .directory-admin-intro p { max-width: 720px; margin: 0; color: #61766f; line-height: 1.55; }
 .directory-admin-intro span { white-space: nowrap; font-size: 12px; font-weight: 800; }
 .directory-admin-department { padding: 0 !important; overflow: clip; }
-.directory-admin-department > summary { display: flex; min-height: 76px; align-items: center; justify-content: space-between; gap: 20px; padding: 17px 20px; list-style: none; }
+.directory-admin-department > summary { display: grid; min-height: 76px; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 18px; padding: 17px 20px; list-style: none; }
 .directory-admin-department > summary::-webkit-details-marker, .directory-admin-item > summary::-webkit-details-marker { display: none; }
 .directory-admin-department > summary span:first-child { display: grid; min-width: 0; gap: 4px; }
+.directory-admin-department > summary strong { overflow-wrap: anywhere; }
+.directory-admin-department > summary > span:last-child { justify-self: end; white-space: nowrap; }
 .directory-admin-department summary small { color: #6a7d76; font-size: 11px; }
 .directory-admin-body { padding: 22px; border-top: 1px solid var(--line); }
 .directory-admin-form h2, .directory-admin-section h2 { margin: 0 0 18px; font-size: 1.2rem; }
