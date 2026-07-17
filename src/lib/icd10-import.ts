@@ -63,9 +63,8 @@ export async function importIcd10Workbook({ db, input, versionName, sourceFilena
   }
   if (!foundSheet) throw new Error("The workbook does not contain the SA ICD-10 MIT 2021 worksheet.");
   return db.$transaction(async (tx) => {
-    await tx.icd10Import.updateMany({ where: { id: { not: record.id } }, data: { active: false } });
-    const imported = await tx.icd10Import.update({ where: { id: record.id }, data: { totalRows, importedRows, skippedRows, invalidRows, active: true } });
-    if (userId) await tx.activityLog.create({ data: { userId, action: "ICD10_DATASET_IMPORTED", entityType: "Icd10Import", entityId: record.id, summary: `${versionName} imported with ${importedRows} codes` } });
+    const imported = await tx.icd10Import.update({ where: { id: record.id }, data: { totalRows, importedRows, skippedRows, invalidRows, active: false } });
+    if (userId) await tx.activityLog.create({ data: { userId, action: "ICD10_DATASET_VALIDATED", entityType: "Icd10Import", entityId: record.id, summary: `${versionName} validated with ${importedRows} codes; activation pending` } });
     return imported;
   });
 }
