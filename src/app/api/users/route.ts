@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -19,8 +20,10 @@ export async function POST(request:Request){
       await tx.activityLog.create({data:{userId:session.id,action:"USER_CREATED",entityType:"User",entityId:created.id,summary:`Created ${created.role.toLowerCase()} staff account`}});
       return created;
     });
-    return NextResponse.json({id:user.id},{status:201});
+    return NextResponse.json({id:user.id,password:parsed.data.password},{status:201});
   }catch(error){
+    console.error("Create staff account failed", error);
+    if(error instanceof Prisma.PrismaClientKnownRequestError&&error.code==="P2002")return NextResponse.json({error:"That login email is already in use."},{status:409});
     if(error instanceof Error&&error.message.includes("Unique constraint"))return NextResponse.json({error:"That login email is already in use."},{status:409});
     return NextResponse.json({error:"Could not create the staff account."},{status:500});
   }
@@ -41,5 +44,28 @@ export async function PATCH(request:Request){
   if(parsed.data.active!==undefined)data.active=parsed.data.active;
   if(parsed.data.password){data.passwordHash=await hash(parsed.data.password,12);data.mustChangePassword=true}
   await db.$transaction([db.user.update({where:{id:target.id},data}),db.activityLog.create({data:{userId:session.id,action:"USER_UPDATED",entityType:"User",entityId:target.id,summary:"Updated staff account access"}})]);
+  return NextResponse.json({ok:true,password:parsed.data.password||null});
+}
+
+export async function DELETE(request:Request){
+  const session=await requirePermission("MANAGE_USERS");
+  if(!session||session.role!=="OWNER")return NextResponse.json({error:"Only the owner can permanently delete staff accounts."},{status:403});
+  const parsed=z.object({id:z.string().min(1),confirmation:z.literal("DELETE STAFF USER")}).safeParse(await request.json().catch(()=>null));
+  if(!parsed.success)return NextResponse.json({error:"Type DELETE STAFF USER to permanently delete this staff account."},{status:400});
+  if(parsed.data.id===session.id)return NextResponse.json({error:"You cannot delete your own signed-in account."},{status:400});
+  const target=await db.user.findUnique({where:{id:parsed.data.id},include:{
+    appointments:{select:{id:true}},payments:{select:{id:true}},logs:{select:{id:true}},appointmentResponses:{select:{id:true}},
+    icd10Imports:{select:{id:true}},consentsCaptured:{select:{id:true}},claimsCreated:{select:{id:true}},claimEvents:{select:{id:true}},
+    batchesSubmitted:{select:{id:true}},claimAttachments:{select:{id:true}},notifications:{select:{id:true}},
+  }});
+  if(!target)return NextResponse.json({error:"Staff account not found."},{status:404});
+  if(target.role==="OWNER")return NextResponse.json({error:"Owner accounts cannot be deleted from the dashboard. Disable or transfer ownership first."},{status:409});
+  const protectedReferences=target.appointments.length+target.payments.length+target.logs.length+target.appointmentResponses.length+target.icd10Imports.length+target.consentsCaptured.length+target.claimsCreated.length+target.claimEvents.length+target.batchesSubmitted.length+target.claimAttachments.length;
+  if(protectedReferences>0)return NextResponse.json({error:`This user is linked to ${protectedReferences} audit, clinical, payment or claim record${protectedReferences===1?"":"s"}. Disable the account instead to preserve history.`},{status:409});
+  await db.$transaction(async(tx)=>{
+    await tx.notification.deleteMany({where:{userId:target.id}});
+    await tx.user.delete({where:{id:target.id}});
+    await tx.activityLog.create({data:{userId:session.id,action:"USER_DELETED",entityType:"User",entityId:target.id,summary:`Permanently deleted staff account ${target.email}`}});
+  });
   return NextResponse.json({ok:true});
 }

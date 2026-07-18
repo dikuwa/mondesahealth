@@ -93,6 +93,13 @@ export function ClaimEditor({ claim, memberships, funds, procedures, initialLine
     update(index, { procedureItemId: id, tariffCode: item?.code || "", description: item?.name || "", rate: item?.amount || 0 });
   }
 
+  function chooseMembership(value: string) {
+    setMembership(value);
+    const selectedMembership = memberships.find((item) => item.id === value);
+    setFund(selectedMembership?.fundId || "");
+    if (selectedMembership) toast.success(`Selected ${selectedMembership.label}`);
+  }
+
   function addCode(index: number, code: { id: string; code: string; description: string }, primary: boolean) {
     setLines((current) => current.map((line, position) => position !== index ? line : {
       ...line,
@@ -201,8 +208,8 @@ export function ClaimEditor({ claim, memberships, funds, procedures, initialLine
       <section id="claim-details" className="card dashboard-card claim-section">
         <h2>Patient and claim details</h2>
         <div className="claim-form-grid">
-          <label className="field"><span>Medical-aid membership</span><CustomSelect value={membership} onChange={(value) => { setMembership(value); setFund(memberships.find((item) => item.id === value)?.fundId || ""); }} disabled={locked} options={memberships.map((item) => ({ value: item.id, label: item.label }))} /></label>
-          <label className="field"><span>Medical-aid fund</span><CustomSelect value={fund} onChange={setFund} disabled={locked} options={funds.map((item) => ({ value: item.id, label: item.name }))} /></label>
+          <label className="field"><span>Medical-aid membership</span><CustomSelect value={membership} onChange={chooseMembership} disabled={locked || !memberships.length} placeholder={memberships.length ? "Select membership" : "No memberships available"} options={[{ value: "", label: "Select membership" }, ...memberships.map((item) => ({ value: item.id, label: item.label }))]} />{membership && <small>Linked fund: {funds.find((item) => item.id === fund)?.name || "Not selected"}</small>}</label>
+          <label className="field"><span>Medical-aid fund</span><CustomSelect value={fund} onChange={setFund} disabled={locked} placeholder="Select fund" options={[{ value: "", label: "Select fund" }, ...funds.map((item) => ({ value: item.id, label: item.name }))]} />{!fund && <small>Selecting a membership fills this automatically.</small>}</label>
           <label className="field"><span>Claim type</span><CustomSelect value={claimType} onChange={setClaimType} disabled={locked} options={[{ value: "DIRECT_MEDICAL_AID", label: "Direct medical aid" }, { value: "PATIENT_REIMBURSEMENT", label: "Patient reimbursement" }]} /></label>
           <label className="field"><span>Treating provider</span><input className="input" value={practitioner} onChange={(event) => setPractitioner(event.target.value)} disabled={locked} /></label>
           <label className="field"><span>Service date from</span><DatePicker value={from} onChange={setFrom} disabled={locked} /></label>

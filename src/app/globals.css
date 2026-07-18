@@ -216,6 +216,11 @@ summary,
   display: grid;
   gap: 7px;
 }
+.field > span {
+  color: var(--ink);
+  font-weight: 750;
+  font-size: .9rem;
+}
 .field label {
   font-weight: 700;
   font-size: 0.88rem;
@@ -3523,6 +3528,8 @@ main p {
 .content-accordion-summary { overflow: hidden; color: #5f746c; font-size: 13px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
 .content-accordion-status { display: inline-flex; align-items: center; gap: 7px; color: var(--green); font-size: 13px; font-weight: 750; white-space: nowrap; }
 .content-accordion .content-fields { padding: 18px 24px 24px; border-top: 1px solid var(--line); }
+.content-accordion .field { align-self: start; }
+.content-accordion .input { align-self: start; }
 .field-count { justify-self: end; margin-top: 5px; color: #687d75; font-size: 12px; }
 .content-sticky-actions { justify-content: flex-end; }
 .directory-table-panel { padding: 0; overflow: hidden; }
@@ -3548,6 +3555,11 @@ main p {
 .availability-block-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1fr); gap: 18px; }
 .availability-block-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 16px 0; }
 .availability-block-reason { grid-column: 1 / -1; }
+.password-copy-banner { position: sticky; top: 74px; z-index: 15; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto auto; gap: 14px; align-items: center; max-width: 720px; margin: 0 auto 18px; padding: 16px 18px; border: 1px solid #cfe1d9; border-radius: 16px; background: #fff; color: var(--green); box-shadow: 0 18px 50px rgba(22, 50, 40, .12); }
+.password-copy-banner div { display: grid; gap: 4px; min-width: 0; }
+.password-copy-banner code { color: var(--ink); font: inherit; font-weight: 850; overflow-wrap: anywhere; }
+.password-copy-banner small { color: #61766e; }
+.medical-aid-editor-panel { width: min(980px, calc(100vw - 28px)); max-height: min(86vh, 900px); overflow: auto; }
 .icd-import-form { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(260px, 1fr) auto; gap: 14px; align-items: end; }
 .import-history { display: grid; margin-top: 24px; border-top: 1px solid var(--line); }
 .import-history article { display: grid; grid-template-columns: 30px minmax(0, 1fr) minmax(170px, auto) auto; gap: 12px; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--line); }

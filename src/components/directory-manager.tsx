@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, GripVertical, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { GripVertical, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { CustomSelect } from "@/components/ui/custom-select";
@@ -168,7 +168,6 @@ export function DirectoryManager({ departments }: { departments: Department[] })
                   <td>
                     <div className="table-actions">
                       <button className="btn btn-light" type="button" onClick={() => setEditing(department)}>Manage</button>
-                      <button className="icon-action" type="button" aria-label={`Open actions for ${department.name}`} onClick={() => setEditing(department)}><ChevronDown size={17} /></button>
                     </div>
                   </td>
                 </tr>

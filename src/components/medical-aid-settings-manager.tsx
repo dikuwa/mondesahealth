@@ -3,7 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Database, Loader2, Plus, Save, Settings2, Upload } from "lucide-react";
+import { Database, Loader2, Plus, Save, Settings2, Trash2, Upload, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { money } from "@/lib/utils";
@@ -178,6 +178,53 @@ export function MedicalAidSettingsManager({
     }
   }
 
+  async function updateIcd10(item: Import) {
+    const versionName = window.prompt("Dataset version", item.versionName);
+    if (!versionName || versionName.trim() === item.versionName) return;
+    setSaving(true);
+    const toastId = toast.loading("Updating ICD-10 dataset…");
+    try {
+      const response = await fetch("/api/icd10/import", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id, versionName: versionName.trim() }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      toast.success("ICD-10 dataset updated", { id: toastId });
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update dataset", { id: toastId });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteIcd10(item: Import) {
+    const confirmation = window.prompt(`Type DELETE ICD10 to delete ${item.versionName}. Active or historically referenced datasets are protected.`);
+    if (confirmation !== "DELETE ICD10") {
+      toast.error("Delete cancelled.");
+      return;
+    }
+    setSaving(true);
+    const toastId = toast.loading("Deleting ICD-10 dataset…");
+    try {
+      const response = await fetch("/api/icd10/import", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id, confirmation }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      toast.success("ICD-10 dataset deleted", { id: toastId });
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not delete dataset", { id: toastId });
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function saveFund(event: FormEvent<HTMLFormElement>, fund?: Fund) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -298,9 +345,9 @@ export function MedicalAidSettingsManager({
             onToggle={(fund) => patch(fundPayload(fund, { active: !fund.active }), fund.active ? "Disabling fund…" : "Enabling fund…")}
           />
           {(creatingFund || editingFund) && (
-            <InlineEditor title={editingFund ? `Manage ${editingFund.name}` : "Add medical-aid fund"} onClose={() => { setCreatingFund(false); setEditingFund(null); }}>
+            <ModalEditor title={editingFund ? `Manage ${editingFund.name}` : "Add medical-aid fund"} onClose={() => { setCreatingFund(false); setEditingFund(null); }}>
               <FundForm fund={editingFund ?? undefined} saving={saving} onSubmit={(event) => saveFund(event, editingFund ?? undefined)} />
-            </InlineEditor>
+            </ModalEditor>
           )}
         </section>
       )}
@@ -346,9 +393,9 @@ export function MedicalAidSettingsManager({
             onToggle={(item) => patch({ entity: "PROCEDURE", ...item, active: !item.active }, item.active ? "Disabling procedure…" : "Enabling procedure…")}
           />
           {(creatingProcedure || editingProcedure) && (
-            <InlineEditor title={editingProcedure ? `Edit ${editingProcedure.code}` : "Add procedure item"} onClose={() => { setCreatingProcedure(false); setEditingProcedure(null); }}>
+            <ModalEditor title={editingProcedure ? `Edit ${editingProcedure.code}` : "Add procedure item"} onClose={() => { setCreatingProcedure(false); setEditingProcedure(null); }}>
               <ProcedureForm item={editingProcedure ?? undefined} saving={saving} onSubmit={(event) => saveProcedure(event, editingProcedure ?? undefined)} />
-            </InlineEditor>
+            </ModalEditor>
           )}
         </section>
       )}
@@ -435,13 +482,17 @@ export function MedicalAidSettingsManager({
                   <b>{item.importedRows.toLocaleString()} valid</b>
                   <span>{item.invalidRows} invalid · {item.skippedRows} duplicate/skipped</span>
                 </div>
-                {item.active ? (
-                  <span className="account-status">Active</span>
-                ) : (
-                  <button className="btn btn-light" type="button" disabled={saving || !item.importedRows} onClick={() => activateIcd10(item)}>
-                    Import and activate
-                  </button>
-                )}
+                <div className="table-actions">
+                  {item.active ? (
+                    <span className="account-status">Active</span>
+                  ) : (
+                    <button className="btn btn-light" type="button" disabled={saving || !item.importedRows} onClick={() => activateIcd10(item)}>
+                      Import and activate
+                    </button>
+                  )}
+                  <button className="btn btn-light" type="button" disabled={saving} onClick={() => updateIcd10(item)}>Update</button>
+                  <button className="icon-action danger-action" type="button" disabled={saving || item.active} aria-label={`Delete ${item.versionName}`} onClick={() => deleteIcd10(item)}><Trash2 size={16} /></button>
+                </div>
               </article>
             ))}
           </div>
@@ -569,16 +620,17 @@ function ProcedureTable({
   );
 }
 
-function InlineEditor({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
+function ModalEditor({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   return (
-    <div className="inline-editor">
-      <div className="inline-editor-heading">
-        <h3>{title}</h3>
-        <button className="btn btn-light" type="button" onClick={onClose}>
-          Close
-        </button>
+    <div className="appointment-modal" role="dialog" aria-modal="true" aria-labelledby="medical-aid-editor-title">
+      <button className="appointment-modal-backdrop" aria-label="Close medical aid editor" onClick={onClose} />
+      <div className="appointment-panel medical-aid-editor-panel">
+        <div className="appointment-panel-heading">
+          <div><span className="eyebrow">Medical aid setup</span><h2 id="medical-aid-editor-title">{title}</h2></div>
+          <button type="button" aria-label="Close medical aid editor" onClick={onClose}><X size={20} /></button>
+        </div>
+        {children}
       </div>
-      {children}
     </div>
   );
 }
