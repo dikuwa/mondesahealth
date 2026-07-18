@@ -148,6 +148,8 @@ export function SettingsManager({
   }
 
   const effectiveSaveState = saveState === "error" ? "error" : hasChanges ? "unsaved" : "saved";
+  const activeLabel = tabs.find(([tab]) => tab === activeTab)?.[1] || "Settings";
+  const saveButtonLabel = activeTab === "practice" ? "Save practice settings" : `Save ${activeLabel.toLowerCase()} settings`;
   const saveLabel = saving
     ? "Saving…"
     : effectiveSaveState === "error"
@@ -171,6 +173,14 @@ export function SettingsManager({
         ))}
       </nav>
 
+      <div className="settings-summary-strip">
+        <SummaryItem label="Practice" value={draft.practiceNumber.includes("Pending") || draft.registrationNumber.includes("Pending") ? "Needs details" : "Configured"} warning={draft.practiceNumber.includes("Pending") || draft.registrationNumber.includes("Pending")} />
+        <SummaryItem label="Documents" value={draft.currency || "NAD"} />
+        <SummaryItem label="Public site" value={draft.tagline ? "Configured" : "Needs details"} warning={!draft.tagline} />
+        <SummaryItem label="Claims" value={draft.claimContactName && draft.claimPhone ? "Configured" : "Needs details"} warning={!draft.claimContactName || !draft.claimPhone} />
+        <SummaryItem label="Medical aids" value={`${funds.filter((fund) => fund.active).length} active`} />
+      </div>
+
       <section className="card dashboard-card settings-panel">
         {activeTab === "practice" && <PracticeTab draft={draft} update={update} />}
         {activeTab === "documents" && <DocumentsTab draft={draft} update={update} />}
@@ -181,17 +191,30 @@ export function SettingsManager({
 
         {activeTab !== "data-reset" && (
           <div className="form-action-bar">
+            <button className="btn btn-light" type="button" disabled={saving || !hasChanges} onClick={() => setDraft(saved)}>
+              Discard changes
+            </button>
             <div className={`settings-save-state is-${effectiveSaveState}`}>
               {saving ? <Loader2 className="toast-spinner" size={16} /> : <CheckCircle2 size={16} />}
               {saveLabel}
             </div>
             <button className="btn btn-primary" type="button" disabled={saving || !hasChanges} onClick={saveActiveTab}>
               {saving ? <Loader2 className="toast-spinner" size={17} /> : <Save size={17} />}
-              Save changes
+              {saveButtonLabel}
             </button>
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function SummaryItem({ label, value, warning = false }: { label: string; value: string; warning?: boolean }) {
+  const Icon = warning ? AlertTriangle : CheckCircle2;
+  return (
+    <div className={`settings-summary-item${warning ? " is-warning" : ""}`}>
+      <Icon size={18} />
+      <span><b>{label}</b><small>{value}</small></span>
     </div>
   );
 }

@@ -167,7 +167,7 @@ export function FinanceManager({
                     <td>{item.patient}</td>
                     <td>{money(item.total)}</td>
                     <td>{money(Math.max(0, item.total - item.paid))}</td>
-                    <td>{item.status.replaceAll("_", " ")}</td>
+                    <td><span className="account-status">{item.status.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase())}</span></td>
                     <td>
                       <div className="table-actions">
                         <button
@@ -178,7 +178,7 @@ export function FinanceManager({
                             setMode("payment");
                           }}
                         >
-                          <WalletCards size={15} /> Payment
+                          <WalletCards size={15} /> Record payment
                         </button>
                         <button className="btn btn-light" onClick={() => setViewing(item)}><Eye size={15} /> View</button>
                         <a

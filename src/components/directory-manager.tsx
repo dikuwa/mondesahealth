@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { ChevronDown, GripVertical, Loader2, Plus, Save, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { CustomSelect } from "@/components/ui/custom-select";
@@ -10,6 +10,7 @@ import { CustomSelect } from "@/components/ui/custom-select";
 type Service = { id: string; name: string; description: string | null; public: boolean; sortOrder: number };
 type Provider = { id: string; displayName: string; practiceName: string | null; biography: string | null; phone: string | null; email: string | null; operatingHours: string | null; public: boolean; sortOrder: number };
 type Department = { id: string; slug: string; name: string; categoryLabel: string; summary: string; description: string; status: string; public: boolean; bookingEnabled: boolean; sortOrder: number; services: Service[]; providers: Provider[] };
+
 const statusOptions = [
   { value: "ACTIVE", label: "Active" },
   { value: "COMING_SOON", label: "Coming soon" },
@@ -20,9 +21,16 @@ function formObject(form: HTMLFormElement) {
   return Object.fromEntries(new FormData(form));
 }
 
+function titleStatus(value: string) {
+  return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 export function DirectoryManager({ departments }: { departments: Department[] }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [orders, setOrders] = useState<Record<string, number>>(() => Object.fromEntries(departments.map((department) => [department.id, department.sortOrder])));
+  const [editing, setEditing] = useState<Department | null>(null);
+  const [adding, setAdding] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{ entity: "DEPARTMENT" | "SERVICE" | "PROVIDER"; id: string; label: string; detail: string } | null>(null);
 
   async function patch(body: object, message: string, form?: HTMLFormElement) {
@@ -52,8 +60,11 @@ export function DirectoryManager({ departments }: { departments: Department[] })
       toast.success(`${pendingDelete.label} deleted`);
       setPendingDelete(null);
       router.refresh();
-    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete item"); }
-    finally { setSaving(false); }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not delete item");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function submitDepartment(event: FormEvent<HTMLFormElement>, id?: string) {
@@ -61,6 +72,8 @@ export function DirectoryManager({ departments }: { departments: Department[] })
     const form = event.currentTarget;
     const data = formObject(form);
     patch({ ...data, entity: "DEPARTMENT", id, public: new FormData(form).has("public"), bookingEnabled: new FormData(form).has("bookingEnabled"), sortOrder: Number(data.sortOrder) }, "Saving department…", id ? undefined : form);
+    if (id) setEditing(null);
+    else setAdding(false);
   }
 
   function submitChild(event: FormEvent<HTMLFormElement>, entity: "SERVICE" | "PROVIDER", departmentId: string, id?: string) {
@@ -70,73 +83,165 @@ export function DirectoryManager({ departments }: { departments: Department[] })
     patch({ ...data, entity, departmentId, id, public: new FormData(form).has("public"), sortOrder: Number(data.sortOrder) }, `Saving ${entity.toLowerCase()}…`, id ? undefined : form);
   }
 
+  async function saveOrder() {
+    setSaving(true);
+    const id = toast.loading("Saving department order…");
+    try {
+      for (const department of departments) {
+        const sortOrder = orders[department.id] ?? department.sortOrder;
+        if (sortOrder === department.sortOrder) continue;
+        const response = await fetch("/api/directory", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            entity: "DEPARTMENT",
+            id: department.id,
+            name: department.name,
+            slug: department.slug,
+            categoryLabel: department.categoryLabel,
+            summary: department.summary,
+            description: department.description,
+            status: department.status,
+            public: department.public,
+            bookingEnabled: department.bookingEnabled,
+            sortOrder,
+          }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error);
+      }
+      toast.success("Department order saved", { id });
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save order", { id });
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <div className="directory-manager">
+    <div className="directory-manager approved-directory">
       <div className="directory-admin-intro">
         <p>Publish only confirmed information. Order values control how departments, services and providers appear publicly.</p>
-        <span>{departments.length} departments</span>
+        <div className="manager-actions">
+          <b>{departments.length} departments</b>
+          <button className="btn btn-primary" type="button" onClick={() => setAdding(true)}><Plus size={17} /> Add department</button>
+        </div>
       </div>
 
-      {departments.map((department) => (
-        <details className="card directory-admin-department" key={department.id}>
-          <summary>
-            <span><strong>{department.name}</strong><small>{department.status.replaceAll("_", " ")} · {department.public ? "Published" : "Hidden"}</small></span>
-            <span>Order {department.sortOrder}</span>
-          </summary>
-          <div className="directory-admin-body">
-            <div className="directory-delete-row"><span>Delete this department and its {department.services.length} services / {department.providers.length} providers.</span><button type="button" className="btn btn-danger" disabled={department.slug === "general-practice" || saving} onClick={() => setPendingDelete({ entity: "DEPARTMENT", id: department.id, label: department.name, detail: `${department.services.length} services and ${department.providers.length} providers will also be permanently deleted.` })}><Trash2 size={15} />Delete department</button></div>
-            <form className="directory-admin-form" onSubmit={(event) => submitDepartment(event, department.id)}>
-              <h2>Department details</h2>
-              <div className="directory-form-grid">
-                <Field name="name" label="Name" value={department.name} required />
-                <Field name="slug" label="URL slug" value={department.slug} required />
-                <Field name="categoryLabel" label="Category label" value={department.categoryLabel} required />
-                <Field name="sortOrder" label="Order" type="number" value={department.sortOrder} required />
-                <DirectoryStatusSelect value={department.status} />
-                <label className="toggle-label directory-toggle"><input name="public" type="checkbox" defaultChecked={department.public} /><span>Published publicly</span></label>
-                <label className="field directory-wide"><span>Summary</span><textarea className="input" name="summary" defaultValue={department.summary} required /></label>
-                <label className="field directory-wide"><span>Description</span><textarea className="input directory-description" name="description" defaultValue={department.description} required /></label>
-                <label className="toggle-label directory-toggle directory-wide"><input name="bookingEnabled" type="checkbox" defaultChecked={department.bookingEnabled} disabled={department.slug !== "general-practice"} /><span>Online booking enabled (General Practice only)</span></label>
-              </div>
-              <SaveButton saving={saving} label="Save department" />
-            </form>
+      <section className="card dashboard-card directory-table-panel">
+        <div className="directory-table-actions">
+          <button className="btn btn-light" type="button" disabled={saving} onClick={saveOrder}><Save size={15} /> Save order</button>
+        </div>
+        <div className="table-scroll">
+          <table className="data-table directory-table">
+            <thead>
+              <tr>
+                <th aria-label="Reorder" />
+                <th>Department</th>
+                <th>Public status</th>
+                <th>Order</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {departments.map((department) => (
+                <tr key={department.id}>
+                  <td><GripVertical className="muted-icon" size={18} aria-hidden="true" /></td>
+                  <td><b>{department.name}</b></td>
+                  <td>
+                    <div className="status-cluster">
+                      <span className="account-status">{titleStatus(department.status)}</span>
+                      <span className={`account-status${department.public ? "" : " is-muted"}`}>{department.public ? "Published" : "Hidden"}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <input
+                      className="input directory-order-input"
+                      aria-label={`Order for ${department.name}`}
+                      type="number"
+                      min={0}
+                      value={orders[department.id] ?? department.sortOrder}
+                      onChange={(event) => setOrders((current) => ({ ...current, [department.id]: Number(event.target.value) }))}
+                    />
+                  </td>
+                  <td>
+                    <div className="table-actions">
+                      <button className="btn btn-light" type="button" onClick={() => setEditing(department)}>Manage</button>
+                      <button className="icon-action" type="button" aria-label={`Open actions for ${department.name}`} onClick={() => setEditing(department)}><ChevronDown size={17} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="directory-order-note">Use the order field and Save order to update the public directory sequence.</p>
+      </section>
 
-            <section className="directory-admin-section">
-              <h2>Services</h2>
-              <div className="directory-admin-items">
-                {department.services.map((service) => <ChildForm key={service.id} kind="SERVICE" item={service} saving={saving} onDelete={() => setPendingDelete({ entity: "SERVICE", id: service.id, label: service.name, detail: "This service will be permanently removed from the directory." })} onSubmit={(event) => submitChild(event, "SERVICE", department.id, service.id)} />)}
-                <ChildForm kind="SERVICE" saving={saving} onSubmit={(event) => submitChild(event, "SERVICE", department.id)} />
-              </div>
-            </section>
+      {!!departments.length && (
+        <div className="record-card-list directory-mobile-cards">
+          {departments.map((department) => (
+            <article className="record-card" key={department.id}>
+              <span className="record-card-heading"><b>{department.name}</b><small>Order {orders[department.id] ?? department.sortOrder}</small></span>
+              <small>{titleStatus(department.status)} · {department.public ? "Published" : "Hidden"}</small>
+              <span className="record-card-actions"><button className="btn btn-light" onClick={() => setEditing(department)}>Manage</button></span>
+            </article>
+          ))}
+        </div>
+      )}
 
-            <section className="directory-admin-section">
-              <h2>Providers</h2>
-              {department.providers.length === 0 && <p className="muted">No provider profiles have been added. Keep profiles unpublished until all details are confirmed.</p>}
-              <div className="directory-admin-items">
-                {department.providers.map((provider) => <ChildForm key={provider.id} kind="PROVIDER" item={provider} saving={saving} onDelete={() => setPendingDelete({ entity: "PROVIDER", id: provider.id, label: provider.displayName, detail: "This provider profile will be permanently removed from the directory." })} onSubmit={(event) => submitChild(event, "PROVIDER", department.id, provider.id)} />)}
-                <ChildForm kind="PROVIDER" saving={saving} onSubmit={(event) => submitChild(event, "PROVIDER", department.id)} />
-              </div>
-            </section>
+      {(editing || adding) && (
+        <div className="inline-editor directory-manage-panel">
+          <div className="inline-editor-heading">
+            <h3>{editing ? `Manage ${editing.name}` : "Add department"}</h3>
+            <button className="btn btn-light" type="button" onClick={() => { setEditing(null); setAdding(false); }}>Close</button>
           </div>
-        </details>
-      ))}
+          <DepartmentForm department={editing ?? undefined} departments={departments} saving={saving} onSubmit={(event) => submitDepartment(event, editing?.id)} onDelete={editing ? () => setPendingDelete({ entity: "DEPARTMENT", id: editing.id, label: editing.name, detail: `${editing.services.length} services and ${editing.providers.length} providers will also be permanently deleted.` }) : undefined} />
+          {editing && (
+            <div className="directory-child-sections">
+              <section className="directory-admin-section">
+                <h2>Services</h2>
+                <div className="directory-admin-items">
+                  {editing.services.map((service) => <ChildForm key={service.id} kind="SERVICE" item={service} saving={saving} onDelete={() => setPendingDelete({ entity: "SERVICE", id: service.id, label: service.name, detail: "This service will be permanently removed from the directory." })} onSubmit={(event) => submitChild(event, "SERVICE", editing.id, service.id)} />)}
+                  <ChildForm kind="SERVICE" saving={saving} onSubmit={(event) => submitChild(event, "SERVICE", editing.id)} />
+                </div>
+              </section>
+              <section className="directory-admin-section">
+                <h2>Providers</h2>
+                {editing.providers.length === 0 && <p className="muted">No provider profiles have been added. Keep profiles unpublished until all details are confirmed.</p>}
+                <div className="directory-admin-items">
+                  {editing.providers.map((provider) => <ChildForm key={provider.id} kind="PROVIDER" item={provider} saving={saving} onDelete={() => setPendingDelete({ entity: "PROVIDER", id: provider.id, label: provider.displayName, detail: "This provider profile will be permanently removed from the directory." })} onSubmit={(event) => submitChild(event, "PROVIDER", editing.id, provider.id)} />)}
+                  <ChildForm kind="PROVIDER" saving={saving} onSubmit={(event) => submitChild(event, "PROVIDER", editing.id)} />
+                </div>
+              </section>
+            </div>
+          )}
+        </div>
+      )}
 
-      <details className="card directory-admin-department directory-new">
-        <summary><span><strong>Add a department</strong><small>Create it unpublished, then add confirmed content.</small></span><Plus size={18} /></summary>
-        <form className="directory-admin-form directory-admin-body" onSubmit={(event) => submitDepartment(event)}>
-          <div className="directory-form-grid">
-            <Field name="name" label="Name" required /><Field name="slug" label="URL slug" required />
-            <Field name="categoryLabel" label="Category label" required /><Field name="sortOrder" label="Order" type="number" value={departments.length + 1} required />
-            <DirectoryStatusSelect value="COMING_SOON" />
-            <label className="toggle-label directory-toggle"><input name="public" type="checkbox" /><span>Published publicly</span></label>
-            <label className="field directory-wide"><span>Summary</span><textarea className="input" name="summary" required /></label>
-            <label className="field directory-wide"><span>Description</span><textarea className="input directory-description" name="description" required /></label>
-          </div>
-          <SaveButton saving={saving} label="Add department" />
-        </form>
-      </details>
       <ConfirmationDialog open={Boolean(pendingDelete)} title={`Delete ${pendingDelete?.label || "item"}?`} description={pendingDelete?.detail || "This action cannot be undone."} confirmLabel="Delete permanently" danger busy={saving} onCancel={() => setPendingDelete(null)} onConfirm={remove} />
     </div>
+  );
+}
+
+function DepartmentForm({ department, departments, saving, onSubmit, onDelete }: { department?: Department; departments: Department[]; saving: boolean; onSubmit: (event: FormEvent<HTMLFormElement>) => void; onDelete?: () => void }) {
+  return (
+    <form className="directory-admin-form" onSubmit={onSubmit}>
+      {department && onDelete && <div className="directory-delete-row"><span>Delete this department and its {department.services.length} services / {department.providers.length} providers.</span><button type="button" className="btn btn-danger" disabled={department.slug === "general-practice" || saving} onClick={onDelete}><Trash2 size={15} />Delete department</button></div>}
+      <div className="directory-form-grid">
+        <Field name="name" label="Name" value={department?.name} required />
+        <Field name="slug" label="URL slug" value={department?.slug} required />
+        <Field name="categoryLabel" label="Category label" value={department?.categoryLabel} required />
+        <Field name="sortOrder" label="Order" type="number" value={department?.sortOrder ?? departments.length} required />
+        <DirectoryStatusSelect value={department?.status ?? "COMING_SOON"} />
+        <label className="toggle-label directory-toggle"><input name="public" type="checkbox" defaultChecked={department?.public ?? false} /><span>Published publicly</span></label>
+        <label className="field directory-wide"><span>Summary</span><textarea className="input" name="summary" defaultValue={department?.summary ?? ""} required /></label>
+        <label className="field directory-wide"><span>Description</span><textarea className="input directory-description" name="description" defaultValue={department?.description ?? ""} required /></label>
+        <label className="toggle-label directory-toggle directory-wide"><input name="bookingEnabled" type="checkbox" defaultChecked={department?.bookingEnabled ?? false} disabled={department ? department.slug !== "general-practice" : false} /><span>Online booking enabled (General Practice only)</span></label>
+      </div>
+      <SaveButton saving={saving} label={department ? "Save department" : "Add department"} />
+    </form>
   );
 }
 

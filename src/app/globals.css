@@ -3465,6 +3465,13 @@ main p {
 .settings-tabs button.is-active { background: var(--green); color: #fff; }
 .settings-workspace,
 .medical-aid-settings { display: grid; gap: 16px; }
+.settings-summary-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: 0 10px 24px rgba(29, 57, 49, .04); }
+.settings-summary-item { display: flex; align-items: center; gap: 12px; min-width: 0; padding-inline: 12px; color: var(--green); }
+.settings-summary-item + .settings-summary-item { border-left: 1px solid #edf1ef; }
+.settings-summary-item.is-warning { color: #9a6416; }
+.settings-summary-item span { display: grid; gap: 4px; min-width: 0; }
+.settings-summary-item b { color: var(--ink); font-size: 13px; }
+.settings-summary-item small { overflow: hidden; color: #5f746c; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .settings-panel,
 .medical-settings-panel { padding: 24px; }
 .settings-section-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
@@ -3501,6 +3508,46 @@ main p {
 .icd-summary-grid > div { display: grid; gap: 5px; padding: 13px; border: 1px solid var(--line); border-radius: 11px; background: #f8faf9; }
 .icd-summary-grid span { color: #63776f; font-size: 11px; font-weight: 750; text-transform: uppercase; }
 .icd-summary-grid b { overflow-wrap: anywhere; font-size: 13px; }
+.approved-page-actions { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.approved-page-actions > .muted { max-width: 760px; margin: 0; }
+.approved-action-stack { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.approved-save-state { display: inline-flex; align-items: center; gap: 7px; flex-basis: 100%; justify-content: flex-end; color: var(--green); font-size: 13px; }
+.approved-content-editor { display: grid; gap: 12px; }
+.content-accordion { overflow: hidden; padding: 0; }
+.content-accordion-header { display: grid; grid-template-columns: minmax(170px, 1.1fr) auto minmax(220px, 1fr) 28px; gap: 18px; align-items: center; width: 100%; min-height: 66px; padding: 16px 24px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.content-accordion-header svg:last-child { justify-self: end; transition: transform .18s ease; }
+.content-accordion.is-open .content-accordion-header svg:last-child { transform: rotate(180deg); }
+.content-accordion-title { display: flex; align-items: baseline; gap: 18px; min-width: 0; }
+.content-accordion-title b { font-size: 18px; }
+.content-accordion-title small,
+.content-accordion-summary { overflow: hidden; color: #5f746c; font-size: 13px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.content-accordion-status { display: inline-flex; align-items: center; gap: 7px; color: var(--green); font-size: 13px; font-weight: 750; white-space: nowrap; }
+.content-accordion .content-fields { padding: 18px 24px 24px; border-top: 1px solid var(--line); }
+.field-count { justify-self: end; margin-top: 5px; color: #687d75; font-size: 12px; }
+.content-sticky-actions { justify-content: flex-end; }
+.directory-table-panel { padding: 0; overflow: hidden; }
+.directory-table-actions { display: flex; justify-content: flex-end; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.directory-table td:first-child,
+.directory-table th:first-child { width: 44px; text-align: center; }
+.directory-order-input { max-width: 70px; min-height: 40px; text-align: center; }
+.muted-icon { color: #8a9b95; }
+.status-cluster { display: flex; flex-wrap: wrap; gap: 8px; }
+.directory-order-note { margin: 0; padding: 13px 18px; border-top: 1px solid var(--line); color: #657970; font-size: 12px; }
+.directory-mobile-cards { display: none; }
+.directory-manage-panel { background: #fff; }
+.directory-child-sections { display: grid; gap: 16px; margin-top: 18px; }
+.availability-workspace { display: grid; gap: 18px; }
+.availability-booking-card,
+.availability-block-card { padding: 24px; }
+.booking-mode-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 12px; }
+.booking-mode-option { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 12px; align-items: center; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: #fff; cursor: pointer; }
+.booking-mode-option.is-selected { border-color: var(--green); background: #f3faf6; }
+.booking-mode-option span { display: grid; gap: 4px; }
+.booking-mode-option small { color: #657970; }
+.availability-card-actions { display: flex; justify-content: flex-end; margin-top: 18px; }
+.availability-block-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1fr); gap: 18px; }
+.availability-block-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 16px 0; }
+.availability-block-reason { grid-column: 1 / -1; }
 .icd-import-form { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(260px, 1fr) auto; gap: 14px; align-items: end; }
 .import-history { display: grid; margin-top: 24px; border-top: 1px solid var(--line); }
 .import-history article { display: grid; grid-template-columns: 30px minmax(0, 1fr) minmax(170px, auto) auto; gap: 12px; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--line); }
@@ -3565,7 +3612,24 @@ main p {
 @media (max-width: 800px) {
   .claim-editor-toolbar, .batch-heading { align-items: stretch; flex-direction: column; }
   .claim-editor-toolbar .manager-actions > *, .batch-actions > * { flex: 1 1 160px; }
-  .claim-form-grid, .icd-pickers, .patient-aid-layout, .claim-attachment-upload, .settings-section-grid, .settings-document-fields, .settings-public-fields, .filter-toolbar, .icd-summary-grid { grid-template-columns: 1fr; }
+  .claim-form-grid, .icd-pickers, .patient-aid-layout, .claim-attachment-upload, .settings-section-grid, .settings-document-fields, .settings-public-fields, .filter-toolbar, .icd-summary-grid, .settings-summary-strip, .booking-mode-grid, .availability-block-grid, .availability-block-fields { grid-template-columns: 1fr; }
+  .settings-summary-item { padding: 10px 0; }
+  .settings-summary-item + .settings-summary-item { border-left: 0; border-top: 1px solid #edf1ef; }
+  .approved-page-actions { align-items: stretch; flex-direction: column; }
+  .approved-action-stack { justify-content: stretch; }
+  .approved-action-stack .btn { flex: 1 1 180px; }
+  .approved-save-state { justify-content: flex-start; }
+  .content-accordion-header { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 15px 16px; }
+  .content-accordion-title { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .content-accordion-status,
+  .content-accordion-summary { grid-column: 1 / -1; }
+  .content-accordion .content-fields { padding: 16px; }
+  .directory-table-panel .table-scroll { display: none; }
+  .directory-table-panel { display: none; }
+  .directory-mobile-cards { display: grid; }
+  .availability-card-actions { justify-content: stretch; }
+  .availability-card-actions .btn,
+  .availability-block-card .btn { width: 100%; }
   .claim-wide { grid-column: auto; }
   .claim-section { padding: 16px !important; }
   .claim-history-row { grid-template-columns: 1fr; gap: 4px; }
