@@ -12,6 +12,7 @@ type Patient = {
   id: string;
   fullName: string;
   patientNumber: string;
+  createdAt: string;
   dateOfBirth: string | null;
   gender: string | null;
   phone: string;
@@ -37,11 +38,17 @@ const communication = [
   { value: "PHONE", label: "Phone call" },
 ];
 const patientSortOptions = [
-  { value: "NAME_ASC", label: "Name A-Z" },
+  { value: "NAME_ASC", label: "Name A–Z" },
+  { value: "NAME_DESC", label: "Name Z–A" },
+  { value: "CREATED_DESC", label: "Newest patients" },
+  { value: "CREATED_ASC", label: "Oldest patients" },
   { value: "VISITS_DESC", label: "Most visits" },
-  { value: "NUMBER_ASC", label: "Patient number" },
-  { value: "DOB_ASC", label: "Oldest first" },
 ];
+const digitsOnly = (value: string) => value.replace(/\D/g, "");
+const localPhone = (phone: string) => {
+  const digits = digitsOnly(phone);
+  return digits.startsWith("264") ? `0${digits.slice(3)}` : digits;
+};
 
 export function PatientManager({
   initial,
@@ -67,18 +74,16 @@ export function PatientManager({
     [birthDate, setBirthDate] = useState("");
   const visible = useMemo(
     () =>
-      patients.filter((p) =>
-        `${p.fullName} ${p.patientNumber} ${p.phone} ${p.email || ""}`
-          .toLowerCase()
-          .includes(query.trim().toLowerCase()),
-      ).sort((a, b) => {
+      patients.filter((p) => {
+        const term = query.trim().toLowerCase();
+        const digitTerm = digitsOnly(term);
+        const text = `${p.fullName} ${p.patientNumber} ${p.phone} ${localPhone(p.phone)} ${p.email || ""}`.toLowerCase();
+        return text.includes(term) || Boolean(digitTerm && digitsOnly(text).includes(digitTerm));
+      }).sort((a, b) => {
+        if (sort === "NAME_DESC") return b.fullName.localeCompare(a.fullName);
+        if (sort === "CREATED_DESC") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        if (sort === "CREATED_ASC") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
         if (sort === "VISITS_DESC") return b.visits - a.visits || a.fullName.localeCompare(b.fullName);
-        if (sort === "NUMBER_ASC") return a.patientNumber.localeCompare(b.patientNumber);
-        if (sort === "DOB_ASC") {
-          const aDate = a.dateOfBirth ? new Date(a.dateOfBirth).getTime() : Number.MAX_SAFE_INTEGER;
-          const bDate = b.dateOfBirth ? new Date(b.dateOfBirth).getTime() : Number.MAX_SAFE_INTEGER;
-          return aDate - bDate;
-        }
         return a.fullName.localeCompare(b.fullName);
       }),
     [patients, query, sort],
@@ -193,8 +198,8 @@ export function PatientManager({
   }
   return (
     <>
-      <div className="manager-toolbar">
-        <div className="search-box">
+      <div className="patient-toolbar" aria-label="Patient search and actions">
+        <div className="search-box patient-search">
           <Search size={17} />
           <input
             className="input"
@@ -204,8 +209,14 @@ export function PatientManager({
             aria-label="Search patients"
           />
         </div>
-        <CustomSelect value={sort} onChange={setSort} options={patientSortOptions} ariaLabel="Sort patients" />
-        <button className="btn btn-primary" onClick={() => show()}>
+        <CustomSelect
+          className="patient-sort"
+          value={sort}
+          onChange={setSort}
+          options={patientSortOptions}
+          ariaLabel="Sort patients"
+        />
+        <button className="btn btn-primary patient-add-button" onClick={() => show()}>
           <Plus size={17} /> Add patient
         </button>
       </div>

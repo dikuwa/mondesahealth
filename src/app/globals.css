@@ -3603,6 +3603,40 @@ main p {
 .directory-delete-row { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 18px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; color: #63776f; font-size: 12px; }
 .directory-delete-row .btn { flex: 0 0 auto; }
 @media (max-width: 600px) { .directory-delete-row { align-items: stretch; flex-direction: column; } }
+.patient-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.patient-toolbar .patient-search {
+  flex: 0 1 460px;
+  width: min(460px, 100%);
+  min-width: min(420px, 100%);
+}
+.patient-toolbar .patient-sort {
+  flex: 0 0 230px;
+  width: 230px;
+}
+.patient-toolbar .patient-add-button {
+  flex: 0 0 auto;
+  min-height: 48px;
+  margin-left: auto;
+  padding-inline: 18px;
+  border-radius: 11px;
+  white-space: nowrap;
+}
+.patient-toolbar .search-box input,
+.patient-toolbar .custom-select-trigger {
+  min-height: 48px;
+  border-radius: 11px;
+}
+.patient-toolbar .custom-select-trigger {
+  padding-inline: 13px;
+}
+.patient-toolbar .btn svg {
+  flex: 0 0 auto;
+}
 .content-manager { display: grid; gap: 18px; }
 .content-manager > .muted { margin: 0; }
 .content-section { display: grid; gap: 20px; padding: 24px; }
@@ -3622,6 +3656,19 @@ main p {
 @media (max-width: 700px) { .content-section { padding: 18px 16px; } .content-fields, .content-repeat-grid { grid-template-columns: 1fr; } .content-fields .content-wide { grid-column: auto; } .content-manager-actions .btn { width: 100%; } }
 
 @media (max-width: 800px) {
+  .patient-toolbar {
+    flex-wrap: wrap;
+  }
+  .patient-toolbar .patient-search {
+    flex: 1 1 min(420px, 100%);
+    min-width: min(320px, 100%);
+  }
+  .patient-toolbar .patient-sort {
+    flex: 0 0 230px;
+  }
+  .patient-toolbar .patient-add-button {
+    margin-left: auto;
+  }
   .claim-editor-toolbar, .batch-heading { align-items: stretch; flex-direction: column; }
   .claim-editor-toolbar .manager-actions > *, .batch-actions > * { flex: 1 1 160px; }
   .claim-form-grid, .icd-pickers, .patient-aid-layout, .claim-attachment-upload, .settings-section-grid, .settings-document-fields, .settings-public-fields, .filter-toolbar, .icd-summary-grid, .settings-summary-strip, .booking-mode-grid, .availability-block-grid, .availability-block-fields { grid-template-columns: 1fr; }
@@ -3653,6 +3700,18 @@ main p {
 }
 
 @media (max-width: 480px) {
+  .patient-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .patient-toolbar .patient-search,
+  .patient-toolbar .patient-sort,
+  .patient-toolbar .patient-add-button {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    margin-left: 0;
+  }
   .claim-filters, .claim-filters > *, .manager-actions, .manager-actions > * { width: 100%; }
   .claim-filters .custom-select { min-width: 0; }
   .batch-claim-picker label { grid-template-columns: 20px minmax(0, 1fr); }
