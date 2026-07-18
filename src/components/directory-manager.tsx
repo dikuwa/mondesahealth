@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { GripVertical, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { GripVertical, Loader2, Plus, Save, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { CustomSelect } from "@/components/ui/custom-select";
@@ -25,6 +26,12 @@ function titleStatus(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+function statusClass(value: string) {
+  if (value === "ACTIVE") return "is-active-status";
+  if (value === "FUTURE") return "is-future-status";
+  return "is-coming-status";
+}
+
 export function DirectoryManager({ departments }: { departments: Department[] }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -43,8 +50,10 @@ export function DirectoryManager({ departments }: { departments: Department[] })
       toast.success("Directory saved", { id: toastId });
       form?.reset();
       router.refresh();
+      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save the directory", { id: toastId });
+      return false;
     } finally {
       setSaving(false);
     }
@@ -67,11 +76,12 @@ export function DirectoryManager({ departments }: { departments: Department[] })
     }
   }
 
-  function submitDepartment(event: FormEvent<HTMLFormElement>, id?: string) {
+  async function submitDepartment(event: FormEvent<HTMLFormElement>, id?: string) {
     event.preventDefault();
     const form = event.currentTarget;
     const data = formObject(form);
-    patch({ ...data, entity: "DEPARTMENT", id, public: new FormData(form).has("public"), bookingEnabled: new FormData(form).has("bookingEnabled"), sortOrder: Number(data.sortOrder) }, "Saving department…", id ? undefined : form);
+    const saved = await patch({ ...data, entity: "DEPARTMENT", id, public: new FormData(form).has("public"), bookingEnabled: new FormData(form).has("bookingEnabled"), sortOrder: Number(data.sortOrder) }, id ? `Saving ${data.name || "department"}…` : "Adding department…", id ? undefined : form);
+    if (!saved) return;
     if (id) setEditing(null);
     else setAdding(false);
   }
@@ -131,7 +141,10 @@ export function DirectoryManager({ departments }: { departments: Department[] })
 
       <section className="card dashboard-card directory-table-panel">
         <div className="directory-table-actions">
-          <button className="btn btn-light" type="button" disabled={saving} onClick={saveOrder}><Save size={15} /> Save order</button>
+          <button className="btn btn-light" type="button" disabled={saving} onClick={saveOrder}>
+            {saving ? <Loader2 className="toast-spinner" size={15} /> : <Save size={15} />}
+            {saving ? "Saving order…" : "Save order"}
+          </button>
         </div>
         <div className="table-scroll">
           <table className="data-table directory-table">
@@ -151,8 +164,8 @@ export function DirectoryManager({ departments }: { departments: Department[] })
                   <td><b>{department.name}</b></td>
                   <td>
                     <div className="status-cluster">
-                      <span className="account-status">{titleStatus(department.status)}</span>
-                      <span className={`account-status${department.public ? "" : " is-muted"}`}>{department.public ? "Published" : "Hidden"}</span>
+                      <span className={`directory-status-pill ${statusClass(department.status)}`}>{titleStatus(department.status)}</span>
+                      <span className={`directory-status-pill${department.public ? " is-published-status" : " is-hidden-status"}`}>{department.public ? "Published" : "Hidden"}</span>
                     </div>
                   </td>
                   <td>
@@ -183,7 +196,10 @@ export function DirectoryManager({ departments }: { departments: Department[] })
           {departments.map((department) => (
             <article className="record-card" key={department.id}>
               <span className="record-card-heading"><b>{department.name}</b><small>Order {orders[department.id] ?? department.sortOrder}</small></span>
-              <small>{titleStatus(department.status)} · {department.public ? "Published" : "Hidden"}</small>
+              <span className="status-cluster">
+                <span className={`directory-status-pill ${statusClass(department.status)}`}>{titleStatus(department.status)}</span>
+                <span className={`directory-status-pill${department.public ? " is-published-status" : " is-hidden-status"}`}>{department.public ? "Published" : "Hidden"}</span>
+              </span>
               <span className="record-card-actions"><button className="btn btn-light" onClick={() => setEditing(department)}>Manage</button></span>
             </article>
           ))}
@@ -191,11 +207,11 @@ export function DirectoryManager({ departments }: { departments: Department[] })
       )}
 
       {(editing || adding) && (
-        <div className="inline-editor directory-manage-panel">
-          <div className="inline-editor-heading">
-            <h3>{editing ? `Manage ${editing.name}` : "Add department"}</h3>
-            <button className="btn btn-light" type="button" onClick={() => { setEditing(null); setAdding(false); }}>Close</button>
-          </div>
+        <DirectoryModalEditor
+          title={editing ? `Manage ${editing.name}` : "Add department"}
+          description={editing ? "Update public directory details, services and providers. Progress is confirmed as each save completes." : "Create a new public directory department without scrolling away from the list."}
+          onClose={() => { setEditing(null); setAdding(false); }}
+        >
           <DepartmentForm department={editing ?? undefined} departments={departments} saving={saving} onSubmit={(event) => submitDepartment(event, editing?.id)} onDelete={editing ? () => setPendingDelete({ entity: "DEPARTMENT", id: editing.id, label: editing.name, detail: `${editing.services.length} services and ${editing.providers.length} providers will also be permanently deleted.` }) : undefined} />
           {editing && (
             <div className="directory-child-sections">
@@ -216,10 +232,29 @@ export function DirectoryManager({ departments }: { departments: Department[] })
               </section>
             </div>
           )}
-        </div>
+        </DirectoryModalEditor>
       )}
 
       <ConfirmationDialog open={Boolean(pendingDelete)} title={`Delete ${pendingDelete?.label || "item"}?`} description={pendingDelete?.detail || "This action cannot be undone."} confirmLabel="Delete permanently" danger busy={saving} onCancel={() => setPendingDelete(null)} onConfirm={remove} />
+    </div>
+  );
+}
+
+function DirectoryModalEditor({ title, description, children, onClose }: { title: string; description: string; children: ReactNode; onClose: () => void }) {
+  return (
+    <div className="appointment-modal" role="dialog" aria-modal="true" aria-labelledby="directory-editor-title">
+      <button className="appointment-modal-backdrop" aria-label="Close directory editor" onClick={onClose} />
+      <div className="appointment-panel modal-editor-panel directory-editor-panel">
+        <div className="appointment-panel-heading modal-editor-heading">
+          <div>
+            <span className="eyebrow">Public directory</span>
+            <h2 id="directory-editor-title">{title}</h2>
+            <p>{description}</p>
+          </div>
+          <button type="button" aria-label="Close directory editor" onClick={onClose}><X size={20} /></button>
+        </div>
+        <div className="modal-editor-body">{children}</div>
+      </div>
     </div>
   );
 }
@@ -249,7 +284,7 @@ function Field({ name, label, value, type = "text", required = false }: { name: 
 }
 
 function SaveButton({ saving, label }: { saving: boolean; label: string }) {
-  return <button className="btn btn-primary directory-save" disabled={saving}>{saving ? <Loader2 className="toast-spinner" size={17} /> : <Save size={17} />}{label}</button>;
+  return <button className="btn btn-primary directory-save" disabled={saving}>{saving ? <Loader2 className="toast-spinner" size={17} /> : <Save size={17} />}{saving ? "Saving…" : label}</button>;
 }
 
 function DirectoryStatusSelect({ value }: { value: string }) {

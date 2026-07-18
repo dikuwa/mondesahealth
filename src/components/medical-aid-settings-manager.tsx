@@ -624,12 +624,12 @@ function ModalEditor({ title, children, onClose }: { title: string; children: Re
   return (
     <div className="appointment-modal" role="dialog" aria-modal="true" aria-labelledby="medical-aid-editor-title">
       <button className="appointment-modal-backdrop" aria-label="Close medical aid editor" onClick={onClose} />
-      <div className="appointment-panel medical-aid-editor-panel">
-        <div className="appointment-panel-heading">
-          <div><span className="eyebrow">Medical aid setup</span><h2 id="medical-aid-editor-title">{title}</h2></div>
+      <div className="appointment-panel modal-editor-panel medical-aid-editor-panel">
+        <div className="appointment-panel-heading modal-editor-heading">
+          <div><span className="eyebrow">Medical aid setup</span><h2 id="medical-aid-editor-title">{title}</h2><p>Progress is confirmed when validation and saving complete.</p></div>
           <button type="button" aria-label="Close medical aid editor" onClick={onClose}><X size={20} /></button>
         </div>
-        {children}
+        <div className="modal-editor-body">{children}</div>
       </div>
     </div>
   );
@@ -699,8 +699,8 @@ function FundForm({ fund, saving, onSubmit }: { fund?: Fund; saving: boolean; on
       </div>
       <div className="manager-actions">
         <button className="btn btn-primary directory-save" disabled={saving}>
-          <Save size={16} />
-          Save fund
+          {saving ? <Loader2 className="toast-spinner" size={16} /> : <Save size={16} />}
+          {saving ? "Saving…" : "Save fund"}
         </button>
       </div>
     </form>
@@ -732,8 +732,8 @@ function ProcedureForm({ item, saving, onSubmit }: { item?: Procedure; saving: b
       </div>
       <div className="manager-actions">
         <button className="btn btn-primary directory-save" disabled={saving}>
-          <Save size={16} />
-          Save procedure
+          {saving ? <Loader2 className="toast-spinner" size={16} /> : <Save size={16} />}
+          {saving ? "Saving…" : "Save procedure"}
         </button>
       </div>
     </form>
