@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Copy, Download, Eye, Loader2, Mail, MessageCircle, Plus, Share2, WalletCards, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { money } from "@/lib/utils";
 type Patient = { id: string; fullName: string };
 type Invoice = {
@@ -167,7 +168,7 @@ export function FinanceManager({
                     <td>{item.patient}</td>
                     <td>{money(item.total)}</td>
                     <td>{money(Math.max(0, item.total - item.paid))}</td>
-                    <td><span className="account-status">{item.status.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase())}</span></td>
+                    <td><StatusBadge value={item.status} /></td>
                     <td>
                       <div className="table-actions">
                         <button

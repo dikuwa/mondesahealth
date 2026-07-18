@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Database, Loader2, Plus, Save, Settings2, Trash2, Upload, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { money } from "@/lib/utils";
 
 type Fund = {
@@ -484,7 +485,7 @@ export function MedicalAidSettingsManager({
                 </div>
                 <div className="table-actions">
                   {item.active ? (
-                    <span className="account-status">Active</span>
+                    <StatusBadge value="ACTIVE" />
                   ) : (
                     <button className="btn btn-light" type="button" disabled={saving || !item.importedRows} onClick={() => activateIcd10(item)}>
                       Import and activate
@@ -539,7 +540,7 @@ function FundTable({
                 <td>{fund.abbreviation || "—"}</td>
                 <td>{methods.join(", ") || "Not configured"}</td>
                 <td>
-                  <span className={`account-status${fund.active ? "" : " is-muted"}`}>{fund.active ? "Active" : "Disabled"}</span>
+                  <StatusBadge value={fund.active ? "ACTIVE" : "DISABLED"} />
                   {setupNeeded && <small className="setup-needed">Setup needed</small>}
                 </td>
                 <td>
@@ -600,7 +601,7 @@ function ProcedureTable({
               <td>{item.category || "Uncategorised"}</td>
               <td>{money(item.defaultAmount)}</td>
               <td>
-                <span className={`account-status${item.active ? "" : " is-muted"}`}>{item.active ? "Active" : "Disabled"}</span>
+                <StatusBadge value={item.active ? "ACTIVE" : "DISABLED"} />
               </td>
               <td>
                 <div className="table-actions">

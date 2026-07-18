@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
   PERMISSIONS,
   permissionLabels,
@@ -193,7 +194,7 @@ export function StaffManager({
                   <td>{user.role}</td>
                   <td>{user.permissions.length} enabled</td>
                   <td>
-                    <span className={`account-status ${user.active ? "is-active" : ""}`}>{user.active ? "Enabled" : "Disabled"}</span>
+                    <StatusBadge value={user.active ? "ENABLED" : "DISABLED"} />
                     {user.mustChangePassword && <small style={{ display: "block", marginTop: 5 }}>Password change due</small>}
                   </td>
                   <td>
@@ -224,7 +225,7 @@ export function StaffManager({
                     <small>{user.email}</small>
                   </div>
                 </span>
-                <span className={`account-status ${user.active ? "is-active" : ""}`}>{user.active ? "Enabled" : "Disabled"}</span>
+                <StatusBadge value={user.active ? "ENABLED" : "DISABLED"} />
               </span>
               <small>{user.role} · {user.permissions.length} permissions{user.mustChangePassword ? " · Password change due" : ""}</small>
               <span className="record-card-actions">

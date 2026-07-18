@@ -1109,16 +1109,27 @@ textarea.input {
 }
 .account-status {
   display: inline-flex;
-  padding: 5px 8px;
+  align-items: center;
+  min-height: 26px;
+  padding: 5px 10px;
+  border: 1px solid #d7dfdc;
   border-radius: 99px;
-  background: #f5e3e0;
-  color: #8c3d34;
-  font-size: 10px;
-  font-weight: 800;
+  background: #eef2f0;
+  color: #687b74;
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
 }
 .account-status.is-active {
-  background: #e1f1e8;
-  color: #236348;
+  border-color: #b9decf;
+  background: #dff2e9;
+  color: #1f6549;
+}
+.account-status.is-muted {
+  border-color: #d7dfdc;
+  background: #eef2f0;
+  color: #687b74;
 }
 .table-actions {
   display: flex;
@@ -3620,6 +3631,7 @@ main p {
 .directory-order-input { max-width: 70px; min-height: 40px; text-align: center; }
 .muted-icon { color: #8a9b95; }
 .status-cluster { display: flex; flex-wrap: wrap; gap: 8px; }
+.status-badge,
 .directory-status-pill {
   display: inline-flex;
   align-items: center;
@@ -3632,26 +3644,31 @@ main p {
   line-height: 1;
   white-space: nowrap;
 }
+.status-badge[data-tone="success"],
 .directory-status-pill.is-active-status {
   border-color: #b9decf;
   background: #dff2e9;
   color: #1f6549;
 }
+.status-badge[data-tone="danger"],
 .directory-status-pill.is-coming-status {
   border-color: #f0c7c1;
   background: #fae8e5;
   color: #9a4439;
 }
+.status-badge[data-tone="warning"],
 .directory-status-pill.is-future-status {
   border-color: #f0d9ad;
   background: #fff2d8;
   color: #8a5d1d;
 }
+.status-badge[data-tone="info"],
 .directory-status-pill.is-published-status {
   border-color: #c6d8ee;
   background: #e8f1fb;
   color: #285b8f;
 }
+.status-badge[data-tone="neutral"],
 .directory-status-pill.is-hidden-status {
   border-color: #d7dfdc;
   background: #eef2f0;

@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Icd10Search } from "@/components/icd10-search";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 type Code = { id: string; code: string; description: string; isPrimary: boolean; sortOrder: number };
 type Line = {
@@ -198,7 +199,7 @@ export function ClaimEditor({ claim, memberships, funds, procedures, initialLine
   return <>
     <div className="claim-editor">
       <div className="claim-editor-toolbar">
-        <div><span className="account-status">{claim.status.replaceAll("_", " ")}</span><p>{claim.patient} · {claim.claimNumber}{claim.isResubmission ? " · Resubmission" : ""}</p></div>
+        <div><StatusBadge value={claim.status} /><p>{claim.patient} · {claim.claimNumber}{claim.isResubmission ? " · Resubmission" : ""}</p></div>
         <div className="manager-actions">
           <a className="btn btn-light" target="_blank" href={`/api/claim-documents/${claim.id}?type=claim`}><FileDown size={16} />Preview statement</a>
           {!locked && <><button className="btn btn-light" disabled={saving} onClick={save}><Save size={16} />Save draft</button><button className="btn btn-primary" disabled={saving} onClick={validate}>{saving ? <Loader2 className="toast-spinner" size={16} /> : <CheckCircle2 size={16} />}Validate</button></>}

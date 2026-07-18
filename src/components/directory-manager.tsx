@@ -7,6 +7,7 @@ import { GripVertical, Loader2, Plus, Save, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 type Service = { id: string; name: string; description: string | null; public: boolean; sortOrder: number };
 type Provider = { id: string; displayName: string; practiceName: string | null; biography: string | null; phone: string | null; email: string | null; operatingHours: string | null; public: boolean; sortOrder: number };
@@ -20,16 +21,6 @@ const statusOptions = [
 
 function formObject(form: HTMLFormElement) {
   return Object.fromEntries(new FormData(form));
-}
-
-function titleStatus(value: string) {
-  return value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function statusClass(value: string) {
-  if (value === "ACTIVE") return "is-active-status";
-  if (value === "FUTURE") return "is-future-status";
-  return "is-coming-status";
 }
 
 export function DirectoryManager({ departments }: { departments: Department[] }) {
@@ -164,8 +155,8 @@ export function DirectoryManager({ departments }: { departments: Department[] })
                   <td><b>{department.name}</b></td>
                   <td>
                     <div className="status-cluster">
-                      <span className={`directory-status-pill ${statusClass(department.status)}`}>{titleStatus(department.status)}</span>
-                      <span className={`directory-status-pill${department.public ? " is-published-status" : " is-hidden-status"}`}>{department.public ? "Published" : "Hidden"}</span>
+                      <StatusBadge value={department.status} />
+                      <StatusBadge value={department.public ? "PUBLISHED" : "HIDDEN"} />
                     </div>
                   </td>
                   <td>
@@ -197,8 +188,8 @@ export function DirectoryManager({ departments }: { departments: Department[] })
             <article className="record-card" key={department.id}>
               <span className="record-card-heading"><b>{department.name}</b><small>Order {orders[department.id] ?? department.sortOrder}</small></span>
               <span className="status-cluster">
-                <span className={`directory-status-pill ${statusClass(department.status)}`}>{titleStatus(department.status)}</span>
-                <span className={`directory-status-pill${department.public ? " is-published-status" : " is-hidden-status"}`}>{department.public ? "Published" : "Hidden"}</span>
+                <StatusBadge value={department.status} />
+                <StatusBadge value={department.public ? "PUBLISHED" : "HIDDEN"} />
               </span>
               <span className="record-card-actions"><button className="btn btn-light" onClick={() => setEditing(department)}>Manage</button></span>
             </article>

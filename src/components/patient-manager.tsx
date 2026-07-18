@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 type Patient = {
   id: string;
@@ -254,7 +255,7 @@ export function PatientManager({
                     {p.dateOfBirth ? (
                       new Date(p.dateOfBirth).toLocaleDateString("en-NA")
                     ) : (
-                      <span className="account-status">Incomplete</span>
+                      <StatusBadge value="INCOMPLETE" />
                     )}
                   </td>
                   <td>{p.phone}</td>
