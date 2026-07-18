@@ -346,7 +346,8 @@ function StaffActions({
 
 function StaffAvatar({ user }: { user: Staff }) {
   if (user.avatarData) {
-    return <span className="staff-avatar-image" style={{ backgroundImage: `url(${user.avatarData})` }} aria-hidden="true" />;
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img className="staff-avatar-image" src={user.avatarData} alt="" />;
   }
   return <span>{user.name.charAt(0)}</span>;
 }
