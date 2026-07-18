@@ -33,9 +33,10 @@ export function ProfileForm({
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formElement = event.currentTarget;
     setSaving(true);
     const id = toast.loading("Saving your profile…");
-    const form = new FormData(event.currentTarget);
+    const form = new FormData(formElement);
     try {
       const response = await fetch("/api/profile", {
         method: "PATCH",
@@ -61,8 +62,8 @@ export function ProfileForm({
         return;
       }
       router.refresh();
-      (event.currentTarget.elements.namedItem("currentPassword") as HTMLInputElement).value = "";
-      (event.currentTarget.elements.namedItem("newPassword") as HTMLInputElement).value = "";
+      (formElement.elements.namedItem("currentPassword") as HTMLInputElement).value = "";
+      (formElement.elements.namedItem("newPassword") as HTMLInputElement).value = "";
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save profile", { id });
     } finally {
