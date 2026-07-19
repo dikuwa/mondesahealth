@@ -484,13 +484,13 @@ The editor marks sections complete or needing details, warns about unsaved chang
 | Public site | Tagline, description, location, map, coordinates, hours, contact visibility | Public website |
 | Claims | Claim contact, phone, email, postal address, consent wording | Claim validation and documents |
 | Medical aids | Compact Active/Public switches | Fund availability and public booking choices |
-| Data reset | Owner-only destructive reset | Removes operational and public directory data |
+| Data reset | Owner-only destructive reset | Removes operational data while preserving the services and providers directory |
 
 The editor tracks saved/unsaved/error state and warns when leaving with unsaved changes.
 
 ### Data reset warning
 
-**Start from scratch** is intentionally destructive. It requires typing an exact confirmation and accepting a second dialog. It removes operational records, documents, patients, appointments, claims, payments, attachments, activity entries, and public directory content. It preserves staff accounts, reference datasets, availability rules, and the booking shell.
+**Start from scratch** is intentionally destructive. It requires typing an exact confirmation and accepting a second dialog. It removes operational records, documents, patients, appointments, claims, payments, attachments, and activity entries. It preserves staff accounts, reference datasets, availability rules, and the complete services and providers directory. Departments, services, and provider profiles must be edited or deleted manually from **Services & providers**.
 
 Do not use data reset as routine cleanup. Before any authorised reset, create and verify an encrypted backup, record written approval, confirm the exact target environment, and test restoration separately.
 

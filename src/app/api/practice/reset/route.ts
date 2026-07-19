@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { resetProviderlessDirectory } from "@/lib/practice-reset";
 
 const CONFIRMATION = "RESET MONDESA";
 
@@ -13,16 +12,11 @@ async function requireOwner() {
 }
 
 const count = async () => {
-  const providerDepartments = await db.provider.findMany({ select: { departmentId: true }, distinct: ["departmentId"] });
-  const preservedDepartmentIds = providerDepartments.map(({ departmentId }) => departmentId);
-  const providerlessDepartmentWhere = preservedDepartmentIds.length ? { id: { notIn: preservedDepartmentIds } } : undefined;
-  const providerlessServiceWhere = preservedDepartmentIds.length ? { departmentId: { notIn: preservedDepartmentIds } } : undefined;
-  const [patients, appointments, invoices, payments, claims, batches, attachments, departments, services, providers, providerlessDepartments, providerlessServices, activity, reminders, receipts, documents, storage] = await Promise.all([
+  const [patients, appointments, invoices, payments, claims, batches, attachments, activity, reminders, receipts, documents, storage] = await Promise.all([
     db.patient.count(), db.appointment.count(), db.invoice.count(), db.payment.count(), db.claim.count(), db.claimBatch.count(), db.claimAttachment.count(),
-    db.department.count(), db.departmentService.count(), db.provider.count(), db.department.count({ where: providerlessDepartmentWhere }), db.departmentService.count({ where: providerlessServiceWhere }), db.activityLog.count(),
-    db.appointmentReminder.count(),db.receipt.count(),db.generatedDocument.count(),db.claimAttachment.aggregate({_sum:{fileSize:true}}),
+    db.activityLog.count(), db.appointmentReminder.count(),db.receipt.count(),db.generatedDocument.count(),db.claimAttachment.aggregate({_sum:{fileSize:true}}),
   ]);
-  return { patients, appointments, invoices, payments, claims, batches, attachments, departments, services, providers, providersPreserved: providers, directoryRecordsToRemove: providerlessDepartments + providerlessServices, activity, reminders, receipts, documents, attachmentBytes:storage._sum.fileSize||0 };
+  return { patients, appointments, invoices, payments, claims, batches, attachments, activity, reminders, receipts, documents, attachmentBytes:storage._sum.fileSize||0 };
 };
 
 export async function GET() {
@@ -68,7 +62,6 @@ export async function POST(request: Request) {
       await tx.patient.deleteMany();
       await tx.blockedTime.deleteMany();
 
-      await resetProviderlessDirectory(tx);
       // Remove dashboard-authored homepage content; the public loader falls back
       // to its safe defaults until the owner publishes new copy.
       await tx.practiceContent.deleteMany();

@@ -55,12 +55,7 @@ type Counts = {
   claims: number;
   batches: number;
   attachments: number;
-  departments: number;
-  services: number;
-  providers: number;
-  providersPreserved: number;
   activity: number;
-  directoryRecordsToRemove: number;
 };
 
 const tabs = [
@@ -557,8 +552,7 @@ function DataResetTab({ isOwner }: { isOwner: boolean }) {
           counts.payments +
           counts.claims +
           counts.batches +
-          counts.attachments +
-          counts.directoryRecordsToRemove
+          counts.attachments
         : 0,
     [counts],
   );
@@ -601,7 +595,7 @@ function DataResetTab({ isOwner }: { isOwner: boolean }) {
           <AlertTriangle size={19} /> Data reset
         </h2>
         <p className="muted">
-          This removes operational records and providerless directory records while preserving staff accounts, reference datasets, availability rules, provider profiles and their linked directory configuration.
+          This removes operational records while preserving staff accounts, reference datasets, availability rules, and the complete services and providers directory. Departments, services, and provider profiles remain available for manual editing or deletion.
         </p>
       </div>
       {counts && (
@@ -612,8 +606,6 @@ function DataResetTab({ isOwner }: { isOwner: boolean }) {
             ["Invoices / payments", counts.invoices + counts.payments],
             ["Claims / batches", counts.claims + counts.batches],
             ["Attachments", counts.attachments],
-            ["Providerless directory records", counts.directoryRecordsToRemove],
-            ["Providers preserved", counts.providersPreserved],
             ["Activity entries", counts.activity],
           ].map(([label, value]) => (
             <div key={String(label)}>
@@ -652,7 +644,7 @@ function DataResetTab({ isOwner }: { isOwner: boolean }) {
       <ConfirmationDialog
         open={secondConfirm}
         title="Reset this practice now?"
-        description="This is the second confirmation. Operational records, documents, patients, appointments, claims, payments and providerless directory records will be removed. Provider records and their linked department/service configuration, staff accounts and reference datasets are preserved."
+        description="This is the second confirmation. Operational records, documents, patients, appointments, claims, payments, attachments, and activity entries will be removed. The complete services and providers directory, staff accounts, and reference datasets are preserved."
         confirmLabel="Yes, reset now"
         danger
         busy={busy}
