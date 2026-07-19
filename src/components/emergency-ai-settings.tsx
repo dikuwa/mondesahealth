@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Loader2, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Loader2, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { validEmergencyPhone } from "@/lib/emergency";
@@ -139,8 +139,8 @@ export function EmergencyAiSettings({ initialContacts, initialAiEnabled, initial
         </form>}
       </section>
       <section className="emergency-ai-section"><h3>AI-assisted patient intake</h3><p className="muted">AI assistance is optional. If the configured server-side provider is unavailable, patients can continue booking manually.</p>
-        <label className="toggle-label settings-checkbox-row"><input type="checkbox" checked={aiEnabled} onChange={(event) => setAiEnabled(event.target.checked)}/><span>Enable AI-assisted symptom intake globally</span></label>
-        <label className="toggle-label settings-checkbox-row"><input type="checkbox" checked={imageEnabled} onChange={(event) => setImageEnabled(event.target.checked)}/><span>Allow optional symptom photos</span></label>
+        <button className={`settings-switch-row${aiEnabled ? " is-on" : ""}`} type="button" role="switch" aria-checked={aiEnabled} disabled={saving} onClick={() => setAiEnabled((enabled) => !enabled)}><span className="settings-switch-control" aria-hidden="true">{aiEnabled && <Check size={16}/>}</span><span>Enable AI-assisted symptom intake globally</span></button>
+        <button className={`settings-switch-row${imageEnabled ? " is-on" : ""}`} type="button" role="switch" aria-checked={imageEnabled} disabled={saving} onClick={() => setImageEnabled((enabled) => !enabled)}><span className="settings-switch-control" aria-hidden="true">{imageEnabled && <Check size={16}/>}</span><span>Allow optional symptom photos</span></button>
         <p className="notice-warning">AI output organises patient-reported information only. It cannot diagnose, prescribe, or replace clinician review.</p>
         <button className="btn btn-primary" type="button" disabled={saving} onClick={saveAiSettings}>{saving ? <Loader2 className="toast-spinner" size={17}/> : <Save size={17}/>} Save AI settings</button>
       </section>

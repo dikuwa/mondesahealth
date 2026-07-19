@@ -937,8 +937,13 @@ textarea.input {
 .emergency-ai-section { display: grid; align-content: start; gap: 14px; }
 .settings-section-grid .emergency-ai-section > h3,
 .emergency-ai-section > p { margin: 0; }
-.emergency-ai-section .settings-checkbox-row { margin-top: 0; }
 .emergency-ai-section > .btn { justify-self: start; }
+.settings-switch-row { display: grid; grid-template-columns: 26px minmax(0, 1fr); align-items: center; gap: 11px; width: 100%; min-height: 48px; padding: 12px 14px; border: 1px solid #d7e2dd; border-radius: 11px; background: #f7faf8; color: var(--ink); text-align: left; font-weight: 650; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.settings-switch-row:hover:not(:disabled) { border-color: #9bb3a9; background: #f2f8f5; }
+.settings-switch-row:focus-visible { outline: 3px solid #1f5a4c; outline-offset: 2px; }
+.settings-switch-row:disabled { cursor: not-allowed; opacity: .58; }
+.settings-switch-control { display: grid; width: 20px; height: 20px; place-items: center; border: 1.5px solid #8ba198; border-radius: 6px; background: #fff; color: #fff; transition: background-color .12s ease, border-color .12s ease; }
+.settings-switch-row.is-on .settings-switch-control { border-color: var(--green); background: var(--green); }
 .clinical-intake-card { display: grid; gap: 14px; border: 1px solid #cddbd5; border-radius: 12px; padding: 15px; background: #fff; }
 .clinical-intake-heading h3 { margin: 4px 0 0; }
 .clinical-intake-copy { display: grid; gap: 5px; }
