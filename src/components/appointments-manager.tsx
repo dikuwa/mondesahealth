@@ -25,6 +25,7 @@ import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 type Row = {
   id: string;
@@ -373,11 +374,7 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
                   </td>
                   <td>{label(row.source)}</td>
                   <td>
-                    <span
-                      className={`appointment-status status-${row.status.toLowerCase()}`}
-                    >
-                      {label(row.status)}
-                    </span>
+                    <StatusBadge value={row.status} />
                   </td>
                   <td>{row.reference}</td>
                   <td>
@@ -409,7 +406,7 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
               <button className="record-card" type="button" key={row.id} onClick={() => openDetails(row)}>
                 <span className="record-card-heading">
                   <b>{row.patient.fullName}</b>
-                  <span className={`appointment-status status-${row.status.toLowerCase()}`}>{label(row.status)}</span>
+                  <StatusBadge value={row.status} />
                 </span>
                 <span>{row.startAt ? format(parseISO(row.startAt), "dd MMM yyyy · HH:mm") : "Awaiting allocation"}</span>
                 <small>{row.patient.phone} · {row.reference}</small>

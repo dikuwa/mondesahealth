@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CalendarCheck, Clock3, Stethoscope } from "lucide-react";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { getPublicDepartments } from "@/lib/public-site";
 
 export const metadata: Metadata = {
   title: "Healthcare services",
   description: "Explore available and planned healthcare services at Mondesa Health Polyclinic.",
 };
+
+function publicServiceStatus(department: { bookingEnabled: boolean; status: string }) {
+  if (department.bookingEnabled) return { value: "ACTIVE", label: "Available now" };
+  if (department.status === "FUTURE") return { value: "FUTURE", label: "Future feature" };
+  return { value: "COMING_SOON", label: "Coming soon" };
+}
 
 export default async function ServicesPage() {
   const departments = await getPublicDepartments();
@@ -25,9 +32,7 @@ export default async function ServicesPage() {
             <article className={`service-listing${department.bookingEnabled ? " is-active" : ""}`} key={department.id}>
               <div className="service-listing-number">{String(index + 1).padStart(2, "0")}</div>
               <div className="service-listing-copy">
-                <span className={`service-status${department.bookingEnabled ? " is-active" : ""}`}>
-                  {department.bookingEnabled ? "Available now" : department.status === "FUTURE" ? "Future feature" : "Coming soon"}
-                </span>
+                <StatusBadge {...publicServiceStatus(department)} />
                 <p className="eyebrow">{department.categoryLabel}</p>
                 <h2>{department.name}</h2>
                 <p>{department.summary}</p>

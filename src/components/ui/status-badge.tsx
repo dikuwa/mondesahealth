@@ -4,15 +4,22 @@ const labelMap: Record<string, string> = {
   ACKNOWLEDGED: "Accepted",
   COMING_SOON: "Coming Soon",
   NEEDS_INFORMATION: "Needs information",
+  NEW_REQUEST: "New request",
+  NO_SHOW: "No show",
   PARTIALLY_PAID: "Partially paid",
+  PENDING_CONFIRMATION: "Pending confirmation",
+  READY_FOR_REVIEW: "Ready for review",
+  RESCHEDULE_PROPOSED: "Reschedule proposed",
+  RESCHEDULE_REQUESTED: "Reschedule requested",
+  REVIEW_REQUIRED: "Review required",
   READY_TO_SUBMIT: "Ready",
   RESUBMISSION_REQUIRED: "Resubmission required",
 };
 
-const success = new Set(["ACTIVE", "ENABLED", "PAID", "COMPLETE", "COMPLETED", "CURRENT", "READY", "READY_TO_SUBMIT", "ACKNOWLEDGED"]);
-const info = new Set(["PUBLISHED", "SUBMITTED", "BATCHED", "ISSUED"]);
-const warning = new Set(["DRAFT", "FUTURE", "NEEDS_INFORMATION", "INCOMPLETE", "PARTIALLY_PAID", "SETUP_NEEDED", "BASELINE_REFERENCE"]);
-const danger = new Set(["COMING_SOON", "REJECTED", "RESUBMISSION_REQUIRED", "FAILED", "ERROR"]);
+const success = new Set(["ACTIVE", "ENABLED", "PAID", "COMPLETE", "COMPLETED", "CONFIRMED", "CURRENT", "READY", "READY_TO_SUBMIT", "ACKNOWLEDGED"]);
+const info = new Set(["PUBLISHED", "SUBMITTED", "BATCHED", "ISSUED", "READY_FOR_REVIEW"]);
+const warning = new Set(["DRAFT", "FUTURE", "NEEDS_INFORMATION", "INCOMPLETE", "NEW_REQUEST", "PARTIALLY_PAID", "PENDING", "PENDING_CONFIRMATION", "RESCHEDULE_PROPOSED", "RESCHEDULE_REQUESTED", "REVIEW_REQUIRED", "SETUP_NEEDED", "BASELINE_REFERENCE"]);
+const danger = new Set(["COMING_SOON", "CANCELLED", "NO_SHOW", "REJECTED", "RESUBMISSION_REQUIRED", "FAILED", "ERROR"]);
 const neutral = new Set(["DISABLED", "HIDDEN", "PRIVATE", "HISTORICAL"]);
 
 export type StatusTone = "success" | "info" | "warning" | "danger" | "neutral";

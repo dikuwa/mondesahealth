@@ -2,9 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, CalendarCheck, Clock3, Mail, Phone, UserRound } from "lucide-react";
 import { notFound } from "next/navigation";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { getPublicDepartment } from "@/lib/public-site";
 
 type PageProps = { params: Promise<{ slug: string }> };
+
+function publicServiceStatus(department: { bookingEnabled: boolean; status: string }) {
+  if (department.bookingEnabled) return { value: "ACTIVE", label: "Available now" };
+  if (department.status === "FUTURE") return { value: "FUTURE", label: "Future feature" };
+  return { value: "COMING_SOON", label: "Coming soon" };
+}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
@@ -23,9 +30,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
       <section className="service-detail-hero">
         <div className="container service-detail-heading">
           <Link className="back-link" href="/services"><ArrowLeft size={16} /> All services</Link>
-          <span className={`service-status${available ? " is-active" : ""}`}>
-            {available ? "Available now" : department.status === "FUTURE" ? "Future feature" : "Coming soon"}
-          </span>
+          <StatusBadge {...publicServiceStatus(department)} />
           <p className="eyebrow">{department.categoryLabel}</p>
           <h1 className="display">{department.name}</h1>
           <p>{department.description}</p>

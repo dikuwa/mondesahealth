@@ -19,6 +19,7 @@ import {
   Stethoscope,
   UsersRound,
 } from "lucide-react";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { getPublicDepartments, getPublicSiteConfig } from "@/lib/public-site";
 
 const departmentIcons = {
@@ -30,6 +31,12 @@ const departmentIcons = {
   radiology: ScanLine,
   "php-health-plan": BadgePlus,
 } as const;
+
+function publicServiceStatus(department: { bookingEnabled: boolean; status: string }) {
+  if (department.bookingEnabled) return { value: "ACTIVE", label: "Available now" };
+  if (department.status === "FUTURE") return { value: "FUTURE", label: "Future feature" };
+  return { value: "COMING_SOON", label: "Coming soon" };
+}
 
 export default async function Home() {
   const [site, departments] = await Promise.all([
@@ -152,7 +159,7 @@ export default async function Home() {
             <article className="directory-featured">
               <div className="directory-icon"><Stethoscope aria-hidden="true" /></div>
               <div>
-                <span className="service-status is-active">Available now</span>
+                <StatusBadge {...publicServiceStatus(active)} />
                 <p className="eyebrow">{active.categoryLabel}</p>
                 <h3>{active.name}</h3>
                 <p>{active.summary}</p>
@@ -174,9 +181,7 @@ export default async function Home() {
                     <b>{department.name}</b>
                     <small>{department.summary}</small>
                   </span>
-                  <span className="service-status">
-                    {department.status === "FUTURE" ? "Future feature" : "Coming soon"}
-                  </span>
+                  <StatusBadge {...publicServiceStatus(department)} />
                   <ArrowRight size={17} aria-hidden="true" />
                 </Link>
               );
