@@ -212,7 +212,7 @@ export function SiteChrome({ children, site }: { children: React.ReactNode; site
       {isMobile && mobileOpen && (
         <>
           <div
-            className="mobile-menu-backdrop"
+            className="mobile-menu-backdrop motion-backdrop"
             aria-hidden="true"
             onClick={closeDrawer}
             style={{
@@ -226,6 +226,7 @@ export function SiteChrome({ children, site }: { children: React.ReactNode; site
           <nav
             ref={drawerRef}
             id="mobile-nav"
+            className="mobile-menu-drawer"
             aria-label="Mobile navigation"
             style={{
               position: "fixed",

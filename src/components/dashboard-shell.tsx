@@ -286,7 +286,9 @@ export function DashboardShell({
           tabIndex={-1}
           className="dashboard-content"
         >
-          {children}
+          <div key={pathname} className="dashboard-route-content">
+            {children}
+          </div>
         </main>
       </div>
     </div>

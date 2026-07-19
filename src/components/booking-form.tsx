@@ -311,7 +311,7 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
           ))}
         </ol>
       </div>
-      <div className="booking-form-body">
+      <div className="booking-form-body booking-step-motion" key={step}>
         <header className="booking-step-header">
           <div>
             <div className="eyebrow">Step {step} of 3</div>

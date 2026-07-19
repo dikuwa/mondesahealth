@@ -7,6 +7,12 @@
   --cream: #f7f4ed;
   --sand: #e8dfd0;
   --line: #dce4df;
+  --motion-instant: 120ms;
+  --motion-state: 200ms;
+  --motion-reveal: 240ms;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 * {
   box-sizing: border-box;
@@ -72,9 +78,10 @@ input[type="checkbox"] {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   transition:
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
+    background-color var(--motion-instant) var(--ease-out-quart),
+    border-color var(--motion-instant) var(--ease-out-quart),
+    box-shadow var(--motion-instant) var(--ease-out-quart),
+    transform var(--motion-instant) var(--ease-out-quart);
 }
 input[type="radio"] {
   appearance: none;
@@ -90,9 +97,10 @@ input[type="radio"] {
     #fff;
   cursor: pointer;
   transition:
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
+    background-color var(--motion-instant) var(--ease-out-quart),
+    border-color var(--motion-instant) var(--ease-out-quart),
+    box-shadow var(--motion-instant) var(--ease-out-quart),
+    transform var(--motion-instant) var(--ease-out-quart);
 }
 input[type="checkbox"]:hover:not(:disabled) {
   border-color: var(--green);
@@ -106,6 +114,7 @@ input[type="checkbox"]:checked {
   border-color: var(--green);
   background-color: var(--green);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.4' d='m3.2 8.2 3 3.1 6.6-6.7'/%3E%3C/svg%3E");
+  animation: control-confirm var(--motion-state) var(--ease-out-expo);
 }
 input[type="radio"]:checked {
   border-color: var(--green);
@@ -158,9 +167,10 @@ label:has(> input[type="checkbox"])::before {
   background-repeat: no-repeat;
   background-size: 12px 12px;
   transition:
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
+    background-color var(--motion-instant) var(--ease-out-quart),
+    border-color var(--motion-instant) var(--ease-out-quart),
+    box-shadow var(--motion-instant) var(--ease-out-quart),
+    transform var(--motion-instant) var(--ease-out-quart);
 }
 label:has(> input[type="checkbox"]:hover:not(:disabled))::before {
   border-color: var(--green);
@@ -170,6 +180,7 @@ label:has(> input[type="checkbox"]:checked)::before {
   border-color: var(--green);
   background-color: var(--green);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.4' d='m3.2 8.2 3 3.1 6.6-6.7'/%3E%3C/svg%3E");
+  animation: control-confirm var(--motion-state) var(--ease-out-expo);
 }
 label:has(> input[type="checkbox"]:focus-visible) {
   outline: 3px solid #1f5a4c;
@@ -235,13 +246,20 @@ summary,
   font-weight: 750;
   border: 1px solid transparent;
   transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    background-color var(--motion-state) var(--ease-out-quart),
+    border-color var(--motion-state) var(--ease-out-quart),
+    box-shadow var(--motion-state) var(--ease-out-quart),
+    transform var(--motion-instant) var(--ease-out-quart);
   cursor: pointer;
 }
 .btn:hover {
   box-shadow: 0 8px 22px #18332d18;
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.975);
+}
+.btn:disabled {
+  cursor: not-allowed;
 }
 .btn-primary {
   background: var(--green);
@@ -288,6 +306,10 @@ summary,
   background: #fff;
   padding: 10px 13px;
   color: var(--ink);
+  transition:
+    border-color var(--motion-state) var(--ease-out-quart),
+    box-shadow var(--motion-state) var(--ease-out-quart),
+    background-color var(--motion-state) var(--ease-out-quart);
 }
 textarea.input {
   min-height: 96px;
@@ -382,6 +404,8 @@ textarea.input {
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 18px 45px #18332d26;
+  transform-origin: top center;
+  animation: popover-in var(--motion-state) var(--ease-out-quint) both;
 }
 .custom-select-option {
   width: 100%;
@@ -435,6 +459,7 @@ textarea.input {
 }
 .toast-content[data-type="success"] .toast-icon {
   color: #167454;
+  animation: status-confirm var(--motion-reveal) var(--ease-out-expo) both;
 }
 .toast-content[data-type="error"] .toast-icon {
   color: #b33f35;
@@ -908,7 +933,7 @@ textarea.input {
 .dashboard-bell { position: relative; display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
 .dashboard-bell:hover { border-color: #9db8ab; background: #f4f8f6; }
 .dashboard-bell > span { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 99px; background: var(--green); color: #fff; font-size: 10px; font-weight: 800; line-height: 18px; text-align: center; }
-.dashboard-notification-popover { position: absolute; z-index: 60; top: calc(100% + 12px); right: 0; width: min(390px, calc(100vw - 32px)); overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: 0 18px 45px #18332d24; }
+.dashboard-notification-popover { position: absolute; z-index: 60; top: calc(100% + 12px); right: 0; width: min(390px, calc(100vw - 32px)); overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: #fff; box-shadow: 0 18px 45px #18332d24; transform-origin: top right; animation: popover-in var(--motion-state) var(--ease-out-quint) both; }
 .dashboard-notification-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 15px 16px 12px; border-bottom: 1px solid #edf1ef; }
 .dashboard-notification-heading div { display: grid; gap: 3px; }
 .dashboard-notification-heading small { color: #6a7d76; font-size: 11px; }
@@ -987,8 +1012,9 @@ textarea.input {
 .settings-switch-row:hover:not(:disabled) { border-color: #9bb3a9; background: #f2f8f5; }
 .settings-switch-row:focus-visible { outline: 3px solid #1f5a4c; outline-offset: 2px; }
 .settings-switch-row:disabled { cursor: not-allowed; opacity: .58; }
-.settings-switch-control { display: grid; width: 20px; height: 20px; place-items: center; border: 1.5px solid #8ba198; border-radius: 6px; background: #fff; color: #fff; transition: background-color .12s ease, border-color .12s ease; }
+.settings-switch-control { display: grid; width: 20px; height: 20px; place-items: center; border: 1.5px solid #8ba198; border-radius: 6px; background: #fff; color: #fff; transition: background-color var(--motion-instant) var(--ease-out-quart), border-color var(--motion-instant) var(--ease-out-quart), transform var(--motion-instant) var(--ease-out-quart); }
 .settings-switch-row.is-on .settings-switch-control { border-color: var(--green); background: var(--green); }
+.settings-switch-row.is-on .settings-switch-control { animation: control-confirm var(--motion-state) var(--ease-out-expo); }
 .clinical-intake-card { display: grid; gap: 14px; border: 1px solid #cddbd5; border-radius: 12px; padding: 15px; background: #fff; }
 .clinical-intake-heading h3 { margin: 4px 0 0; }
 .clinical-intake-copy { display: grid; gap: 5px; }
@@ -1059,6 +1085,7 @@ textarea.input {
   border: 0;
   background: #102d2780;
   backdrop-filter: blur(3px);
+  animation: backdrop-in var(--motion-state) var(--ease-out-quart) both;
 }
 .appointment-panel {
   position: relative;
@@ -1070,6 +1097,8 @@ textarea.input {
   border: 1px solid #d9e4df;
   border-radius: 20px;
   box-shadow: 0 28px 80px #102d2740;
+  transform-origin: center bottom;
+  animation: dialog-in var(--motion-reveal) var(--ease-out-expo) both;
 }
 .appointment-panel-heading {
   padding: 24px 24px 18px;
@@ -1867,15 +1896,19 @@ textarea.input {
   height: 100%;
   border-radius: 99px;
   background: var(--green);
-  transition: width 0.25s ease;
+  transition: width var(--motion-reveal) var(--ease-out-quint);
 }
 .booking-progress-steps { position: relative; z-index: 1; display: flex; justify-content: space-between; gap: 12px; margin: 0; padding: 0; list-style: none; }
 .booking-progress-steps li { display: grid; justify-items: center; gap: 7px; min-width: 74px; color: #71837c; font-size: 11px; font-weight: 750; }
-.booking-progress-steps li > span { display: grid; width: 28px; height: 28px; place-items: center; border: 2px solid #cbdad3; border-radius: 50%; background: #fbfdfc; color: #61756c; font-size: 12px; transition: .2s ease; }
+.booking-progress-steps li > span { display: grid; width: 28px; height: 28px; place-items: center; border: 2px solid #cbdad3; border-radius: 50%; background: #fbfdfc; color: #61756c; font-size: 12px; transition: background-color var(--motion-state) var(--ease-out-quart), border-color var(--motion-state) var(--ease-out-quart), color var(--motion-state) var(--ease-out-quart), transform var(--motion-state) var(--ease-out-expo); }
 .booking-progress-steps li.is-current > span, .booking-progress-steps li.is-complete > span { border-color: var(--green); background: var(--green); color: #fff; }
+.booking-progress-steps li.is-current > span { transform: scale(1.08); }
 .booking-progress-steps li.is-current, .booking-progress-steps li.is-complete { color: var(--ink); }
 .booking-form-body {
   padding: clamp(24px, 4vw, 42px);
+}
+.booking-step-motion {
+  animation: step-in var(--motion-reveal) var(--ease-out-quint) both;
 }
 .booking-step-header {
   display: flex;
@@ -1908,6 +1941,7 @@ textarea.input {
   font-size: 14px;
   font-weight: 650;
   line-height: 1.5;
+  animation: notice-in var(--motion-state) var(--ease-out-quart) both;
 }
 .booking-field-grid {
   display: grid;
@@ -2036,6 +2070,7 @@ textarea.input {
   text-align: center;
   border-color: #c8dbd3;
   box-shadow: 0 24px 64px #18332d14;
+  animation: step-in var(--motion-reveal) var(--ease-out-quint) both;
 }
 .booking-success-icon {
   width: 58px;
@@ -2046,6 +2081,7 @@ textarea.input {
   border-radius: 50%;
   background: #dcece6;
   color: var(--green);
+  animation: success-mark 360ms var(--ease-out-expo) both;
 }
 .booking-success h2 {
   margin: 13px 0 12px;
@@ -2235,6 +2271,7 @@ textarea.input {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr) 38px;
   gap: 14px;
+  animation: dialog-in var(--motion-reveal) var(--ease-out-expo) both;
 }
 .confirmation-icon {
   width: 48px;
@@ -2507,7 +2544,7 @@ textarea.input {
   color: #fff;
 }
 .reveal {
-  animation: reveal 0.65s both;
+  animation: reveal 480ms var(--ease-out-quint) both;
 }
 @keyframes reveal {
   from {
@@ -2519,35 +2556,90 @@ textarea.input {
     transform: none;
   }
 }
+@keyframes control-confirm {
+  0% { transform: scale(0.82); }
+  100% { transform: scale(1); }
+}
+@keyframes status-confirm {
+  0% { opacity: 0; transform: scale(0.72) rotate(-10deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+@keyframes popover-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes step-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes notice-in {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes success-mark {
+  0% { opacity: 0; transform: scale(0.7) rotate(-8deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0); }
+}
+.dashboard-route-content {
+  animation: route-in 180ms var(--ease-out-quart) both;
+}
+@keyframes route-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: none; }
+}
+.content-accordion.is-open .content-fields,
+details[open] > :not(summary) {
+  animation: disclosure-in var(--motion-state) var(--ease-out-quart) both;
+}
+@keyframes disclosure-in {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: none; }
+}
+.mobile-menu-drawer {
+  transform-origin: top right;
+  animation: drawer-in var(--motion-reveal) var(--ease-out-expo) both;
+}
+.motion-backdrop {
+  animation: backdrop-in var(--motion-state) var(--ease-out-quart) both;
+}
+@keyframes drawer-in {
+  from { opacity: 0; transform: translateX(18px); }
+  to { opacity: 1; transform: none; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
-  .reveal {
-    animation: fade 0.15s both;
-  }
-  .btn,
-  .select-chevron,
-  .dashboard-shell,
-  .dashboard-collapse svg {
-    transition: none;
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
   .select-wrap:focus-within .select-chevron {
     transform: translateY(-50%);
   }
   .toast-spinner {
-    animation-duration: 1.5s;
+    animation: none;
   }
   .btn:hover {
     transform: none;
-  }
-  @keyframes fade {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
   }
 }
 @media (min-width: 960px) {
