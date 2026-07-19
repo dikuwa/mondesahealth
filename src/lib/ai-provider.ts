@@ -43,9 +43,9 @@ export function normalizeAiRedFlagCategory(category: string | null) {
 
 export function configuredAiProvider() {
   const apiKey = process.env.AI_API_KEY?.trim();
-  const model = process.env.AI_MODEL?.trim();
-  const provider = process.env.AI_PROVIDER?.trim() || "OPENAI_COMPATIBLE";
+  const provider = process.env.AI_PROVIDER?.trim() || "OPENAI";
   const baseUrl = process.env.AI_API_URL?.trim() || "https://api.openai.com/v1/chat/completions";
+  const model = process.env.AI_MODEL?.trim() || (provider === "OPENAI" ? "gpt-4o-mini" : "");
   return apiKey && model ? { apiKey, model, provider, baseUrl } : null;
 }
 

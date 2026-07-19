@@ -20,9 +20,9 @@ Both `.env` and `.env.local` are ignored by Git. Keep the connection strings pri
 | `DIRECT_URL` | Neon direct/non-pooled connection string | Yes |
 | `AUTH_SECRET` | Generate with `openssl rand -base64 48`; keep identical across deployments | Yes |
 | `NEXT_PUBLIC_APP_URL` | Canonical deployed URL, for example `https://mondesahealth.na` | Yes |
-| `AI_PROVIDER` | Server-side adapter identifier; currently `OPENAI_COMPATIBLE` | AI intake only |
-| `AI_API_URL` | Approved OpenAI-compatible chat-completions endpoint | AI intake only |
-| `AI_MODEL` | Approved model identifier | AI intake only |
+| `AI_PROVIDER` | `OPENAI` for direct OpenAI, or `OPENAI_COMPATIBLE` for an explicitly configured compatible provider | AI intake only; defaults to `OPENAI` |
+| `AI_API_URL` | Chat-completions endpoint; defaults to OpenAI's endpoint | AI intake only |
+| `AI_MODEL` | Approved model identifier; defaults to `gpt-4o-mini` for direct OpenAI | AI intake only |
 | `AI_API_KEY` | Secret API credential stored only in the deployment secret manager | AI intake only |
 | `ATTACHMENT_STORAGE_LIMIT_MB` | Aggregate private claim and patient-intake image quota | Optional; defaults to 1024 MB |
 | `BACKUP_ENCRYPTION_KEY` | Generate separately with `openssl rand -base64 48` | Backup only |
@@ -35,6 +35,8 @@ Both `.env` and `.env.local` are ignored by Git. Keep the connection strings pri
 No email-verification, SMTP, or external file-storage variable is required. Owner/admin-created accounts can sign in immediately. Small profile and patient-intake images are stored privately in PostgreSQL; protected medical images require an authorised dashboard session. The login email remains immutable while the display name and avatar can change.
 
 AI-assisted symptom intake is disabled by default. The Owner must configure emergency contacts in **Settings → Emergency & AI**, approve the AI provider’s privacy terms, add the server-only AI variables through the deployment secret manager, and then enable the feature globally. Service and provider records may inherit, allow, or disable the global setting. Missing AI configuration never blocks manual booking.
+
+For direct OpenAI, set `AI_API_KEY` to the OpenAI key and either omit the other AI variables or use the OpenAI values shown in `.env.example`. An OpenAI API key cannot authenticate to OpenRouter. To use OpenRouter instead, provide an OpenRouter key and explicitly set its endpoint and model.
 
 The seed does not contain default credentials. Supply `OWNER_EMAIL` and a strong temporary `OWNER_PASSWORD` explicitly when running it.
 

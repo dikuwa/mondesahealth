@@ -8,6 +8,15 @@ describe("structured AI adapter", () => {
     expect(aiCapabilities()).toEqual({ configured: false, imageInput: false, capabilities: [] });
     await expect(requestStructuredAi({ system: "safe", payload: {}, schema: patientAssistantSchema })).rejects.toThrow("AI_NOT_CONFIGURED");
   });
+  it("uses the direct OpenAI endpoint and model when only an API key is configured", async () => {
+    process.env.AI_API_KEY = "private-test-key";
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ nextQuestion: null, enoughInformation: true, redFlagCategory: null, missingInformation: [] }) } }] }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await requestStructuredAi({ system: "safe", payload: {}, schema: patientAssistantSchema });
+    expect(result.provider).toBe("OPENAI");
+    expect(result.model).toBe("gpt-4o-mini");
+    expect(fetchMock).toHaveBeenCalledWith("https://api.openai.com/v1/chat/completions", expect.any(Object));
+  });
   it("validates structured patient and clinician output", () => {
     expect(patientAssistantSchema.safeParse({ nextQuestion: "When did it start?", enoughInformation: false, redFlagCategory: null, missingInformation: ["onset"] }).success).toBe(true);
     expect(patientSummarySchema.safeParse({ summary: "Patient reports a headache beginning yesterday.", fields: { symptomOnset: "yesterday", symptomDuration: null, symptomLocation: null, severity: null, symptomPattern: null, associatedSymptoms: null, aggravatingFactors: null, relievingFactors: null, treatmentsTried: null, knownAllergies: null, existingConditions: null, currentMedication: null }, unansweredQuestions: [] }).success).toBe(true);
