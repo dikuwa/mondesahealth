@@ -979,6 +979,7 @@ textarea.input {
 .patient-ai-conversation p { max-width: 90%; margin: 0; padding: 10px 12px; border-radius: 10px; line-height: 1.5; }
 .assistant-message { justify-self: start; background: #e8f2ed; }
 .patient-message { justify-self: end; background: #fff; border: 1px solid #d9e2de; }
+.patient-ai-typing { display: inline-flex; align-items: center; gap: 7px; color: #60756d; font-size: 13px; }
 .patient-ai-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .patient-summary-approved, .booking-review-intake { display: grid; gap: 7px; padding: 14px 15px; border: 1px solid #c9ddd4; border-radius: 11px; background: oklch(0.97 0.012 165); }
 .patient-summary-approved p, .booking-review-intake p { margin: 0; line-height: 1.55; }
