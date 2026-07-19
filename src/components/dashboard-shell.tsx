@@ -99,10 +99,10 @@ export function DashboardShell({
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { notifications, remindersDue, refresh: refreshNotifications } = useNotifications();
-  const appointmentNotificationCount =
-    remindersDue +
-    notifications.filter((item) => item.type === "APPOINTMENT" && !item.readAt).length;
+  const { notifications, refresh: refreshNotifications, updateNotifications } = useNotifications();
+  const appointmentNotificationCount = notifications.filter(
+    (item) => item.type === "APPOINTMENT" && !item.readAt,
+  ).length;
   const notificationCountsByRoute: Readonly<Record<string, number>> = {
     "/dashboard/appointments": appointmentNotificationCount,
   };
@@ -266,7 +266,11 @@ export function DashboardShell({
             </div>
           </div>
           <div className="dashboard-topbar-actions">
-            <DashboardNotifications notifications={notifications} refresh={refreshNotifications} />
+            <DashboardNotifications
+              notifications={notifications}
+              refresh={refreshNotifications}
+              updateNotifications={updateNotifications}
+            />
             <span className="dashboard-role">
               Secure · {role.replaceAll("_", " ")}
             </span>
