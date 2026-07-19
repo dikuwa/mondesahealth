@@ -6,6 +6,7 @@ import { AlertTriangle, CheckCircle2, Loader2, RotateCcw, Save } from "lucide-re
 import toast from "react-hot-toast";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { EmergencyAiSettings, type EmergencyContactRow } from "@/components/emergency-ai-settings";
+import { isEditableSettingsSection, settingsPayloadForSection } from "@/lib/settings-payload";
 
 type Setting = {
   practiceName: string;
@@ -129,13 +130,14 @@ export function SettingsManager({
   }
 
   async function saveActiveTab() {
+    if (!isEditableSettingsSection(activeTab)) return;
     setSaving(true);
     const id = toast.loading(`Saving ${tabs.find(([tab]) => tab === activeTab)?.[1].toLowerCase()} settings…`);
     try {
       const response = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(draft),
+        body: JSON.stringify(settingsPayloadForSection(activeTab, draft)),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);

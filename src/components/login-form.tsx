@@ -33,7 +33,7 @@ export function LoginForm({reason}:{reason?:string}){
   }
 
   return <main style={{minHeight:"75vh",display:"grid",placeItems:"center",background:"#f7f4ed",padding:30}}>
-    <form onSubmit={submit} className="card login-card" style={{width:"min(440px,100%)",padding:38}}>
+    <form method="post" action="/api/auth/login" onSubmit={submit} className="card login-card" style={{width:"min(440px,100%)",padding:38}}>
       <span style={{width:48,height:48,borderRadius:14,display:"grid",placeItems:"center",background:"#dcece6"}}><LockKeyhole/></span>
       <h1 className="display" style={{fontSize:42,margin:"22px 0 8px"}}>Staff sign in</h1>
       <p style={{color:"#63756f",fontSize:14,marginBottom:25}}>Access is restricted to authorised Mondesa Health staff.</p>

@@ -11,7 +11,9 @@ const noStore={"Cache-Control":"no-store"};
 const limited=(retryAfter:number)=>NextResponse.json({error:"Too many sign-in attempts. Try again later."},{status:429,headers:{...noStore,"Retry-After":String(retryAfter)}});
 
 export async function POST(request:Request){
-  const parsed=input.safeParse(await request.json());
+  const formRequest=request.headers.get("content-type")?.includes("application/x-www-form-urlencoded")||request.headers.get("content-type")?.includes("multipart/form-data");
+  const body=formRequest?Object.fromEntries(await request.formData()):await request.json().catch(()=>null);
+  const parsed=input.safeParse(body);
   if(!parsed.success)return NextResponse.json({error:"Enter a valid email and password."},{status:400,headers:noStore});
   const email=parsed.data.email.toLowerCase(),keys=loginThrottleKeys(email,requestAddress(request));
   const throttle=await checkLoginThrottle(keys);
@@ -26,5 +28,6 @@ export async function POST(request:Request){
   await pruneLoginThrottles();
   await createSession({id:user.id,sessionVersion:user.sessionVersion,role:user.role,permissions:parsePermissions(user.permissions,user.role)});
   await db.activityLog.create({data:{userId:user.id,action:"USER_LOGIN",entityType:"User",entityId:user.id,summary:"Signed in to dashboard"}});
+  if(formRequest)return NextResponse.redirect(new URL("/dashboard",request.url),303);
   return NextResponse.json({ok:true},{headers:noStore});
 }

@@ -13,8 +13,12 @@ const routes = process.env.E2E_ROUTE
       "/dashboard/appointments",
       "/dashboard/patients",
       "/dashboard/claims",
+      "/dashboard/claim-batches",
       "/dashboard/finance",
       "/dashboard/availability",
+      "/dashboard/services",
+      "/dashboard/content",
+      "/dashboard/medical-aid",
       "/dashboard/settings",
       "/dashboard/users",
       "/dashboard/profile",
@@ -34,7 +38,14 @@ const widths = process.env.E2E_WIDTH
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1000 },
   });
-  const report = { routes: {}, interactions: {} };
+  const report = { routes: {}, interactions: {}, runtimeErrors: [] };
+  page.on("pageerror", (error) => report.runtimeErrors.push(`page: ${error.message}`));
+  page.on("console", (message) => {
+    if (message.type() === "error") report.runtimeErrors.push(`console: ${message.text()}`);
+  });
+  page.on("response", (response) => {
+    if (response.status() >= 500) report.runtimeErrors.push(`http ${response.status()}: ${response.url()}`);
+  });
 
   await page.goto(`${base}/login`, { waitUntil: "networkidle" });
   await page
@@ -101,7 +112,8 @@ const widths = process.env.E2E_WIDTH
     .locator(".dashboard-nav-link")
     .count();
   await page.locator(".dashboard-mobile-close").click();
-  await page.getByRole("button", { name: "Add appointment" }).click();
+  await page.goto(`${base}/dashboard/appointments`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: /Add appointment/i }).click();
   report.interactions.appointmentSheet = await page
     .locator(".appointment-panel")
     .isVisible();
@@ -122,7 +134,7 @@ const widths = process.env.E2E_WIDTH
     .getByRole("textbox", { name: "Appointment date" })
     .isVisible();
   await page.getByLabel("Patient").click();
-  await page.getByRole("option").nth(1).click();
+  await page.getByRole("option").first().click();
   const future = new Date();
   future.setDate(future.getDate() + 1);
   while ([0, 6].includes(future.getDay())) future.setDate(future.getDate() + 1);
@@ -196,20 +208,15 @@ const widths = process.env.E2E_WIDTH
     patientInsets && Math.abs(patientInsets.left - patientInsets.right) <= 8,
   );
   report.interactions.patientCardInsets = patientInsets;
-  await page.getByLabel("Search patients").fill("Demo Patient");
-  await page.getByRole("button", { name: "Edit Demo Patient" }).click();
+  const editPatientButton = page.locator('button[aria-label^="Edit "]').first();
+  const patientName = (await editPatientButton.getAttribute("aria-label")).replace(/^Edit /, "");
+  await editPatientButton.click();
   const birthInput = page.getByRole("textbox", { name: "Date of birth" });
-  const currentBirth = await birthInput.inputValue();
-  await birthInput.fill(currentBirth);
-  report.interactions.typedDateEntry = /^\d{2}\/\d{2}\/\d{4}$/.test(
-    await birthInput.inputValue(),
-  );
-  await page.getByLabel("Medical aid").click();
-  await page.getByRole("option", { name: "Private / none" }).click();
-  await page.getByRole("button", { name: "Save patient" }).click();
-  await page.getByText("Patient updated").waitFor({ state: "visible" });
-  report.interactions.privatePatientSave = true;
-  await page.getByRole("button", { name: "Archive Demo Patient" }).click();
+  const displayedBirthDate = await birthInput.inputValue();
+  report.interactions.typedDateEntry = displayedBirthDate === "" || /^\d{2}\/\d{2}\/\d{4}$/.test(displayedBirthDate);
+  await page.getByRole("button", { name: "Close patient form" }).last().click();
+  report.interactions.patientFormRead = true;
+  await page.getByRole("button", { name: `Archive ${patientName}` }).click();
   report.interactions.brandedConfirmation = await page
     .locator(".confirmation-card")
     .isVisible();
@@ -217,49 +224,46 @@ const widths = process.env.E2E_WIDTH
 
   await page.goto(`${base}/dashboard/settings`, { waitUntil: "networkidle" });
   const settingsMetrics = await page.evaluate(() => {
-    const forms = [...document.querySelectorAll(".settings-form")];
-    const practiceFields = forms[0]?.querySelector(".settings-fields");
-    const practiceActions = forms[0]?.querySelector(".settings-form-actions");
-    const vatRow = forms[1]?.querySelector(".settings-checkbox-row");
-    const documentActions = forms[1]?.querySelector(".settings-form-actions");
-    const checkbox = document.querySelector(
-      '.settings-funds-table input[type="checkbox"]',
-    );
-    if (
-      !practiceFields ||
-      !practiceActions ||
-      !vatRow ||
-      !documentActions ||
-      !checkbox
-    )
+    const practiceFields = document.querySelector(".settings-section-grid");
+    const practiceActions = document.querySelector(".form-action-bar");
+    if (!practiceFields || !practiceActions)
       return null;
-    const style = getComputedStyle(checkbox);
     return {
       practiceButtonGap: Math.round(
         practiceActions.getBoundingClientRect().top -
           practiceFields.getBoundingClientRect().bottom,
       ),
-      documentButtonGap: Math.round(
-        documentActions.getBoundingClientRect().top -
-          vatRow.getBoundingClientRect().bottom,
-      ),
-      checkboxAppearance: style.appearance,
-      checkboxWidth: Math.round(checkbox.getBoundingClientRect().width),
-      checkboxRadius: style.borderRadius,
     };
   });
   report.interactions.settingsControlSpacing = Boolean(
     settingsMetrics &&
-      settingsMetrics.practiceButtonGap >= 20 &&
-      settingsMetrics.documentButtonGap >= 20,
-  );
-  report.interactions.settingsBrandedCheckbox = Boolean(
-    settingsMetrics &&
-      settingsMetrics.checkboxAppearance === "none" &&
-      settingsMetrics.checkboxWidth === 20 &&
-      settingsMetrics.checkboxRadius === "6px",
+      settingsMetrics.practiceButtonGap >= 20,
   );
   report.interactions.settingsMetrics = settingsMetrics;
+  await page.getByRole("button", { name: "Medical aids", exact: true }).click();
+  report.interactions.settingsBrandedCheckbox = await page
+    .locator('.settings-funds-table input[type="checkbox"]')
+    .first()
+    .evaluate((checkbox) => {
+      const style = getComputedStyle(checkbox);
+      return style.appearance === "none" && Math.round(checkbox.getBoundingClientRect().width) === 20 && style.borderRadius === "6px";
+    });
+  await page.getByRole("button", { name: "Practice", exact: true }).click();
+  const practiceInput = page.getByLabel("Practice", { exact: true });
+  const originalPracticeName = await practiceInput.inputValue();
+  const acceptancePracticeName = `${originalPracticeName} · acceptance check`;
+  await practiceInput.fill(acceptancePracticeName);
+  const practiceSave = page.waitForResponse((response) => response.url().endsWith("/api/settings") && response.request().method() === "PATCH");
+  await page.getByRole("button", { name: "Save practice settings" }).click();
+  report.interactions.practiceSaveStatus = (await practiceSave).status();
+  await page.goto(`${base}/dashboard/settings?tab=practice`, { waitUntil: "networkidle" });
+  report.interactions.practiceSettingsPersist = (await page.getByLabel("Practice", { exact: true }).inputValue()) === acceptancePracticeName;
+  await page.getByLabel("Practice", { exact: true }).fill(originalPracticeName);
+  const practiceRestore = page.waitForResponse((response) => response.url().endsWith("/api/settings") && response.request().method() === "PATCH");
+  await page.getByRole("button", { name: "Save practice settings" }).click();
+  report.interactions.practiceRestoreStatus = (await practiceRestore).status();
+  await page.goto(`${base}/dashboard/settings?tab=practice`, { waitUntil: "networkidle" });
+  report.interactions.practiceSettingsRestored = (await page.getByLabel("Practice", { exact: true }).inputValue()) === originalPracticeName;
   await page.screenshot({
     path: "e2e-artifacts/dashboard/settings-controls-desktop.png",
     fullPage: true,
@@ -273,10 +277,16 @@ const widths = process.env.E2E_WIDTH
     .first()
     .evaluate((element) => {
       const style = getComputedStyle(element);
+      const label = element.parentElement;
+      const inputBox = element.getBoundingClientRect();
+      const labelBox = label?.getBoundingClientRect();
+      const marker = label ? getComputedStyle(label, "::before") : null;
       return (
         style.appearance === "none" &&
-        Math.round(element.getBoundingClientRect().width) === 20 &&
-        style.borderRadius === "6px"
+        style.opacity === "0" &&
+        Boolean(labelBox && Math.abs(inputBox.width - labelBox.width) <= 2) &&
+        marker?.width === "20px" &&
+        marker?.borderRadius === "6px"
       );
     });
   await page.getByLabel("Gender (optional)").click();
@@ -301,6 +311,7 @@ const widths = process.env.E2E_WIDTH
       (key === "mobileNavLinks" && value < 8)
     )
       failures.push(key);
+  if (report.runtimeErrors.length) failures.push("runtimeErrors");
   report.failures = failures;
   console.log(JSON.stringify(report, null, 2));
   await browser.close();

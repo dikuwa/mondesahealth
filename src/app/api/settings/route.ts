@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { classifySettingsRequest } from "@/lib/settings-payload";
 
 const detailsSchema=z.object({
   practiceName:z.string().trim().min(2),doctorName:z.string().trim().min(2),
@@ -21,33 +22,36 @@ export async function PATCH(request:Request){
   const session=await requirePermission("MANAGE_PRACTICE");
   if(!session)return NextResponse.json({error:"You do not have permission to update practice settings."},{status:403});
   const body=await request.json();
+  const requestKind=classifySettingsRequest(body);
   let summary="Practice and document settings updated";
-  if(body.medicalAidId){
+  if(requestKind==="MEDICAL_AID"){
     const parsed=z.object({medicalAidId:z.string(),active:z.boolean(),public:z.boolean(),administrator:z.string().trim().max(120).nullable().optional()}).safeParse(body);
     if(!parsed.success)return NextResponse.json({error:"Check the medical aid settings."},{status:400});
     await db.medicalAid.update({where:{id:parsed.data.medicalAidId},data:{active:parsed.data.active,public:parsed.data.public,administrator:parsed.data.administrator||null}});
     summary="Medical aid configuration updated";
-  }else if(body.bookingMode){
+  }else if(requestKind==="BOOKING"){
     const parsed=z.object({bookingMode:z.enum(["AVAILABLE_TIME","APPOINTMENT_REQUEST"])}).safeParse(body);
     if(!parsed.success)return NextResponse.json({error:"Check the booking mode."},{status:400});
     await db.practiceSetting.update({where:{id:"practice"},data:parsed.data});
     summary=`Booking mode changed to ${parsed.data.bookingMode}`;
-  }else if("reminderEnabled" in body||"reminderLeadHours" in body){
+  }else if(requestKind==="REMINDER"){
     const parsed=z.object({reminderEnabled:z.boolean(),reminderLeadHours:z.number().int().min(1).max(168)}).safeParse(body);
     if(!parsed.success)return NextResponse.json({error:"Check the reminder settings."},{status:400});
     await db.practiceSetting.update({where:{id:"practice"},data:parsed.data});
     summary=`Reminder preparation ${parsed.data.reminderEnabled?"enabled":"disabled"} at ${parsed.data.reminderLeadHours} hours`;
-  }else if("aiIntakeEnabled" in body||"aiImageEnabled" in body){
+  }else if(requestKind==="AI"){
     if(session.role!=="OWNER")return NextResponse.json({error:"Only the Owner can configure AI-assisted intake."},{status:403});
     const parsed=z.object({aiIntakeEnabled:z.boolean(),aiImageEnabled:z.boolean()}).safeParse(body);
     if(!parsed.success)return NextResponse.json({error:"Check the AI intake settings."},{status:400});
     await db.practiceSetting.update({where:{id:"practice"},data:parsed.data});
     summary=`AI-assisted intake ${parsed.data.aiIntakeEnabled?"enabled":"disabled"}; images ${parsed.data.aiImageEnabled?"enabled":"disabled"}`;
-  }else{
+  }else if(requestKind==="DETAILS"){
     const current=await db.practiceSetting.findUnique({where:{id:"practice"}});
     const parsed=detailsSchema.safeParse({...current,...body});
     if(!parsed.success)return NextResponse.json({error:"Check the settings you entered."},{status:400});
     await db.practiceSetting.update({where:{id:"practice"},data:parsed.data});
+  }else{
+    return NextResponse.json({error:"Check the settings you entered."},{status:400});
   }
   await db.activityLog.create({data:{userId:session.id,action:"PRACTICE_SETTINGS_UPDATED",entityType:"PracticeSetting",entityId:"practice",summary}});
   return NextResponse.json({ok:true});

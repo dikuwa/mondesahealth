@@ -3724,7 +3724,7 @@ main p {
 .settings-wide { grid-column: 1 / -1; }
 .settings-visibility { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
 .settings-visibility .settings-checkbox-row { margin-top: 0; }
-.form-action-bar { position: sticky; bottom: 14px; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 24px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.94); box-shadow: 0 16px 40px rgba(22, 50, 40, .08); backdrop-filter: blur(10px); }
+.form-action-bar { position: static; display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 24px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.94); box-shadow: 0 16px 40px rgba(22, 50, 40, .08); }
 .settings-save-state { display: inline-flex; align-items: center; gap: 8px; color: #60756d; font-size: 12px; font-weight: 800; }
 .settings-save-state.is-unsaved { color: #8a5d1d; }
 .settings-save-state.is-error { color: #983a31; }

@@ -10,6 +10,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:e2e:dashboard": "node scripts/dashboard-e2e.cjs",
+    "test:e2e:brief": "node scripts/brief-acceptance.cjs",
     "test:e2e:responsive": "node scripts/responsive-audit.cjs",
     "test:e2e:patient-date": "node scripts/patient-date-e2e.cjs",
     "env:check": "tsx scripts/validate-env.ts",
