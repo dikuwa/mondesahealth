@@ -18,8 +18,11 @@ import toast from "react-hot-toast";
 import { DatePicker } from "@/components/ui/date-picker";
 import { NativeSelect } from "@/components/ui/native-select";
 import { validNamibianPhone } from "@/lib/utils";
+import { PatientIntakeAssistant, emptyIntake, type IntakeDraft } from "@/components/patient-intake-assistant";
+import type { PublicEmergencyContact } from "@/lib/emergency";
 
 type Fund = { id: string; name: string; abbreviation: string | null };
+type BookingDepartment = { id: string; name: string; services: { id: string; name: string; aiIntakeEnabled: boolean | null }[]; providers: { id: string; displayName: string; aiIntakeEnabled: boolean | null }[] };
 
 const initialForm = {
   fullName: "",
@@ -42,6 +45,9 @@ const initialForm = {
   period: "ANYTIME",
   consent: false,
   emergency: false,
+  departmentId: "",
+  serviceId: "",
+  providerId: "",
 };
 
 type BookingValues = typeof initialForm;
@@ -50,7 +56,7 @@ function readableDate(value: string) {
   return value ? format(parseISO(value), "EEEE, d MMMM yyyy") : "";
 }
 
-export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
+export function BookingForm({ funds, mode, departments, emergencyContacts, aiIntakeEnabled, aiImageEnabled }: { funds: Fund[]; mode: string; departments: BookingDepartment[]; emergencyContacts: PublicEmergencyContact[]; aiIntakeEnabled: boolean; aiImageEnabled: boolean }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -58,10 +64,15 @@ export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
   const [reference, setReference] = useState("");
   const [manageUrl, setManageUrl] = useState("");
   const [error, setError] = useState("");
-  const [form, setForm] = useState<BookingValues>(initialForm);
+  const [form, setForm] = useState<BookingValues>(() => ({ ...initialForm, departmentId: departments[0]?.id || "" }));
+  const [intake, setIntake] = useState<IntakeDraft>(emptyIntake);
   const stepHeading = useRef<HTMLHeadingElement>(null);
   const slotsRequest = useRef<AbortController | null>(null);
   const today = format(new Date(), "yyyy-MM-dd");
+  const selectedDepartment = departments.find((item) => item.id === form.departmentId) || departments[0];
+  const selectedService = selectedDepartment?.services.find((item) => item.id === form.serviceId) || null;
+  const selectedProvider = selectedDepartment?.providers.find((item) => item.id === form.providerId) || null;
+  const intakeAvailable = aiIntakeEnabled && selectedService?.aiIntakeEnabled !== false && selectedProvider?.aiIntakeEnabled !== false;
 
   useEffect(() => {
     if (step > 1 && step < 4) stepHeading.current?.focus();
@@ -143,11 +154,22 @@ export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
     return "";
   }
 
-  function next() {
+  async function next() {
     const message = validateCurrentStep();
     if (message) {
       showError(message);
       return;
+    }
+    if (step === 2) {
+      try {
+        const response = await fetch("/api/intake/assistant", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "CHECK", reason: form.reason, messages: intake.messages, serviceId: form.serviceId || null, providerId: form.providerId || null }) });
+        const data = await response.json();
+        if (response.ok && data.redFlags?.length) {
+          const nextIntake = { ...intake, redFlags: data.redFlags, emergencyNoticeShown: true };
+          setIntake(nextIntake);
+          if (!nextIntake.emergencyNoticeAcknowledged) { showError("Read and acknowledge the urgent safety notice before continuing."); return; }
+        }
+      } catch { /* A safety endpoint failure must not erase manual booking data. Server validation runs again on submit. */ }
     }
     setError("");
     setStep((current) => current + 1);
@@ -177,7 +199,7 @@ export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
       const response = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, intake: { ...intake, images: intake.images.map((image) => ({ filename: image.filename, mimeType: image.mimeType, fileSize: image.fileSize, data: image.data })) } }),
       });
       const data = await response.json();
       if (!response.ok)
@@ -214,11 +236,12 @@ export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
   }
 
   function restart() {
-    setForm(initialForm);
+    setForm({ ...initialForm, departmentId: departments[0]?.id || "" });
     setSlots([]);
     setReference("");
     setManageUrl("");
     setError("");
+    setIntake(emptyIntake);
     setStep(1);
   }
 
@@ -433,6 +456,9 @@ export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
 
         {step === 2 && (
           <div className="booking-field-stack">
+            {departments.length > 1 && <div className="field"><label htmlFor="booking-department">Service area *</label><NativeSelect id="booking-department" value={selectedDepartment?.id || ""} onChange={(event) => setForm((current) => ({ ...current, departmentId: event.target.value, serviceId: "", providerId: "" }))}>{departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</NativeSelect></div>}
+            {!!selectedDepartment?.services.length && <div className="field"><label htmlFor="booking-service">Service (optional)</label><NativeSelect id="booking-service" value={form.serviceId} onChange={(event) => update("serviceId", event.target.value)}><option value="">General consultation</option>{selectedDepartment.services.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}</NativeSelect></div>}
+            {!!selectedDepartment?.providers.length && <div className="field"><label htmlFor="booking-provider">Preferred clinician or provider (optional)</label><NativeSelect id="booking-provider" value={form.providerId} onChange={(event) => update("providerId", event.target.value)}><option value="">Any available provider</option>{selectedDepartment.providers.map((provider) => <option key={provider.id} value={provider.id}>{provider.displayName}</option>)}</NativeSelect></div>}
             <div className="field">
               <label htmlFor="booking-date">Preferred date *</label>
               <DatePicker
@@ -499,18 +525,19 @@ export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
             )}
             <div className="field">
               <label htmlFor="booking-reason">Reason for visit *</label>
-              <input
+              <textarea
                 id="booking-reason"
                 className="input"
-                maxLength={160}
-                placeholder="A short general description is enough"
+                maxLength={2000}
+                rows={4}
                 value={form.reason}
                 onChange={(event) => update("reason", event.target.value)}
                 required
               />
               <small className="booking-field-help">
-                Please do not include a detailed diagnosis. {form.reason.length}/160
+                Briefly describe what is troubling you. You may write it yourself or use optional AI assistance. {form.reason.length}/2000
               </small>
+              <PatientIntakeAssistant reason={form.reason} serviceId={form.serviceId} providerId={form.providerId} aiAvailable={intakeAvailable} imagesAvailable={aiImageEnabled} emergencyContacts={emergencyContacts} value={intake} onChange={setIntake}/>
             </div>
             <div className="field">
               <label htmlFor="booking-notes">Additional notes (optional)</label>
@@ -537,6 +564,7 @@ export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
                 </b>
               </div>
             </div>
+            <div className="booking-review-intake"><b>Reason for visit</b><p>{form.reason}</p>{intake.approvedSummary && <><b>AI-organised summary · Patient approved</b><p>{intake.approvedSummary}</p></>}{intake.images.length > 0 && <span>{intake.images.length} optional photo{intake.images.length === 1 ? "" : "s"} attached securely</span>}<button type="button" onClick={() => setStep(2)}>Edit appointment information</button></div>
             <div className="field">
               <label htmlFor="booking-payment">
                 How will you pay for your consultation?
@@ -623,7 +651,7 @@ export function BookingForm({ funds, mode }: { funds: Fund[]; mode: string }) {
               />
               <span>
                 I understand online booking is not for emergencies. For urgent
-                help, I will call 112 or visit an emergency department.
+                help, I will {emergencyContacts[0] ? `call ${emergencyContacts[0].label} on ${emergencyContacts[0].phone} or ` : "contact my nearest emergency service or "}visit the nearest emergency facility.
               </span>
             </label>
           </div>

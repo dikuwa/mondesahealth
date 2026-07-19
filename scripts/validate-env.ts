@@ -48,6 +48,18 @@ const direct = databaseIdentity("DIRECT_URL");
 if (pooled && direct && (pooled.host !== direct.host || pooled.database !== direct.database))
   errors.push("DATABASE_URL and DIRECT_URL resolve to different database identities.");
 
+const aiKeys = ["AI_API_KEY", "AI_MODEL", "AI_PROVIDER"];
+const configuredAiKeys = aiKeys.filter((key) => Boolean(values.get(key)?.value));
+if (configuredAiKeys.length > 0 && configuredAiKeys.length < aiKeys.length)
+  errors.push("AI_API_KEY, AI_MODEL and AI_PROVIDER must be configured together or all omitted.");
+const aiUrl = values.get("AI_API_URL")?.value;
+if (aiUrl) {
+  try {
+    const url = new URL(aiUrl);
+    if (process.env.NODE_ENV === "production" && url.protocol !== "https:") errors.push("AI_API_URL must use HTTPS in production.");
+  } catch { errors.push("AI_API_URL is not a valid URL."); }
+}
+
 if (errors.length) {
   console.error(`Environment validation failed (${errors.length} issue${errors.length === 1 ? "" : "s"}):`);
   for (const error of errors) console.error(`- ${error}`);

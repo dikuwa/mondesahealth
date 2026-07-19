@@ -57,6 +57,10 @@ export async function POST(request: Request) {
 
       await tx.appointmentChangeRequest.deleteMany();
       await tx.appointmentReminder.deleteMany();
+      await tx.clinicalAiDraft.deleteMany();
+      await tx.patientIntakeImage.deleteMany();
+      await tx.patientIntakeMessage.deleteMany();
+      await tx.patientIntake.deleteMany();
       await tx.secureLink.deleteMany();
       await tx.medicalAidConsent.deleteMany();
       await tx.patientMedicalAid.deleteMany();

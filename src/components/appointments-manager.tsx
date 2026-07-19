@@ -26,6 +26,7 @@ import { CustomSelect } from "@/components/ui/custom-select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { ClinicalIntakePanel, type ClinicalIntake } from "@/components/clinical-intake-panel";
 
 type Row = {
   id: string;
@@ -35,6 +36,10 @@ type Row = {
   reason: string;
   startAt: string | null;
   preferredDate: string | null;
+  department: string | null;
+  service: string | null;
+  provider: string | null;
+  intake: ClinicalIntake | null;
   patient: {
     id: string;
     fullName: string;
@@ -77,7 +82,7 @@ const label = (value: string) =>
     .toLowerCase()
     .replace(/^./, (c) => c.toUpperCase());
 
-export function AppointmentsManager({ rows }: { rows: Row[] }) {
+export function AppointmentsManager({ rows, canUseClinicalAi }: { rows: Row[]; canUseClinicalAi: boolean }) {
   const router = useRouter(),
     params = useSearchParams();
   const [query, setQuery] = useState(params.get("q") || ""),
@@ -87,7 +92,7 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
     [sort, setSort] = useState(params.get("sort") || "NEXT_ASC"),
     [from, setFrom] = useState(params.get("from") || ""),
     [to, setTo] = useState(params.get("to") || ""),
-    [selected, setSelected] = useState<Row | null>(null),
+    [selected, setSelected] = useState<Row | null>(() => rows.find((row) => row.id === params.get("appointment")) || null),
     [saving, setSaving] = useState(false),
     [rescheduling, setRescheduling] = useState(false),
     [date, setDate] = useState(""),
@@ -451,12 +456,14 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
                 <span>
                   {selected.patient.phone} · {selected.patient.payment}
                 </span>
+                {(selected.department || selected.service || selected.provider) && <small>{[selected.department, selected.service, selected.provider].filter(Boolean).join(" · ")}</small>}
                 {selected.patient.incomplete && (
                   <Link href="/dashboard/patients">
                     Complete patient profile <ExternalLink size={14} />
                   </Link>
                 )}
               </div>
+              {selected.intake && <div className="dashboard-span-all"><ClinicalIntakePanel intake={selected.intake} canUseAi={canUseClinicalAi} onUpdated={() => { setSelected(null); router.refresh(); }} /></div>}
               {selected.change && (
                 <div className="dashboard-span-all change-request">
                   <b>

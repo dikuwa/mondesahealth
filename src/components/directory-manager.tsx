@@ -9,8 +9,8 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { StatusBadge } from "@/components/ui/status-badge";
 
-type Service = { id: string; name: string; description: string | null; public: boolean; sortOrder: number };
-type Provider = { id: string; displayName: string; practiceName: string | null; biography: string | null; phone: string | null; email: string | null; operatingHours: string | null; public: boolean; sortOrder: number };
+type Service = { id: string; name: string; description: string | null; public: boolean; sortOrder: number; aiIntakeEnabled: boolean | null };
+type Provider = { id: string; displayName: string; practiceName: string | null; biography: string | null; phone: string | null; email: string | null; operatingHours: string | null; public: boolean; sortOrder: number; aiIntakeEnabled: boolean | null };
 type Department = { id: string; slug: string; name: string; categoryLabel: string; summary: string; description: string; status: string; public: boolean; bookingEnabled: boolean; sortOrder: number; services: Service[]; providers: Provider[] };
 
 const statusOptions = [
@@ -81,7 +81,7 @@ export function DirectoryManager({ departments }: { departments: Department[] })
     event.preventDefault();
     const form = event.currentTarget;
     const data = formObject(form);
-    patch({ ...data, entity, departmentId, id, public: new FormData(form).has("public"), sortOrder: Number(data.sortOrder) }, `Saving ${entity.toLowerCase()}…`, id ? undefined : form);
+    patch({ ...data, entity, departmentId, id, public: new FormData(form).has("public"), aiIntakeEnabled: data.aiIntakeMode === "INHERIT" ? null : data.aiIntakeMode === "ENABLED", sortOrder: Number(data.sortOrder) }, `Saving ${entity.toLowerCase()}…`, id ? undefined : form);
   }
 
   async function saveOrder() {
@@ -263,7 +263,7 @@ function DepartmentForm({ department, departments, saving, onSubmit, onDelete }:
         <label className="toggle-label directory-toggle"><input name="public" type="checkbox" defaultChecked={department?.public ?? false} /><span>Published publicly</span></label>
         <label className="field directory-wide"><span>Summary</span><textarea className="input" name="summary" defaultValue={department?.summary ?? ""} required /></label>
         <label className="field directory-wide"><span>Description</span><textarea className="input directory-description" name="description" defaultValue={department?.description ?? ""} required /></label>
-        <label className="toggle-label directory-toggle directory-wide"><input name="bookingEnabled" type="checkbox" defaultChecked={department?.bookingEnabled ?? false} disabled={department ? department.slug !== "general-practice" : false} /><span>Online booking enabled (General Practice only)</span></label>
+        <label className="toggle-label directory-toggle directory-wide"><input name="bookingEnabled" type="checkbox" defaultChecked={department?.bookingEnabled ?? false} /><span>Online booking enabled</span></label>
       </div>
       <SaveButton saving={saving} label={department ? "Save department" : "Add department"} />
     </form>
@@ -301,9 +301,15 @@ function ChildForm({ kind, item, saving, onSubmit, onDelete }: { kind: "SERVICE"
         <label className="field directory-wide"><span>Operating hours (optional)</span><textarea className="input" name="operatingHours" defaultValue={provider?.operatingHours ?? ""} /></label>
       </>}
       <Field name="sortOrder" label="Order" type="number" value={item?.sortOrder ?? 0} required />
+      <AiIntakeSelect value={item?.aiIntakeEnabled} kind={kind.toLowerCase()} />
       <label className="toggle-label directory-toggle"><input name="public" type="checkbox" defaultChecked={item?.public ?? false} /><span>Published publicly</span></label>
       <SaveButton saving={saving} label={item ? `Save ${kind.toLowerCase()}` : `Add ${kind.toLowerCase()}`} />
       {item && onDelete && <button type="button" className="btn btn-danger" onClick={onDelete}><Trash2 size={15} />Delete permanently</button>}
     </form>
   </details>;
+}
+
+function AiIntakeSelect({ value, kind }: { value: boolean | null | undefined; kind: string }) {
+  const [mode, setMode] = useState(value == null ? "INHERIT" : value ? "ENABLED" : "DISABLED");
+  return <label className="field"><span>AI-assisted intake</span><CustomSelect name="aiIntakeMode" value={mode} onChange={setMode} options={[{ value: "INHERIT", label: "Use global setting" }, { value: "ENABLED", label: "Allow when globally enabled" }, { value: "DISABLED", label: `Disable for this ${kind}` }]}/></label>;
 }

@@ -25,6 +25,7 @@ const serviceSchema = z.object({
   description: nullableText,
   public: z.boolean(),
   sortOrder: z.number().int().min(0).max(999),
+  aiIntakeEnabled: z.boolean().nullable().optional(),
 });
 const providerSchema = z.object({
   entity: z.literal("PROVIDER"),
@@ -38,6 +39,7 @@ const providerSchema = z.object({
   operatingHours: nullableText,
   public: z.boolean(),
   sortOrder: z.number().int().min(0).max(999),
+  aiIntakeEnabled: z.boolean().nullable().optional(),
 });
 const mutationSchema = z.discriminatedUnion("entity", [departmentSchema, serviceSchema, providerSchema]);
 
@@ -49,8 +51,6 @@ export async function PATCH(request: Request) {
   const body = parsed.data;
   try {
     if (body.entity === "DEPARTMENT") {
-      if (body.bookingEnabled && body.slug !== "general-practice")
-        return NextResponse.json({ error: "Only General Practice can use online booking in this release." }, { status: 400 });
       const data = {
         slug: body.slug,
         name: body.name,
@@ -69,7 +69,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ ok: true, id: department.id });
     }
     if (body.entity === "SERVICE") {
-      const data = { departmentId: body.departmentId, name: body.name, description: body.description || null, public: body.public, sortOrder: body.sortOrder };
+      const data = { departmentId: body.departmentId, name: body.name, description: body.description || null, public: body.public, sortOrder: body.sortOrder, aiIntakeEnabled: body.aiIntakeEnabled ?? null };
       const service = body.id
         ? await db.departmentService.update({ where: { id: body.id }, data })
         : await db.departmentService.create({ data });
@@ -86,6 +86,7 @@ export async function PATCH(request: Request) {
       operatingHours: body.operatingHours || null,
       public: body.public,
       sortOrder: body.sortOrder,
+      aiIntakeEnabled: body.aiIntakeEnabled ?? null,
     };
     const provider = body.id
       ? await db.provider.update({ where: { id: body.id }, data })

@@ -2,19 +2,23 @@ import type { Metadata } from "next";
 import { Clock3, Phone, ShieldCheck } from "lucide-react";
 import { BookingForm } from "@/components/booking-form";
 import { db } from "@/lib/db";
+import { neutralEmergencyMessage, orderEmergencyContacts } from "@/lib/emergency";
 
 export const metadata: Metadata = { title: "Book an appointment" };
 export const dynamic = "force-dynamic";
 
 export default async function BookPage() {
-  const [funds, settings] = await Promise.all([
+  const [funds, settings, emergencyRows, departments] = await Promise.all([
     db.medicalAid.findMany({
       where: { active: true, public: true },
       orderBy: { sortOrder: "asc" },
     }),
     db.practiceSetting.findUnique({ where: { id: "practice" } }),
+    db.emergencyContact.findMany({ where: { active: true }, orderBy: [{ primary: "desc" }, { sortOrder: "asc" }] }),
+    db.department.findMany({ where: { public: true, bookingEnabled: true, status: "ACTIVE" }, select: { id: true, name: true, services: { where: { public: true }, select: { id: true, name: true, aiIntakeEnabled: true }, orderBy: { sortOrder: "asc" } }, providers: { where: { public: true }, select: { id: true, displayName: true, aiIntakeEnabled: true }, orderBy: { sortOrder: "asc" } } }, orderBy: { sortOrder: "asc" } }),
   ]);
   const bookingMode = settings?.bookingMode || "AVAILABLE_TIME";
+  const emergencyContacts = orderEmergencyContacts(emergencyRows);
 
   return (
     <main className="booking-page">
@@ -47,15 +51,21 @@ export default async function BookPage() {
             <div>
               <Phone size={19} aria-hidden="true" />
               <span>
-                <b>Emergency? Call 112</b>
+                <b>{emergencyContacts[0] ? `Emergency? Call ${emergencyContacts[0].phone}` : "Emergency guidance"}</b>
                 <small>Online booking is not an emergency service.</small>
               </span>
             </div>
           </div>
+          {emergencyContacts.length > 1 && <details className="public-emergency-list"><summary>View all emergency contacts</summary>{emergencyContacts.map((contact) => <a key={contact.id} href={`tel:${contact.phone}`}><b>{contact.label}</b><span>{contact.phone}{contact.region ? ` · ${contact.region}` : ""}</span></a>)}</details>}
+          {!emergencyContacts.length && <p className="booking-field-help">{neutralEmergencyMessage}</p>}
         </aside>
         <BookingForm
           funds={funds}
           mode={bookingMode}
+          departments={departments}
+          emergencyContacts={emergencyContacts}
+          aiIntakeEnabled={settings?.aiIntakeEnabled ?? false}
+          aiImageEnabled={settings?.aiImageEnabled ?? false}
         />
       </div>
     </main>

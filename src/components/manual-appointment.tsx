@@ -26,8 +26,12 @@ type AppointmentPayload = {
   time: string;
   reason: FormDataEntryValue | null;
   notes: FormDataEntryValue | null;
+  departmentId: string;
+  serviceId: string;
+  providerId: string;
 };
-export function ManualAppointment({ patients }: { patients: PatientOption[] }) {
+type BookingDepartment = { id: string; name: string; services: { id: string; name: string }[]; providers: { id: string; displayName: string }[] };
+export function ManualAppointment({ patients, departments }: { patients: PatientOption[]; departments: BookingDepartment[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false),
     [mode, setMode] = useState("EXISTING"),
@@ -40,6 +44,9 @@ export function ManualAppointment({ patients }: { patients: PatientOption[] }) {
     [loadingSlots, setLoadingSlots] = useState(false),
     [saving, setSaving] = useState(false),
     [sameWhatsapp, setSameWhatsapp] = useState(true),
+    [departmentId, setDepartmentId] = useState(departments[0]?.id || ""),
+    [serviceId, setServiceId] = useState(""),
+    [providerId, setProviderId] = useState(""),
     [pendingWalkIn, setPendingWalkIn] = useState<AppointmentPayload | null>(
       null,
     );
@@ -86,6 +93,9 @@ export function ManualAppointment({ patients }: { patients: PatientOption[] }) {
       time,
       reason: form.get("reason"),
       notes: form.get("notes"),
+      departmentId,
+      serviceId,
+      providerId,
     };
     if (timing === "NOW") {
       setPendingWalkIn(payload);
@@ -151,6 +161,7 @@ export function ManualAppointment({ patients }: { patients: PatientOption[] }) {
               </button>
             </div>
             <div className="appointment-form-grid">
+              {departments.length > 0 && <><div className="field"><label>Service area</label><CustomSelect ariaLabel="Service area" value={departmentId} onChange={(value) => { setDepartmentId(value); setServiceId(""); setProviderId(""); }} options={departments.map((department) => ({ value: department.id, label: department.name }))}/></div>{departments.find((department) => department.id === departmentId)?.services.length ? <div className="field"><label>Service</label><CustomSelect ariaLabel="Service" value={serviceId} onChange={setServiceId} placeholder="General consultation" options={departments.find((department) => department.id === departmentId)!.services.map((service) => ({ value: service.id, label: service.name }))}/></div> : null}{departments.find((department) => department.id === departmentId)?.providers.length ? <div className="field dashboard-span-all"><label>Clinician or provider</label><CustomSelect ariaLabel="Clinician or provider" value={providerId} onChange={setProviderId} placeholder="Any available provider" options={departments.find((department) => department.id === departmentId)!.providers.map((provider) => ({ value: provider.id, label: provider.displayName }))}/></div> : null}</>}
               <div className="field">
                 <label>Patient</label>
                 <CustomSelect
@@ -273,11 +284,12 @@ export function ManualAppointment({ patients }: { patients: PatientOption[] }) {
               )}
               <div className="field dashboard-span-all">
                 <label>Reason for visit</label>
-                <input
+                <textarea
                   className="input"
                   name="reason"
                   aria-label="Reason for visit"
                   placeholder="e.g. Follow-up consultation"
+                  maxLength={2000}
                   required
                 />
               </div>

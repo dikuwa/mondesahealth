@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Loader2, RotateCcw, Save } from "lucide-react";
 import toast from "react-hot-toast";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { EmergencyAiSettings, type EmergencyContactRow } from "@/components/emergency-ai-settings";
 
 type Setting = {
   practiceName: string;
@@ -33,6 +34,8 @@ type Setting = {
   claimEmail: string;
   claimPostalAddress: string;
   consentWording: string;
+  aiIntakeEnabled: boolean;
+  aiImageEnabled: boolean;
 };
 
 type Fund = {
@@ -66,6 +69,7 @@ const tabs = [
   ["public-site", "Public site"],
   ["claims", "Claims"],
   ["medical-aids", "Medical aids"],
+  ["emergency-ai", "Emergency & AI"],
   ["data-reset", "Data reset"],
 ] as const;
 
@@ -88,11 +92,13 @@ export function SettingsManager({
   funds,
   isOwner,
   storage,
+  emergencyContacts,
 }: {
   setting: Setting;
   funds: Fund[];
   isOwner: boolean;
   storage: {count:number;bytes:number;limitMb:number};
+  emergencyContacts: EmergencyContactRow[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -191,9 +197,10 @@ export function SettingsManager({
         {activeTab === "public-site" && <PublicSiteTab draft={draft} update={update} />}
         {activeTab === "claims" && <ClaimsTab draft={draft} update={update} />}
         {activeTab === "medical-aids" && <MedicalAidsTab funds={funds} saving={saving} />}
+        {activeTab === "emergency-ai" && <EmergencyAiSettings initialContacts={emergencyContacts} initialAiEnabled={setting.aiIntakeEnabled} initialImageEnabled={setting.aiImageEnabled} />}
         {activeTab === "data-reset" && <DataResetTab isOwner={isOwner} />}
 
-        {activeTab !== "data-reset" && (
+        {activeTab !== "data-reset" && activeTab !== "emergency-ai" && (
           <div className="form-action-bar">
             <button className="btn btn-light" type="button" disabled={saving || !hasChanges} onClick={() => setDraft(saved)}>
               Discard changes

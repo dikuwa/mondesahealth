@@ -37,6 +37,12 @@ export async function PATCH(request:Request){
     if(!parsed.success)return NextResponse.json({error:"Check the reminder settings."},{status:400});
     await db.practiceSetting.update({where:{id:"practice"},data:parsed.data});
     summary=`Reminder preparation ${parsed.data.reminderEnabled?"enabled":"disabled"} at ${parsed.data.reminderLeadHours} hours`;
+  }else if("aiIntakeEnabled" in body||"aiImageEnabled" in body){
+    if(session.role!=="OWNER")return NextResponse.json({error:"Only the Owner can configure AI-assisted intake."},{status:403});
+    const parsed=z.object({aiIntakeEnabled:z.boolean(),aiImageEnabled:z.boolean()}).safeParse(body);
+    if(!parsed.success)return NextResponse.json({error:"Check the AI intake settings."},{status:400});
+    await db.practiceSetting.update({where:{id:"practice"},data:parsed.data});
+    summary=`AI-assisted intake ${parsed.data.aiIntakeEnabled?"enabled":"disabled"}; images ${parsed.data.aiImageEnabled?"enabled":"disabled"}`;
   }else{
     const current=await db.practiceSetting.findUnique({where:{id:"practice"}});
     const parsed=detailsSchema.safeParse({...current,...body});

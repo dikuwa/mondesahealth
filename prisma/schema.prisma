@@ -34,6 +34,8 @@ model User {
   notifications        Notification[]
   invoicesVoided       Invoice[]                  @relation("InvoiceVoider")
   reminderActions      AppointmentReminder[]      @relation("ReminderActor")
+  reviewedIntakes      PatientIntake[]            @relation("IntakeReviewer")
+  clinicalAiDrafts     ClinicalAiDraft[]
 }
 
 model Notification {
@@ -162,6 +164,13 @@ model Appointment {
   secureLinks      SecureLink[]
   changeRequests   AppointmentChangeRequest[]
   reminders        AppointmentReminder[]
+  departmentId     String?
+  serviceId        String?
+  providerId       String?
+  department       Department?                @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  service          DepartmentService?         @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  provider         Provider?                  @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  patientIntake    PatientIntake?
   createdAt        DateTime                   @default(now())
   updatedAt        DateTime                   @updatedAt
 
@@ -223,6 +232,23 @@ model PracticeSetting {
   consentWording     String  @default("I understand that diagnosis information may be represented using ICD-10 codes and disclosed to the selected medical-aid fund or its administrator for the purpose of processing and assessing my medical-aid claim.")
   reminderEnabled    Boolean @default(true)
   reminderLeadHours  Int     @default(24)
+  aiIntakeEnabled    Boolean @default(false)
+  aiImageEnabled     Boolean @default(false)
+}
+
+model EmergencyContact {
+  id          String   @id @default(cuid())
+  label       String
+  phone       String
+  description String?
+  region      String?
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  primary     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active, primary, sortOrder])
 }
 
 model PracticeContent {
@@ -245,6 +271,7 @@ model Department {
   sortOrder      Int                 @default(0)
   services       DepartmentService[]
   providers      Provider[]
+  appointments   Appointment[]
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
 
@@ -253,34 +280,38 @@ model Department {
 }
 
 model DepartmentService {
-  id           String     @id @default(cuid())
-  departmentId String
-  name         String
-  description  String?
-  public       Boolean    @default(true)
-  sortOrder    Int        @default(0)
-  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id              String        @id @default(cuid())
+  departmentId    String
+  name            String
+  description     String?
+  public          Boolean       @default(true)
+  sortOrder       Int           @default(0)
+  aiIntakeEnabled Boolean?
+  department      Department    @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  appointments    Appointment[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   @@unique([departmentId, name])
   @@index([departmentId, public, sortOrder])
 }
 
 model Provider {
-  id             String     @id @default(cuid())
-  departmentId   String
-  displayName    String
-  practiceName   String?
-  biography      String?
-  phone          String?
-  email          String?
-  operatingHours String?
-  public         Boolean    @default(false)
-  sortOrder      Int        @default(0)
-  department     Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id              String        @id @default(cuid())
+  departmentId    String
+  displayName     String
+  practiceName    String?
+  biography       String?
+  phone           String?
+  email           String?
+  operatingHours  String?
+  public          Boolean       @default(false)
+  sortOrder       Int           @default(0)
+  aiIntakeEnabled Boolean?
+  department      Department    @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  appointments    Appointment[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   @@index([departmentId, public, sortOrder])
 }
@@ -695,6 +726,97 @@ model ActivityLog {
 
   @@index([createdAt])
   @@index([action, createdAt])
+  @@index([userId, createdAt])
+}
+
+model PatientIntake {
+  id                          String                 @id @default(cuid())
+  appointmentId               String                 @unique
+  originalReason              String
+  approvedSummary             String?
+  symptomOnset                String?
+  symptomDuration             String?
+  symptomLocation             String?
+  severity                    Int?
+  symptomPattern              String?
+  associatedSymptoms          String?
+  aggravatingFactors          String?
+  relievingFactors            String?
+  treatmentsTried             String?
+  knownAllergies              String?
+  existingConditions          String?
+  currentMedication           String?
+  structuredAnswers           String                 @default("{}")
+  questionsSkipped            String                 @default("[]")
+  redFlags                    String                 @default("[]")
+  emergencyNoticeShown        Boolean                @default(false)
+  emergencyNoticeAcknowledged Boolean                @default(false)
+  aiConsent                   Boolean                @default(false)
+  imageConsent                Boolean                @default(false)
+  consentVersion              String?
+  consentAt                   DateTime?
+  aiUsed                      Boolean                @default(false)
+  imageUsed                   Boolean                @default(false)
+  aiProvider                  String?
+  aiModel                     String?
+  safetyPolicyVersion         String                 @default("2026-07-19")
+  summaryGeneratedAt          DateTime?
+  patientApprovedAt           DateTime?
+  reviewStatus                String                 @default("NOT_REVIEWED")
+  clinicianReviewedAt         DateTime?
+  clinicianReviewedByUserId   String?
+  clinicianCorrections        String?
+  appointment                 Appointment            @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  clinicianReviewedBy         User?                  @relation("IntakeReviewer", fields: [clinicianReviewedByUserId], references: [id], onDelete: SetNull)
+  messages                    PatientIntakeMessage[]
+  images                      PatientIntakeImage[]
+  clinicalDrafts              ClinicalAiDraft[]
+  createdAt                   DateTime               @default(now())
+  updatedAt                   DateTime               @updatedAt
+
+  @@index([reviewStatus, createdAt])
+}
+
+model PatientIntakeMessage {
+  id        String        @id @default(cuid())
+  intakeId  String
+  role      String
+  content   String
+  skipped   Boolean       @default(false)
+  intake    PatientIntake @relation(fields: [intakeId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@index([intakeId, createdAt])
+}
+
+model PatientIntakeImage {
+  id        String        @id @default(cuid())
+  intakeId  String
+  filename  String
+  mimeType  String
+  fileSize  Int
+  data      Bytes
+  intake    PatientIntake @relation(fields: [intakeId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@index([intakeId, createdAt])
+}
+
+model ClinicalAiDraft {
+  id          String        @id @default(cuid())
+  intakeId    String
+  userId      String
+  requestType String
+  sourceUsed  String
+  content     String
+  limitations String?
+  status      String        @default("GENERATED")
+  intake      PatientIntake @relation(fields: [intakeId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([intakeId, createdAt])
   @@index([userId, createdAt])
 }
 

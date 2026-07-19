@@ -24,8 +24,11 @@ const createSchema = z.object({
   timing: z.enum(["NOW", "SCHEDULED"]),
   date: z.string().optional(),
   time: z.string().optional(),
-  reason: z.string().trim().min(2).max(200),
+  reason: z.string().trim().min(2).max(2000),
   notes: z.string().trim().max(600).optional(),
+  departmentId: z.string().optional(),
+  serviceId: z.string().optional(),
+  providerId: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -89,6 +92,14 @@ export async function POST(request: Request) {
     duration = rule?.durationMinutes || 30;
     startAt = new Date(`${input.date}T${input.time}:00`);
   }
+  const [department, service, provider] = await Promise.all([
+    input.departmentId ? db.department.findFirst({ where: { id: input.departmentId, bookingEnabled: true, status: "ACTIVE" } }) : null,
+    input.serviceId ? db.departmentService.findFirst({ where: { id: input.serviceId, departmentId: input.departmentId } }) : null,
+    input.providerId ? db.provider.findFirst({ where: { id: input.providerId, departmentId: input.departmentId } }) : null,
+  ]);
+  if (input.departmentId && !department) return NextResponse.json({ error: "The selected service area is not bookable." }, { status: 400 });
+  if (input.serviceId && !service) return NextResponse.json({ error: "The selected service does not belong to that service area." }, { status: 400 });
+  if (input.providerId && !provider) return NextResponse.json({ error: "The selected provider does not belong to that service area." }, { status: 400 });
   try {
     const result = await db.$transaction(async (tx) => {
       let patient = input.patientId
@@ -133,6 +144,9 @@ export async function POST(request: Request) {
           reason: input.reason,
           internalNote: input.notes || null,
           createdById: session.id,
+          departmentId: department?.id || null,
+          serviceId: service?.id || null,
+          providerId: provider?.id || null,
         },
       });
       await tx.activityLog.create({
