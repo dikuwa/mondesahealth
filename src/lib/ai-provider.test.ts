@@ -53,4 +53,17 @@ describe("structured AI adapter", () => {
     expect(request.plugins).toEqual([{ id: "response-healing" }]);
     expect(request.provider).toEqual({ require_parameters: true });
   });
+  it("retries invalid OpenRouter output in JSON compatibility mode", async () => {
+    process.env.AI_API_KEY = "private-test-key"; process.env.AI_MODEL = "openrouter/free"; process.env.AI_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+    const valid = JSON.stringify({ nextQuestion: null, enoughInformation: true, redFlagCategory: null, missingInformation: [] });
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ choices: [{ message: { content: "not json" } }] }), { status: 200, headers: { "Content-Type": "application/json" } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ choices: [{ message: { content: valid } }] }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await requestStructuredAi({ system: "safe", payload: {}, schema: patientAssistantSchema });
+    expect(result.data.enoughInformation).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const retryRequest = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
+    expect(retryRequest.response_format).toEqual({ type: "json_object" });
+  });
 });
