@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { CheckCircle2, ChevronDown, Eye, Loader2, Save, Trash2 } from "lucide-react";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import type { PracticeContent } from "@/lib/public-site";
 
 type Draft = {
@@ -33,6 +34,7 @@ export function ContentManager({ initial }: { initial: PracticeContent }) {
   const [saved, setSaved] = useState(() => clone(initial));
   const [open, setOpen] = useState<Section>("hero");
   const [saving, setSaving] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const router = useRouter();
   const dirty = !same(draft, saved);
 
@@ -90,7 +92,13 @@ export function ContentManager({ initial }: { initial: PracticeContent }) {
   }
 
   function discard() {
-    if (!dirty || window.confirm("Discard unsaved website content changes?")) setDraft(clone(saved as unknown as PracticeContent));
+    if (dirty) setConfirmDiscard(true);
+  }
+
+  function discardConfirmed() {
+    setDraft(clone(saved as unknown as PracticeContent));
+    setConfirmDiscard(false);
+    toast.success("Unsaved website changes discarded");
   }
 
   function changeOpen(section: Section) {
@@ -178,6 +186,16 @@ export function ContentManager({ initial }: { initial: PracticeContent }) {
           {saving ? <Loader2 className="toast-spinner" size={16} /> : <Save size={16} />} Save website content
         </button>
       </div>
+      <ConfirmationDialog
+        open={confirmDiscard}
+        title="Discard website changes?"
+        description="All unsaved homepage edits will be removed and the last saved content will be restored."
+        confirmLabel="Discard changes"
+        danger
+        busy={false}
+        onCancel={() => setConfirmDiscard(false)}
+        onConfirm={discardConfirmed}
+      />
     </div>
   );
 }

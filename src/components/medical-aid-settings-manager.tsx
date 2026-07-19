@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Database, Loader2, Plus, Save, Settings2, Trash2, Upload, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { money } from "@/lib/utils";
 
@@ -113,6 +114,8 @@ export function MedicalAidSettingsManager({
   const [procedureSearch, setProcedureSearch] = useState("");
   const [procedureStatus, setProcedureStatus] = useState("ALL");
   const [procedureCategory, setProcedureCategory] = useState("ALL");
+  const [icd10Prompt, setIcd10Prompt] = useState<{ action: "ACTIVATE" | "UPDATE" | "DELETE"; item: Import } | null>(null);
+  const [icd10PromptValue, setIcd10PromptValue] = useState("");
 
   const activeImport = imports.find((item) => item.active);
   const categories = useMemo(
@@ -154,73 +157,48 @@ export function MedicalAidSettingsManager({
     }
   }
 
-  async function activateIcd10(item: Import) {
-    const confirmation = window.prompt(`Type REPLACE ICD10 to activate ${item.versionName}. Historical claim snapshots will be preserved.`);
-    if (confirmation !== "REPLACE ICD10") {
-      toast.error("Activation cancelled.");
+  function activateIcd10(item: Import) {
+    setIcd10Prompt({ action: "ACTIVATE", item });
+    setIcd10PromptValue("");
+  }
+
+  function updateIcd10(item: Import) {
+    setIcd10Prompt({ action: "UPDATE", item });
+    setIcd10PromptValue(item.versionName);
+  }
+
+  function deleteIcd10(item: Import) {
+    setIcd10Prompt({ action: "DELETE", item });
+    setIcd10PromptValue("");
+  }
+
+  async function confirmIcd10Prompt() {
+    if (!icd10Prompt) return;
+    const { action, item } = icd10Prompt;
+    if (action === "UPDATE" && icd10PromptValue.trim() === item.versionName) {
+      setIcd10Prompt(null);
       return;
     }
     setSaving(true);
-    const toastId = toast.loading("Activating ICD-10 dataset…");
+    const toastId = toast.loading(action === "ACTIVATE" ? "Activating ICD-10 dataset…" : action === "UPDATE" ? "Updating ICD-10 dataset…" : "Deleting ICD-10 dataset…");
     try {
       const response = await fetch("/api/icd10/import", {
-        method: "PATCH",
+        method: action === "DELETE" ? "DELETE" : "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: item.id, confirmation }),
+        body: JSON.stringify(action === "ACTIVATE"
+          ? { id: item.id, confirmation: "REPLACE ICD10" }
+          : action === "UPDATE"
+            ? { id: item.id, versionName: icd10PromptValue.trim() }
+            : { id: item.id, confirmation: "DELETE ICD10" }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      toast.success(`${item.versionName} is now active`, { id: toastId });
-      router.refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not activate dataset", { id: toastId });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function updateIcd10(item: Import) {
-    const versionName = window.prompt("Dataset version", item.versionName);
-    if (!versionName || versionName.trim() === item.versionName) return;
-    setSaving(true);
-    const toastId = toast.loading("Updating ICD-10 dataset…");
-    try {
-      const response = await fetch("/api/icd10/import", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: item.id, versionName: versionName.trim() }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      toast.success("ICD-10 dataset updated", { id: toastId });
+      toast.success(action === "ACTIVATE" ? `${item.versionName} is now active` : action === "UPDATE" ? "ICD-10 dataset updated" : "ICD-10 dataset deleted", { id: toastId });
+      setIcd10Prompt(null);
+      setIcd10PromptValue("");
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not update dataset", { id: toastId });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function deleteIcd10(item: Import) {
-    const confirmation = window.prompt(`Type DELETE ICD10 to delete ${item.versionName}. Active or historically referenced datasets are protected.`);
-    if (confirmation !== "DELETE ICD10") {
-      toast.error("Delete cancelled.");
-      return;
-    }
-    setSaving(true);
-    const toastId = toast.loading("Deleting ICD-10 dataset…");
-    try {
-      const response = await fetch("/api/icd10/import", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: item.id, confirmation }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      toast.success("ICD-10 dataset deleted", { id: toastId });
-      router.refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not delete dataset", { id: toastId });
     } finally {
       setSaving(false);
     }
@@ -499,6 +477,21 @@ export function MedicalAidSettingsManager({
           </div>
         </section>
       )}
+      <PromptDialog
+        open={Boolean(icd10Prompt)}
+        title={icd10Prompt?.action === "ACTIVATE" ? `Activate ${icd10Prompt.item.versionName}?` : icd10Prompt?.action === "UPDATE" ? "Update dataset version" : `Delete ${icd10Prompt?.item.versionName || "dataset"}?`}
+        description={icd10Prompt?.action === "ACTIVATE" ? "This dataset will replace the currently active ICD-10 version. Historical claim snapshots will be preserved." : icd10Prompt?.action === "UPDATE" ? "Change the version label used to identify this imported dataset." : "Active or historically referenced datasets remain protected and cannot be deleted."}
+        label={icd10Prompt?.action === "UPDATE" ? "Dataset version" : `Type ${icd10Prompt?.action === "ACTIVATE" ? "REPLACE ICD10" : "DELETE ICD10"} to continue`}
+        value={icd10PromptValue}
+        placeholder={icd10Prompt?.action === "ACTIVATE" ? "REPLACE ICD10" : icd10Prompt?.action === "DELETE" ? "DELETE ICD10" : "Dataset version"}
+        requiredValue={icd10Prompt?.action === "ACTIVATE" ? "REPLACE ICD10" : icd10Prompt?.action === "DELETE" ? "DELETE ICD10" : undefined}
+        confirmLabel={icd10Prompt?.action === "ACTIVATE" ? "Activate dataset" : icd10Prompt?.action === "UPDATE" ? "Save version" : "Delete dataset"}
+        danger={icd10Prompt?.action !== "UPDATE"}
+        busy={saving}
+        onChange={setIcd10PromptValue}
+        onCancel={() => { setIcd10Prompt(null); setIcd10PromptValue(""); }}
+        onConfirm={confirmIcd10Prompt}
+      />
     </div>
   );
 }

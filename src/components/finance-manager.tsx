@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Ban, Copy, Download, Eye, Loader2, Mail, MessageCircle, Plus, ReceiptText, Share2, WalletCards, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { money } from "@/lib/utils";
 type Patient = { id: string; fullName: string };
@@ -47,6 +48,8 @@ export function FinanceManager({
   const [shareCache, setShareCache] = useState<Record<string, { link: string; message: string }>>({});
   const [share, setShare] = useState<{ link: string; message: string } | null>(null);
   const [newReceipt, setNewReceipt] = useState<{ id: string; number: string } | null>(null);
+  const [voiding, setVoiding] = useState<Invoice | null>(null);
+  const [voidReason, setVoidReason] = useState("");
   const invoice = invoices.find((item) => item.id === selected);
   async function createShare(item: Invoice) {
     setShareKind("invoice");
@@ -138,13 +141,22 @@ export function FinanceManager({
       setSaving(false);
     }
   }
-  async function voidInvoice(item: Invoice) {
-    const reason = window.prompt(`Why is ${item.number} being voided?`);
-    if (!reason) return;
-    const response = await fetch("/api/invoices", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "VOID", id: item.id, reason }) });
-    const data = await response.json();
-    if (!response.ok) return toast.error(data.error || "Could not void invoice");
-    toast.success(`${item.number} voided`); router.refresh();
+  async function voidInvoice() {
+    if (!voiding || !voidReason.trim()) return;
+    setSaving(true);
+    try {
+      const response = await fetch("/api/invoices", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "VOID", id: voiding.id, reason: voidReason.trim() }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not void invoice");
+      toast.success(`${voiding.number} voided`);
+      setVoiding(null);
+      setVoidReason("");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not void invoice");
+    } finally {
+      setSaving(false);
+    }
   }
   return (
     <>
@@ -212,7 +224,7 @@ export function FinanceManager({
                         </a>
                         <button className="btn btn-light" onClick={() => createShare(item)}><Share2 size={15} /> Share</button>
                         {item.receipt&&<><a className="btn btn-light" href={`/api/receipts/${item.receipt.id}/pdf?download=1`} download><ReceiptText size={15}/> Receipt</a><button className="btn btn-light" onClick={()=>createReceiptShare(item)}><Share2 size={15}/> Share receipt</button></>}
-                        {item.status==="DRAFT"&&item.paid===0&&<button className="btn btn-danger" onClick={()=>voidInvoice(item)}><Ban size={15}/> Void</button>}
+                        {item.status==="DRAFT"&&item.paid===0&&<button className="btn btn-danger" onClick={()=>{setVoiding(item);setVoidReason("")}}><Ban size={15}/> Void</button>}
                       </div>
                     </td>
                   </tr>
@@ -380,6 +392,20 @@ export function FinanceManager({
       {viewing && <div className="appointment-modal finance-preview-modal" role="dialog" aria-modal="true"><button className="appointment-modal-backdrop" aria-label="Close preview" onClick={() => setViewing(null)} /><div className="appointment-panel"><div className="appointment-panel-heading"><div><span className="eyebrow">Invoice preview</span><h2>{viewing.number}</h2></div><button type="button" aria-label="Close" onClick={() => setViewing(null)}><X size={20} /></button></div><iframe className="finance-preview-frame" title={`Preview ${viewing.number}`} src={`/api/documents/${viewing.id}/pdf`} /><div className="appointment-panel-actions"><button className="btn btn-light" onClick={() => setViewing(null)}>Close</button><a className="btn btn-light" href={`/api/documents/${viewing.id}/pdf?download=1`} download><Download size={15}/> Download PDF</a><button className="btn btn-primary" onClick={() => createShare(viewing)}><Share2 size={15}/> Share</button></div></div></div>}
       {sharing && <div className="appointment-modal" role="dialog" aria-modal="true"><button className="appointment-modal-backdrop" aria-label="Close share" onClick={() => { setSharing(null); setShare(null); }} /><div className="appointment-panel"><div className="appointment-panel-heading"><div><span className="eyebrow">Secure sharing</span><h2>Share {sharing.number}</h2><p>Review the message before opening a sharing option. Opening an app does not mark it delivered.</p></div><button type="button" aria-label="Close" onClick={() => { setSharing(null); setShare(null); }}><X size={20} /></button></div>{share ? <div className="appointment-form-grid"><div className="share-link-box dashboard-span-all"><b>Secure link</b><span>{share.link}</span></div><label className="field dashboard-span-all"><span>Message</span><textarea className="input share-message-preview" value={share.message} onChange={(event)=>updateShareMessage(event.target.value)} /></label><div className="share-actions dashboard-span-all"><a className="btn btn-primary" href={`https://wa.me/${(sharing.patientWhatsapp || sharing.patientPhone).replace(/\D/g, "")}?text=${encodeURIComponent(share.message)}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={15}/> WhatsApp</a>{sharing.patientEmail && <a className="btn btn-light" href={`mailto:${encodeURIComponent(sharing.patientEmail)}?subject=${encodeURIComponent(`${shareKind==="receipt"?"Receipt":"Invoice"} ${sharing.number} - Mondesa Health`)}&body=${encodeURIComponent(share.message)}`}><Mail size={15}/> Email</a>}<button className="btn btn-light" onClick={copyMessage}><Copy size={15} /> Copy message</button><button className="btn btn-light" onClick={copyLink}><Copy size={15} /> Copy link</button>{"share" in navigator && <button className="btn btn-light" onClick={() => navigator.share({ title: `${shareKind==="receipt"?"Receipt":"Invoice"} ${sharing.number}`, text: share.message, url: share.link })}>More sharing options</button>}</div></div> : <div className="share-loading"><Loader2 className="toast-spinner" size={18} /> Creating secure link…</div>}</div></div>}
       {newReceipt&&<div className="appointment-modal" role="dialog" aria-modal="true"><button className="appointment-modal-backdrop" aria-label="Close receipt" onClick={()=>setNewReceipt(null)}/><div className="appointment-panel"><div className="appointment-panel-heading"><div><span className="eyebrow">Payment recorded</span><h2>{newReceipt.number}</h2><p>The receipt is ready now. Sharing still requires a manual staff action.</p></div><button aria-label="Close" onClick={()=>setNewReceipt(null)}><X/></button></div><iframe className="finance-preview-frame" title={`Preview ${newReceipt.number}`} src={`/api/receipts/${newReceipt.id}/pdf`}/><div className="appointment-panel-actions"><a className="btn btn-primary" href={`/api/receipts/${newReceipt.id}/pdf?download=1`} download><Download size={15}/> Download receipt</a><button className="btn btn-light" onClick={()=>setNewReceipt(null)}>Close</button></div></div></div>}
+      <PromptDialog
+        open={Boolean(voiding)}
+        title={`Void ${voiding?.number || "invoice"}?`}
+        description="This invoice will remain in the audit trail with a void status. Add a clear reason for the record."
+        label="Reason for voiding"
+        value={voidReason}
+        placeholder="Enter the reason"
+        confirmLabel="Void invoice"
+        danger
+        busy={saving}
+        onChange={setVoidReason}
+        onCancel={() => { setVoiding(null); setVoidReason(""); }}
+        onConfirm={voidInvoice}
+      />
     </>
   );
 }

@@ -103,6 +103,7 @@ export function SettingsManager({
   const [saved, setSaved] = useState<Setting>(setting);
   const [saving, setSaving] = useState(false);
   const [saveState, setSaveState] = useState<"saved" | "unsaved" | "error">("saved");
+  const [pendingTab, setPendingTab] = useState<Tab | null>(null);
   const hasChanges = !sameSettings(draft, saved);
 
   useEffect(() => {
@@ -122,11 +123,27 @@ export function SettingsManager({
 
   function changeTab(next: Tab) {
     if (next === activeTab) return;
-    if (hasChanges && !window.confirm("You have unsaved settings. Leave this tab without saving?")) return;
+    if (hasChanges) {
+      setPendingTab(next);
+      return;
+    }
+    openTab(next);
+  }
+
+  function openTab(next: Tab) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", next);
     router.replace(`/dashboard/settings?${params.toString()}`, { scroll: false });
     setActiveTab(next);
+  }
+
+  function discardAndChangeTab() {
+    if (!pendingTab) return;
+    setDraft(saved);
+    setSaveState("saved");
+    openTab(pendingTab);
+    setPendingTab(null);
+    toast.success("Unsaved settings discarded");
   }
 
   async function saveActiveTab() {
@@ -213,6 +230,16 @@ export function SettingsManager({
           </div>
         )}
       </section>
+      <ConfirmationDialog
+        open={Boolean(pendingTab)}
+        title="Discard unsaved settings?"
+        description="Your changes on this settings section have not been saved. Discard them and continue to the selected section?"
+        confirmLabel="Discard and continue"
+        danger
+        busy={false}
+        onCancel={() => setPendingTab(null)}
+        onConfirm={discardAndChangeTab}
+      />
     </div>
   );
 }

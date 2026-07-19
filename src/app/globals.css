@@ -2331,6 +2331,10 @@ textarea.input {
   gap: 9px;
   margin-top: 8px;
 }
+.confirmation-prompt-field {
+  grid-column: 1/-1;
+  margin-top: 3px;
+}
 .patient-table {
   table-layout: fixed;
 }
