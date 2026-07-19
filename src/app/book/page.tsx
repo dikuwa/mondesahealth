@@ -53,11 +53,11 @@ export default async function BookPage() {
               <span>
                 <b>{emergencyContacts[0] ? `Emergency? Call ${emergencyContacts[0].phone}` : "Emergency guidance"}</b>
                 <small>Online booking is not an emergency service.</small>
+                {!emergencyContacts.length && <small>{neutralEmergencyMessage}</small>}
               </span>
             </div>
           </div>
           {emergencyContacts.length > 1 && <details className="public-emergency-list"><summary>View all emergency contacts</summary>{emergencyContacts.map((contact) => <a key={contact.id} href={`tel:${contact.phone}`}><b>{contact.label}</b><span>{contact.phone}{contact.region ? ` · ${contact.region}` : ""}</span></a>)}</details>}
-          {!emergencyContacts.length && <p className="booking-field-help">{neutralEmergencyMessage}</p>}
         </aside>
         <BookingForm
           funds={funds}

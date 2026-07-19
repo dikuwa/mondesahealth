@@ -115,7 +115,7 @@ export function EmergencyAiSettings({ initialContacts, initialAiEnabled, initial
     <div className="settings-card-heading"><h2>Emergency contacts and AI intake</h2><p className="muted">Owner-managed emergency information and optional AI-assisted symptom intake. Telephone numbers appear publicly only while active.</p></div>
     <div className="settings-section-grid">
       <section>
-        <div className="directory-table-actions"><div><h3>Emergency contacts</h3><p className="muted">The active primary contact is shown first.</p></div><button className="btn btn-light" type="button" disabled={saving} onClick={() => { setEditing(null); setAdding(true); }}><Plus size={16}/> Add contact</button></div>
+        <div className="emergency-section-heading"><div><h3>Emergency contacts</h3><p className="muted">The active primary contact is shown first.</p></div><button className="btn btn-light" type="button" disabled={saving} onClick={() => { setEditing(null); setAdding(true); }}><Plus size={16}/> Add contact</button></div>
         <div className="emergency-contact-list">
           {contacts.map((contact, index) => <article className="emergency-contact-card" key={contact.id}>
             <div><b>{contact.label}</b><a href={`tel:${contact.phone}`}>{contact.phone}</a><small>{contact.region || contact.description || "No additional description"}</small></div>
@@ -125,18 +125,20 @@ export function EmergencyAiSettings({ initialContacts, initialAiEnabled, initial
           {!contacts.length && <p className="dashboard-empty">No emergency contacts configured. Public pages use neutral emergency guidance without inventing a number.</p>}
         </div>
         {(adding || editing) && <form className="emergency-contact-form" onSubmit={saveContact}>
-          <div className="directory-table-actions"><h3>{editing ? "Edit emergency contact" : "Add emergency contact"}</h3><button className="icon-action" type="button" aria-label="Close emergency contact form" onClick={() => { setAdding(false); setEditing(null); }}><X size={17}/></button></div>
+          <div className="emergency-form-heading"><h3>{editing ? "Edit emergency contact" : "Add emergency contact"}</h3><button className="icon-action" type="button" aria-label="Close emergency contact form" onClick={() => { setAdding(false); setEditing(null); }}><X size={17}/></button></div>
           <label className="field"><span>Contact label *</span><input className="input" name="label" defaultValue={formValue.label} required maxLength={80}/></label>
           <label className="field"><span>Telephone number *</span><input className="input" name="phone" defaultValue={formValue.phone} required inputMode="tel" placeholder="081 123 4567"/></label>
           <label className="field"><span>Description (optional)</span><input className="input" name="description" defaultValue={formValue.description || ""} maxLength={240}/></label>
           <label className="field"><span>Region or location (optional)</span><input className="input" name="region" defaultValue={formValue.region || ""} maxLength={120}/></label>
           <label className="field"><span>Display priority</span><input className="input" type="number" name="sortOrder" min={0} max={999} defaultValue={formValue.sortOrder}/></label>
-          <label className="toggle-label"><input name="active" type="checkbox" defaultChecked={formValue.active}/><span>Active</span></label>
-          <label className="toggle-label"><input name="primary" type="checkbox" defaultChecked={formValue.primary}/><span>Primary emergency contact</span></label>
-          <button className="btn btn-primary" disabled={saving}>{saving ? <Loader2 className="toast-spinner" size={17}/> : <Save size={17}/>} Save contact</button>
+          <div className="emergency-contact-actions">
+            <label className="toggle-label"><input name="active" type="checkbox" defaultChecked={formValue.active}/><span>Active</span></label>
+            <label className="toggle-label"><input name="primary" type="checkbox" defaultChecked={formValue.primary}/><span>Primary emergency contact</span></label>
+            <button className="btn btn-primary" disabled={saving}>{saving ? <Loader2 className="toast-spinner" size={17}/> : <Save size={17}/>} Save contact</button>
+          </div>
         </form>}
       </section>
-      <section><h3>AI-assisted patient intake</h3><p className="muted">AI assistance is optional. If the configured server-side provider is unavailable, patients can continue booking manually.</p>
+      <section className="emergency-ai-section"><h3>AI-assisted patient intake</h3><p className="muted">AI assistance is optional. If the configured server-side provider is unavailable, patients can continue booking manually.</p>
         <label className="toggle-label settings-checkbox-row"><input type="checkbox" checked={aiEnabled} onChange={(event) => setAiEnabled(event.target.checked)}/><span>Enable AI-assisted symptom intake globally</span></label>
         <label className="toggle-label settings-checkbox-row"><input type="checkbox" checked={imageEnabled} onChange={(event) => setImageEnabled(event.target.checked)}/><span>Allow optional symptom photos</span></label>
         <p className="notice-warning">AI output organises patient-reported information only. It cannot diagnose, prescribe, or replace clinician review.</p>

@@ -877,10 +877,13 @@ textarea.input {
 .public-emergency-list { margin-top: 14px; border-top: 1px solid #d7e1dc; padding-top: 12px; }
 .public-emergency-list summary { color: var(--green); font-weight: 750; cursor: pointer; }
 .public-emergency-list a { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; color: var(--ink); text-decoration: none; }
-.patient-intake-tools { display: grid; gap: 12px; margin-top: 6px; }
+.patient-intake-tools { display: grid; gap: 14px; margin-top: 8px; }
 .patient-ai-trigger, .patient-photo-button { justify-self: start; }
-.patient-photo-tool { display: grid; gap: 10px; }
+.patient-photo-tool { display: grid; gap: 12px; }
+.patient-photo-tool .booking-choice { align-items: flex-start; }
+.patient-photo-tool .booking-choice input { flex: 0 0 auto; margin-top: 3px; }
 .patient-photo-button { position: relative; overflow: hidden; cursor: pointer; }
+.patient-photo-button input { display: none; }
 .visually-hidden { position: absolute!important; width: 1px!important; height: 1px!important; padding: 0!important; margin: -1px!important; overflow: hidden!important; clip: rect(0,0,0,0)!important; white-space: nowrap!important; border: 0!important; }
 .patient-ai-panel, .clinical-ai-assistant { display: grid; gap: 14px; border: 1px solid #cbdcd4; border-radius: 12px; background: #f8fbf9; padding: 16px; }
 .patient-ai-heading, .clinical-intake-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -907,8 +910,21 @@ textarea.input {
 .emergency-contact-card > div:first-child { display: grid; gap: 3px; }
 .emergency-contact-card a { color: var(--green); font-weight: 750; }
 .emergency-contact-card small { color: #667a73; }
+.emergency-section-heading,
+.emergency-form-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.settings-section-grid .emergency-section-heading h3,
+.settings-section-grid .emergency-form-heading h3 { margin: 0; }
+.emergency-section-heading p { margin: 5px 0 0; }
+.emergency-section-heading .btn { flex: 0 0 auto; }
+.emergency-form-heading { grid-column: 1/-1; align-items: center; }
 .emergency-contact-form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin-top: 15px; padding: 15px; border: 1px solid var(--line); border-radius: 11px; }
-.emergency-contact-form .directory-table-actions, .emergency-contact-form .btn { grid-column: 1/-1; }
+.emergency-contact-actions { display: grid; grid-column: 1/-1; justify-items: start; gap: 9px; padding-top: 2px; }
+.emergency-contact-actions .btn { margin-top: 3px; }
+.emergency-ai-section { display: grid; align-content: start; gap: 14px; }
+.settings-section-grid .emergency-ai-section > h3,
+.emergency-ai-section > p { margin: 0; }
+.emergency-ai-section .settings-checkbox-row { margin-top: 0; }
+.emergency-ai-section > .btn { justify-self: start; }
 .clinical-intake-card { display: grid; gap: 14px; border: 1px solid #cddbd5; border-radius: 12px; padding: 15px; background: #fff; }
 .clinical-intake-heading h3 { margin: 4px 0 0; }
 .clinical-intake-copy { display: grid; gap: 5px; }
@@ -929,7 +945,7 @@ textarea.input {
   .patient-ai-actions .btn { width: 100%; }
   .emergency-contact-card { grid-template-columns: 1fr; }
   .emergency-contact-form, .clinical-intake-fields { grid-template-columns: 1fr; }
-  .emergency-contact-form .directory-table-actions, .emergency-contact-form .btn { grid-column: auto; }
+  .emergency-form-heading, .emergency-contact-actions { grid-column: auto; }
 }
 .table-scroll {
   width: 100%;
