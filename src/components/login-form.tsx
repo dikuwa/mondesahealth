@@ -13,7 +13,6 @@ const notices:Record<string,string>={
 export function LoginForm({reason}:{reason?:string}){
   const router=useRouter();
   const[loading,setLoading]=useState(false);
-  const demo=process.env.NODE_ENV!=="production";
   const notice=reason?notices[reason]:undefined;
 
   async function submit(event:React.FormEvent<HTMLFormElement>){
@@ -39,10 +38,9 @@ export function LoginForm({reason}:{reason?:string}){
       <h1 className="display" style={{fontSize:42,margin:"22px 0 8px"}}>Staff sign in</h1>
       <p style={{color:"#63756f",fontSize:14,marginBottom:25}}>Access is restricted to authorised Mondesa Health staff.</p>
       {notice&&<p className="notice-warning" role="status">{notice}</p>}
-      <div className="field"><label htmlFor="staff-email">Email</label><input id="staff-email" name="email" type="email" autoComplete="username" className="input" defaultValue={demo?"owner@mondesahealth.na":""} required/></div>
-      <div className="field" style={{marginTop:16}}><label htmlFor="staff-password">Password</label><input id="staff-password" name="password" type="password" autoComplete="current-password" className="input" defaultValue={demo?"Mondesa2026!":""} required/></div>
+      <div className="field"><label htmlFor="staff-email">Email</label><input id="staff-email" name="email" type="email" autoComplete="username" className="input" required/></div>
+      <div className="field" style={{marginTop:16}}><label htmlFor="staff-password">Password</label><input id="staff-password" name="password" type="password" autoComplete="current-password" className="input" required/></div>
       <button className="btn btn-primary" disabled={loading} style={{width:"100%",marginTop:24}}>{loading?<Loader2 className="toast-spinner" size={18}/>:null} Sign in</button>
-      {demo&&<p style={{fontSize:11,color:"#8a8175",textAlign:"center",marginTop:18}}>Demo credentials are pre-filled for local evaluation only.</p>}
     </form>
   </main>;
 }

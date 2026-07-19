@@ -31,10 +31,14 @@ const days = [
 const timeOptions=Array.from({length:48},(_,i)=>{const value=`${String(Math.floor(i/2)).padStart(2,"0")}:${i%2?"30":"00"}`;return{value,label:value}});
 export function AvailabilityManager({
   initialBookingMode,
+  initialReminderEnabled,
+  initialReminderLeadHours,
   initialRules,
   blocks,
 }: {
   initialBookingMode: string;
+  initialReminderEnabled: boolean;
+  initialReminderLeadHours: number;
   initialRules: Rule[];
   blocks: Block[];
 }) {
@@ -42,6 +46,8 @@ export function AvailabilityManager({
   const normalizedRules = useMemo(() => Array.from({ length: 7 }, (_, weekday) => initialRules.find((rule) => rule.weekday === weekday) ?? { weekday, active: weekday > 0 && weekday < 6, openTime: "08:00", closeTime: weekday === 5 ? "16:00" : "17:00", durationMinutes: 30 }), [initialRules]);
   const [rules, setRules] = useState(normalizedRules);
   const [bookingMode, setBookingMode] = useState(initialBookingMode);
+  const [reminderEnabled,setReminderEnabled]=useState(initialReminderEnabled);
+  const [reminderLeadHours,setReminderLeadHours]=useState(initialReminderLeadHours);
   const [saving, setSaving] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Block | null>(null);
   const[startDate,setStartDate]=useState(""),[startTime,setStartTime]=useState(""),[endDate,setEndDate]=useState(""),[endTime,setEndTime]=useState("");
@@ -111,6 +117,12 @@ export function AvailabilityManager({
           ))}
         </div>
         <div className="availability-card-actions"><button className="btn btn-primary" disabled={saving}>{saving && <Loader2 className="toast-spinner" size={17} />}Save booking mode</button></div>
+      </form>
+
+      <form className="card dashboard-card availability-booking-card" onSubmit={event=>{event.preventDefault();action("/api/settings",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({reminderEnabled,reminderLeadHours})},"Saving reminder settings…")}}>
+        <div className="manager-toolbar"><div><h2>Appointment reminder queue</h2><p>Prepare reminders for staff to share manually. No WhatsApp or email is sent automatically.</p></div></div>
+        <div className="appointment-form-grid"><label className="toggle-label"><input type="checkbox" checked={reminderEnabled} onChange={event=>setReminderEnabled(event.target.checked)}/><span>Enable reminder preparation</span></label><div className="field"><label>Lead time (hours)</label><input className="input" type="number" min="1" max="168" value={reminderLeadHours} onChange={event=>setReminderLeadHours(Number(event.target.value))} disabled={!reminderEnabled}/></div></div>
+        <div className="availability-card-actions"><button className="btn btn-primary" disabled={saving}>Save reminder settings</button></div>
       </form>
 
       <form

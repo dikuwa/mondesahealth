@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   const parsed = z
     .object({
       id: z.string(),
-      kind: z.enum(["CONFIRMATION", "RESCHEDULE", "CANCELLATION"]),
+      kind: z.enum(["CONFIRMATION", "RESCHEDULE", "CANCELLATION", "REMINDER"]),
     })
     .safeParse(await request.json());
   if (!parsed.success)
@@ -55,6 +55,7 @@ export async function POST(request: Request) {
     CONFIRMATION: `is confirmed for ${when}`,
     RESCHEDULE: `has a proposed or updated time of ${when}`,
     CANCELLATION: "has been cancelled",
+    REMINDER: `is coming up on ${when}`,
   }[parsed.data.kind];
   const message = `Hello ${first}, your Mondesa Health appointment ${appointment.reference} ${wording}. Manage your appointment securely here: ${link}`;
   await db.$transaction([

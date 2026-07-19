@@ -356,6 +356,11 @@ export async function PATCH(request: Request) {
         },
         { status: 409 },
       );
+    const startsInFuture = Boolean(appointment.startAt && appointment.startAt > new Date());
+    if (appointment.status === "REVIEW_REQUIRED" && input.action === "CONFIRM" && !startsInFuture)
+      return NextResponse.json({ error: "Past review-required appointments cannot be confirmed; complete, mark no-show, or cancel instead." }, { status: 409 });
+    if (appointment.status === "REVIEW_REQUIRED" && ["COMPLETE", "NO_SHOW"].includes(input.action) && startsInFuture)
+      return NextResponse.json({ error: "Future review-required appointments must be confirmed or cancelled." }, { status: 409 });
     const next = nextAppointmentStatus(input.action as AppointmentAction);
     await db.$transaction([
       db.appointment.update({

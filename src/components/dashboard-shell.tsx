@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -98,7 +99,13 @@ export function DashboardShell({
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { notifications, refresh: refreshNotifications } = useNotifications();
+  const { notifications, remindersDue, refresh: refreshNotifications } = useNotifications();
+  const appointmentNotificationCount =
+    remindersDue +
+    notifications.filter((item) => item.type === "APPOINTMENT" && !item.readAt).length;
+  const notificationCountsByRoute: Readonly<Record<string, number>> = {
+    "/dashboard/appointments": appointmentNotificationCount,
+  };
   const sidebarRef = useRef<HTMLElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -195,6 +202,7 @@ export function DashboardShell({
                     href === "/dashboard"
                       ? pathname === href
                       : pathname.startsWith(href);
+                  const notificationCount = notificationCountsByRoute[href] ?? 0;
                   return (
                     <Link
                       key={href}
@@ -205,7 +213,10 @@ export function DashboardShell({
                       title={collapsed ? label : undefined}
                     >
                       <Icon size={18} />
-                      <span>{label}{label === "Appointments" && notifications.filter((item) => item.type === "APPOINTMENT" && !item.readAt).length > 0 && <i className="dashboard-nav-count">{notifications.filter((item) => item.type === "APPOINTMENT" && !item.readAt).length}</i>}</span>
+                      <span className={notificationCount > 0 ? "dashboard-nav-label-with-badge" : undefined}>
+                        {label}
+                        {notificationCount > 0 && <i className="dashboard-nav-count">{notificationCount}</i>}
+                      </span>
                     </Link>
                   );
                 })}
@@ -219,7 +230,7 @@ export function DashboardShell({
             aria-label="Open your profile"
           >
             {avatarData ? (
-              <img src={avatarData} alt="" />
+              <Image src={avatarData} alt="" width={40} height={40} unoptimized />
             ) : (
               name.trim().charAt(0).toUpperCase()
             )}

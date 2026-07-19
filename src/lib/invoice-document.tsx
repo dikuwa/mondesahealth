@@ -38,16 +38,17 @@ const s = StyleSheet.create({
 });
 
 export function InvoiceDocument({ invoice, practice }: { invoice: Data; practice: PracticeSetting }) {
-  const fmt = (n: number) => `N$ ${n.toFixed(2)}`;
+  const fmt = (n: number) => `${practice.currency} ${n.toFixed(2)}`;
   return <Document title={`Invoice ${invoice.number}`} author={practice.practiceName}>
     <Page size="A4" style={s.page}>
       <View style={s.header}>
         <View>
           <View style={s.logo}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- React PDF Image has no alt prop in its type/API. */}
             <Image src={markPath} style={s.mark} />
-            <View style={s.wordmark}><Text style={s.brandLine}>MONDESA</Text><Text style={[s.brandLine, s.brandHealth]}>HEALTH</Text><Text style={s.brandSub}>POLYCLINIC</Text></View>
+            <View style={s.wordmark}><Text style={s.brandLine}>{practice.practiceName}</Text><Text style={s.brandSub}>PRACTICE DOCUMENT</Text></View>
           </View>
-          <Text style={s.clinicDetails}>MONDESA HEALTH POLYCLINIC{"\n"}Dr Kauzu{"\n"}Practice no: Pending configuration{"\n"}Et Koit, Vrede Rede Street Maretags, Mondesa Swakoperund{"\n"}+264 83 783 7216 · hello@mondesahealth.na</Text>
+          <Text style={s.clinicDetails}>{practice.practiceName}{"\n"}{practice.doctorName}{"\n"}Practice no: {practice.practiceNumber}{"\n"}Registration no: {practice.registrationNumber}{"\n"}{practice.address}{"\n"}{practice.phone} · {practice.email}</Text>
         </View>
         <View>
           <Text style={s.title}>INVOICE</Text>

@@ -25,14 +25,11 @@ Both `.env` and `.env.local` are ignored by Git. Keep the connection strings pri
 | `RESTORE_DATABASE_URL` | A separate disposable Neon database | Restore drill only |
 | `OWNER_NAME` | Initial owner display name used by the seed | Seed only |
 | `OWNER_EMAIL` | Initial owner login email used by the seed | Seed only |
-| `OWNER_PASSWORD` | Strong temporary password (10+ characters) used by the seed | Seed only |
+| `OWNER_PASSWORD` | Strong temporary password meeting the 12-character complexity policy | Seed only |
 
 No email-verification, SMTP, or file-storage variable is required. Owner/admin-created accounts can sign in immediately. Small profile images are stored with the user record; the login email remains immutable while the display name and avatar can change.
 
-Unless overridden with the seed variables, the local seed creates an owner login for evaluation:
-
-- Email: `owner@mondesahealth.na`
-- Password: `Mondesa2026!`
+The seed does not contain default credentials. Supply `OWNER_EMAIL` and a strong temporary `OWNER_PASSWORD` explicitly when running it.
 
 Set `OWNER_EMAIL` and `OWNER_PASSWORD` before the first production seed. After login, create other staff under **Staff users**, assign a role, adjust its permission checklist, and give the temporary password directly to that person. The account is required to change that administrator-set password from **My profile**.
 

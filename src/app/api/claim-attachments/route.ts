@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 const types = ["MEDICAL_AID_CARD", "CONSENT_FORM", "REFERRAL", "PRE_AUTHORISATION", "CLINICAL_SUPPORT", "SUBMISSION_PROOF", "REMITTANCE", "REJECTION_NOTICE", "OTHER"] as const;
 export async function POST(request: Request) {
@@ -18,7 +19,9 @@ export async function POST(request: Request) {
       ? await db.claimBatch.findUnique({ where: { id: parsed.data.batchId }, select: { id: true } })
       : await db.patientMedicalAid.findUnique({ where: { id: parsed.data.patientMedicalAidId }, select: { id: true } });
   if (!target) return NextResponse.json({ error: "Attachment target was not found." }, { status: 404 });
-  const attachment = await db.claimAttachment.create({ data: { ...parsed.data, filename: file.name, mimeType: file.type, fileSize: file.size, data: Buffer.from(await file.arrayBuffer()), uploadedByUserId: session.id } });
+  const limitMb=Number(process.env.ATTACHMENT_STORAGE_LIMIT_MB||1024);if(!Number.isFinite(limitMb)||limitMb<=0)return NextResponse.json({error:"Attachment storage is not configured safely."},{status:500});
+  const data=Buffer.from(await file.arrayBuffer());let attachment;
+  try{attachment=await db.$transaction(async tx=>{const usage=await tx.claimAttachment.aggregate({_sum:{fileSize:true}});if((usage._sum.fileSize||0)+file.size>limitMb*1024*1024)throw new Error("QUOTA");return tx.claimAttachment.create({ data: { ...parsed.data, filename: file.name, mimeType: file.type, fileSize: file.size, data, uploadedByUserId: session.id } })},{isolationLevel:Prisma.TransactionIsolationLevel.Serializable})}catch(error){if(error instanceof Error&&error.message==="QUOTA")return NextResponse.json({error:`Protected attachment storage limit (${limitMb} MB) would be exceeded.`},{status:413});if(error instanceof Prisma.PrismaClientKnownRequestError&&error.code==="P2034")return NextResponse.json({error:"Storage usage changed during upload. Try again."},{status:409});return NextResponse.json({error:"The attachment could not be stored."},{status:500})}
   await db.activityLog.create({ data: { userId: session.id, action: parsed.data.attachmentType === "SUBMISSION_PROOF" ? "SUBMISSION_PROOF_UPLOADED" : "CLAIM_ATTACHMENT_UPLOADED", entityType: "ClaimAttachment", entityId: attachment.id, summary: `${parsed.data.attachmentType.replaceAll("_", " ").toLowerCase()} uploaded` } }); return NextResponse.json({ id: attachment.id, filename: attachment.filename });
 }
 

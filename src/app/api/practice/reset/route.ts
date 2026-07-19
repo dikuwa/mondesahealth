@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { resetProviderlessDirectory } from "@/lib/practice-reset";
 
 const CONFIRMATION = "RESET MONDESA";
 
@@ -12,11 +13,16 @@ async function requireOwner() {
 }
 
 const count = async () => {
-  const [patients, appointments, invoices, payments, claims, batches, attachments, departments, services, providers, activity] = await Promise.all([
+  const providerDepartments = await db.provider.findMany({ select: { departmentId: true }, distinct: ["departmentId"] });
+  const preservedDepartmentIds = providerDepartments.map(({ departmentId }) => departmentId);
+  const providerlessDepartmentWhere = preservedDepartmentIds.length ? { id: { notIn: preservedDepartmentIds } } : undefined;
+  const providerlessServiceWhere = preservedDepartmentIds.length ? { departmentId: { notIn: preservedDepartmentIds } } : undefined;
+  const [patients, appointments, invoices, payments, claims, batches, attachments, departments, services, providers, providerlessDepartments, providerlessServices, activity, reminders, receipts, documents, storage] = await Promise.all([
     db.patient.count(), db.appointment.count(), db.invoice.count(), db.payment.count(), db.claim.count(), db.claimBatch.count(), db.claimAttachment.count(),
-    db.department.count(), db.departmentService.count(), db.provider.count(), db.activityLog.count(),
+    db.department.count(), db.departmentService.count(), db.provider.count(), db.department.count({ where: providerlessDepartmentWhere }), db.departmentService.count({ where: providerlessServiceWhere }), db.activityLog.count(),
+    db.appointmentReminder.count(),db.receipt.count(),db.generatedDocument.count(),db.claimAttachment.aggregate({_sum:{fileSize:true}}),
   ]);
-  return { patients, appointments, invoices, payments, claims, batches, attachments, departments, services, providers, activity, totalDirectory: departments + services + providers };
+  return { patients, appointments, invoices, payments, claims, batches, attachments, departments, services, providers, providersPreserved: providers, directoryRecordsToRemove: providerlessDepartments + providerlessServices, activity, reminders, receipts, documents, attachmentBytes:storage._sum.fileSize||0 };
 };
 
 export async function GET() {
@@ -43,13 +49,14 @@ export async function POST(request: Request) {
       await tx.claimLine.deleteMany();
       await tx.claim.deleteMany();
 
+      await tx.generatedDocument.deleteMany();
       await tx.receipt.deleteMany();
       await tx.payment.deleteMany();
-      await tx.generatedDocument.deleteMany();
       await tx.invoiceLine.deleteMany();
       await tx.invoice.deleteMany();
 
       await tx.appointmentChangeRequest.deleteMany();
+      await tx.appointmentReminder.deleteMany();
       await tx.secureLink.deleteMany();
       await tx.medicalAidConsent.deleteMany();
       await tx.patientMedicalAid.deleteMany();
@@ -57,9 +64,7 @@ export async function POST(request: Request) {
       await tx.patient.deleteMany();
       await tx.blockedTime.deleteMany();
 
-      await tx.provider.deleteMany();
-      await tx.departmentService.deleteMany();
-      await tx.department.deleteMany();
+      await resetProviderlessDirectory(tx);
       // Remove dashboard-authored homepage content; the public loader falls back
       // to its safe defaults until the owner publishes new copy.
       await tx.practiceContent.deleteMany();
@@ -73,17 +78,10 @@ export async function POST(request: Request) {
           vatEnabled: false, tagline: "Your Health. Your Choice. Your Community.", publicDescription: "Mondesa Health Polyclinic brings multiple healthcare disciplines together in one trusted community healthcare destination.", locationNote: "", mapsUrl: "", mapLatitude: null,
           mapLongitude: null, publicHours: null, showEmail: false, showWhatsapp: false, claimContactName: "",
           claimPhone: "", claimEmail: "", claimPostalAddress: "",
+          reminderEnabled:true,reminderLeadHours:24,
         },
         create: { id: "practice", practiceName: "Mondesa Health Polyclinic", doctorName: "Dr Helena Ndeitunga", practiceNumber: "Pending configuration", registrationNumber: "Pending configuration", phone: "+264 81 000 0000", whatsapp: "+264 81 000 0000", email: "hello@mondesahealth.na", address: "Mondesa, Swakopmund, Namibia", bookingMode: "AVAILABLE_TIME", minNoticeHours: 2, maxAdvanceDays: 60, cancellationPolicy: "Please give at least 4 hours' notice when possible.", currency: "NAD", signatureName: "Dr Helena Ndeitunga", signatureTitle: "Medical Practitioner", vatEnabled: false, tagline: "Your Health. Your Choice. Your Community.", publicDescription: "Mondesa Health Polyclinic brings multiple healthcare disciplines together in one trusted community healthcare destination.", locationNote: "", mapsUrl: "", showEmail: false, showWhatsapp: false, claimContactName: "", claimPhone: "", claimEmail: "", claimPostalAddress: "" },
       });
-
-      // Keep a minimal, protected booking shell so existing /book and /slots routes
-      // continue to work. Staff can fill in its public content later.
-      await tx.department.create({ data: {
-        slug: "general-practice", name: "General Practitioner", categoryLabel: "Primary healthcare services",
-        summary: "General Practice appointments", description: "General Practice booking is available.", status: "ACTIVE",
-        public: true, bookingEnabled: true, sortOrder: 0,
-      } });
 
       await tx.activityLog.deleteMany();
     }, { timeout: 120_000, maxWait: 15_000 });

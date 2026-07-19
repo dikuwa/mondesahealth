@@ -12,4 +12,10 @@ describe("appointment state flow", () => {
     expect(canTransition("COMPLETED", "CANCEL")).toBe(false);
     expect(canTransition("NEW_REQUEST", "COMPLETE")).toBe(false);
   });
+  it("supports every review-required resolution action", () => {
+    expect(canTransition("REVIEW_REQUIRED", "CONFIRM")).toBe(true);
+    expect(canTransition("REVIEW_REQUIRED", "COMPLETE")).toBe(true);
+    expect(canTransition("REVIEW_REQUIRED", "NO_SHOW")).toBe(true);
+    expect(canTransition("REVIEW_REQUIRED", "CANCEL")).toBe(true);
+  });
 });

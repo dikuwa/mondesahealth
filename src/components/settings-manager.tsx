@@ -55,8 +55,9 @@ type Counts = {
   departments: number;
   services: number;
   providers: number;
+  providersPreserved: number;
   activity: number;
-  totalDirectory: number;
+  directoryRecordsToRemove: number;
 };
 
 const tabs = [
@@ -86,10 +87,12 @@ export function SettingsManager({
   setting,
   funds,
   isOwner,
+  storage,
 }: {
   setting: Setting;
   funds: Fund[];
   isOwner: boolean;
+  storage: {count:number;bytes:number;limitMb:number};
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -179,6 +182,7 @@ export function SettingsManager({
         <SummaryItem label="Public site" value={draft.tagline ? "Configured" : "Needs details"} warning={!draft.tagline} />
         <SummaryItem label="Claims" value={draft.claimContactName && draft.claimPhone ? "Configured" : "Needs details"} warning={!draft.claimContactName || !draft.claimPhone} />
         <SummaryItem label="Medical aids" value={`${funds.filter((fund) => fund.active).length} active`} />
+        <SummaryItem label="Protected storage" value={`${storage.count} files · ${(storage.bytes/1024/1024).toFixed(1)} / ${storage.limitMb} MB`} warning={storage.bytes>storage.limitMb*1024*1024*.9}/>
       </div>
 
       <section className="card dashboard-card settings-panel">
@@ -547,7 +551,7 @@ function DataResetTab({ isOwner }: { isOwner: boolean }) {
           counts.claims +
           counts.batches +
           counts.attachments +
-          counts.totalDirectory
+          counts.directoryRecordsToRemove
         : 0,
     [counts],
   );
@@ -590,7 +594,7 @@ function DataResetTab({ isOwner }: { isOwner: boolean }) {
           <AlertTriangle size={19} /> Data reset
         </h2>
         <p className="muted">
-          This is the only Start from scratch location. It removes operational records and public directory content while preserving staff accounts, reference datasets, availability rules and the protected booking shell.
+          This removes operational records and providerless directory records while preserving staff accounts, reference datasets, availability rules, provider profiles and their linked directory configuration.
         </p>
       </div>
       {counts && (
@@ -601,7 +605,8 @@ function DataResetTab({ isOwner }: { isOwner: boolean }) {
             ["Invoices / payments", counts.invoices + counts.payments],
             ["Claims / batches", counts.claims + counts.batches],
             ["Attachments", counts.attachments],
-            ["Directory records", counts.totalDirectory],
+            ["Providerless directory records", counts.directoryRecordsToRemove],
+            ["Providers preserved", counts.providersPreserved],
             ["Activity entries", counts.activity],
           ].map(([label, value]) => (
             <div key={String(label)}>
@@ -640,7 +645,7 @@ function DataResetTab({ isOwner }: { isOwner: boolean }) {
       <ConfirmationDialog
         open={secondConfirm}
         title="Reset this practice now?"
-        description="This is the second confirmation. Operational records, documents, patients, appointments, claims, payments and public directory content will be removed. Staff accounts and reference datasets are preserved."
+        description="This is the second confirmation. Operational records, documents, patients, appointments, claims, payments and providerless directory records will be removed. Provider records and their linked department/service configuration, staff accounts and reference datasets are preserved."
         confirmLabel="Yes, reset now"
         danger
         busy={busy}

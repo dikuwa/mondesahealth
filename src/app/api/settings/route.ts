@@ -32,6 +32,11 @@ export async function PATCH(request:Request){
     if(!parsed.success)return NextResponse.json({error:"Check the booking mode."},{status:400});
     await db.practiceSetting.update({where:{id:"practice"},data:parsed.data});
     summary=`Booking mode changed to ${parsed.data.bookingMode}`;
+  }else if("reminderEnabled" in body||"reminderLeadHours" in body){
+    const parsed=z.object({reminderEnabled:z.boolean(),reminderLeadHours:z.number().int().min(1).max(168)}).safeParse(body);
+    if(!parsed.success)return NextResponse.json({error:"Check the reminder settings."},{status:400});
+    await db.practiceSetting.update({where:{id:"practice"},data:parsed.data});
+    summary=`Reminder preparation ${parsed.data.reminderEnabled?"enabled":"disabled"} at ${parsed.data.reminderLeadHours} hours`;
   }else{
     const current=await db.practiceSetting.findUnique({where:{id:"practice"}});
     const parsed=detailsSchema.safeParse({...current,...body});

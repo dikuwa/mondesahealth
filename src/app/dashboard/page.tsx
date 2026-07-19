@@ -9,12 +9,14 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { money } from "@/lib/utils";
 import { windhoekGreeting } from "@/lib/greeting";
+import { nextAvailableSlot } from "@/lib/slots";
+import { getDueReminders } from "@/lib/reminders";
 
 export const dynamic = "force-dynamic";
 
 export default async function Overview() {
   const today = new Date();
-  const [session, appointments, pending, claims, balances, payments] =
+  const [session, appointments, pending, claims, balances, payments, nextSlot, reminders] =
     await Promise.all([
       getSession(),
       db.appointment.findMany({
@@ -30,6 +32,7 @@ export default async function Overview() {
               "PENDING_CONFIRMATION",
               "RESCHEDULE_PROPOSED",
               "RESCHEDULE_REQUESTED",
+              "REVIEW_REQUIRED",
             ],
           },
         },
@@ -37,7 +40,7 @@ export default async function Overview() {
       db.claim.count({
         where: {
           status: {
-            in: ["MISSING_INFORMATION", "REJECTED", "RESUBMISSION_REQUIRED"],
+            in: ["NEEDS_INFORMATION", "MISSING_INFORMATION", "REJECTED", "RESUBMISSION_REQUIRED"],
           },
         },
       }),
@@ -49,6 +52,8 @@ export default async function Overview() {
         _sum: { amount: true },
         where: { paidAt: { gte: startOfDay(today), lte: endOfDay(today) } },
       }),
+      nextAvailableSlot(today),
+      getDueReminders(today),
     ]);
   const greeting = windhoekGreeting(today);
   const localDate = new Intl.DateTimeFormat("en-NA", {
@@ -72,6 +77,7 @@ export default async function Overview() {
       <div className="dashboard-stats">
         <Stat label="Today's appointments" value={appointments.length} />
         <Stat label="Pending requests" value={pending} />
+        <Stat label="Reminders due" value={reminders.length} />
         <Stat label="Claims needing attention" value={claims} />
         <Stat label="Outstanding balances" value={money(outstanding)} />
         <Stat label="Received today" value={money(payments._sum.amount || 0)} />
@@ -124,7 +130,7 @@ export default async function Overview() {
                 marginTop: 8,
               }}
             >
-              Tomorrow · 08:00
+              {nextSlot ? new Intl.DateTimeFormat("en-NA", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Windhoek" }).format(nextSlot) : "No slot available"}
             </b>
           </div>
           <p style={{ fontSize: 13, lineHeight: 1.7, color: "#63766f" }}>

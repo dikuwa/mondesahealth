@@ -3,6 +3,8 @@ import { AppointmentsManager } from "@/components/appointments-manager";
 import { ManualAppointment } from "@/components/manual-appointment";
 import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
+import { ReminderQueue } from "@/components/reminder-queue";
+import { getDueReminders } from "@/lib/reminders";
 export const dynamic = "force-dynamic";
 export default async function Appointments({
   searchParams,
@@ -52,7 +54,7 @@ export default async function Appointments({
       ...(from ? { gte: new Date(`${from}T00:00:00`) } : {}),
       ...(to ? { lte: new Date(`${to}T23:59:59`) } : {}),
     };
-  const [rows, patients] = await Promise.all([
+  const [rows, patients, reminders] = await Promise.all([
     db.appointment.findMany({
       where,
       include: {
@@ -78,6 +80,7 @@ export default async function Appointments({
       select: { id: true, fullName: true, patientNumber: true, phone: true },
       orderBy: { fullName: "asc" },
     }),
+    getDueReminders(),
   ]);
   const serialised = rows.map((a) => ({
     id: a.id,
@@ -115,6 +118,7 @@ export default async function Appointments({
         title="Appointments"
         action={<ManualAppointment patients={patients} />}
       />
+      <ReminderQueue reminders={reminders.map(item=>({...item,appointmentStartAt:item.appointmentStartAt.toISOString()}))} />
       <AppointmentsManager rows={serialised} />
     </>
   );

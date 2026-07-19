@@ -872,7 +872,8 @@ textarea.input {
 .dashboard-notification > button { align-self: center; display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 7px; background: transparent; color: #84948e; }
 .dashboard-notification > button:hover { background: #f7e9e5; color: #a34b40; }
 .dashboard-notification-empty { margin: 0; padding: 28px 16px; color: #6a7d76; text-align: center; font-size: 12px; }
-.dashboard-nav-count { display: inline-grid; min-width: 18px; height: 18px; margin-left: auto; place-items: center; border-radius: 99px; background: #dceee6; color: #205c4a; font-size: 10px; font-style: normal; font-weight: 800; }
+.dashboard-nav-label-with-badge { display: inline-flex; align-items: center; gap: 8px; }
+.dashboard-nav-count { display: inline-grid; min-width: 18px; height: 18px; place-items: center; border-radius: 99px; background: #dceee6; color: #205c4a; font-size: 10px; font-style: normal; font-weight: 800; }
 .table-scroll {
   width: 100%;
   overflow-x: auto;

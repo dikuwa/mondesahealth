@@ -7,10 +7,10 @@ import { bootstrapPolyclinic } from "./polyclinic-data";
 const db = new PrismaClient();
 
 async function main() {
-  const ownerEmail=(process.env.OWNER_EMAIL||"owner@mondesahealth.na").toLowerCase();
-  const ownerPassword=process.env.OWNER_PASSWORD||"Mondesa2026!";
+  if(!process.env.OWNER_EMAIL||!process.env.OWNER_PASSWORD)throw new Error("OWNER_EMAIL and OWNER_PASSWORD must be supplied explicitly when seeding.");
+  const ownerEmail=process.env.OWNER_EMAIL.toLowerCase();
+  const ownerPassword=process.env.OWNER_PASSWORD;
   const ownerName=process.env.OWNER_NAME||"Practice Owner";
-  if(process.env.NODE_ENV==="production"&&!process.env.OWNER_PASSWORD)throw new Error("OWNER_PASSWORD is required when seeding production.");
   passwordSchema.parse(ownerPassword);
   await bootstrapPolyclinic(db);
 

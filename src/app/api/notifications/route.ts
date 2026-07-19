@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getDueReminders } from "@/lib/reminders";
 
 async function session() { return getSession(); }
 export async function GET() {
   const user = await session();
   if (!user) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
-  const notifications = await db.notification.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 30 });
-  return NextResponse.json({ notifications, unread: notifications.filter((item) => !item.readAt).length });
+  const [notifications,reminders]=await Promise.all([db.notification.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 30 }),getDueReminders()]);
+  return NextResponse.json({ notifications, unread: notifications.filter((item) => !item.readAt).length, remindersDue:reminders.length });
 }
 export async function PATCH(request: Request) {
   const user = await session();

@@ -7,14 +7,15 @@ import { Bell, CheckCheck, Trash2, X } from "lucide-react";
 export type DashboardNotification = { id: string; type: string; title: string; message: string; href: string; readAt: string | null; createdAt: string };
 export function useNotifications() {
   const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
-  const refresh = useCallback(async () => { const response = await fetch("/api/notifications", { cache: "no-store" }); if (response.ok) { const data = await response.json(); setNotifications(data.notifications); } }, []);
+  const [remindersDue,setRemindersDue]=useState(0);
+  const refresh = useCallback(async () => { const response = await fetch("/api/notifications", { cache: "no-store" }); if (response.ok) { const data = await response.json(); setNotifications(data.notifications);setRemindersDue(data.remindersDue||0); } }, []);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial notification hydration intentionally happens after mount.
     void refresh();
     const timer = window.setInterval(refresh, 10000);
     return () => window.clearInterval(timer);
   }, [refresh]);
-  return { notifications, refresh };
+  return { notifications, remindersDue, refresh };
 }
 export function DashboardNotifications({ notifications, refresh }: { notifications: DashboardNotification[]; refresh: () => Promise<void> }) {
   const [open, setOpen] = useState(false);

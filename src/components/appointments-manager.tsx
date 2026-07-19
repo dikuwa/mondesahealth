@@ -55,7 +55,9 @@ const quicks = ["ALL", "TODAY", "UPCOMING", "REQUESTS", "PAST"];
 const statuses = [
   "ALL",
   "NEW_REQUEST",
+  "PENDING_CONFIRMATION",
   "CONFIRMED",
+  "REVIEW_REQUIRED",
   "RESCHEDULE_PROPOSED",
   "RESCHEDULE_REQUESTED",
   "CANCELLED",
@@ -136,6 +138,7 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
                 "NEW_REQUEST",
                 "RESCHEDULE_PROPOSED",
                 "RESCHEDULE_REQUESTED",
+                "REVIEW_REQUIRED",
               ].includes(row.status)) ||
             (quick === "PAST" &&
               !!when &&
@@ -589,9 +592,8 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
             </div>
             {!share && !rescheduling && (
               <div className="appointment-panel-actions appointment-action-wrap">
-                {["NEW_REQUEST", "PENDING_CONFIRMATION"].includes(
-                  selected.status,
-                ) && (
+                {(["NEW_REQUEST", "PENDING_CONFIRMATION"].includes(selected.status) ||
+                  (selected.status === "REVIEW_REQUIRED" && !!selected.startAt && parseISO(selected.startAt) > new Date())) && (
                   <button
                     className="btn btn-primary"
                     onClick={() => action("CONFIRM")}
@@ -611,7 +613,8 @@ export function AppointmentsManager({ rows }: { rows: Row[] }) {
                     Propose reschedule
                   </button>
                 )}
-                {selected.status === "CONFIRMED" && (
+                {(selected.status === "CONFIRMED" ||
+                  (selected.status === "REVIEW_REQUIRED" && (!selected.startAt || parseISO(selected.startAt) <= new Date()))) && (
                   <>
                     <button
                       className="btn btn-light"

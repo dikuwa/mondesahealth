@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, Download, Eye, Loader2, Mail, MessageCircle, Plus, Share2, WalletCards, X } from "lucide-react";
+import { Ban, Copy, Download, Eye, Loader2, Mail, MessageCircle, Plus, ReceiptText, Share2, WalletCards, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -17,6 +17,7 @@ type Invoice = {
   patientPhone: string;
   patientWhatsapp: string | null;
   patientEmail: string | null;
+  receipt: { id: string; number: string } | null;
 };
 const paymentMethods = [
   "CASH",
@@ -42,10 +43,13 @@ export function FinanceManager({
   const [saving, setSaving] = useState(false);
   const [viewing, setViewing] = useState<Invoice | null>(null);
   const [sharing, setSharing] = useState<Invoice | null>(null);
+  const [shareKind, setShareKind] = useState<"invoice"|"receipt">("invoice");
   const [shareCache, setShareCache] = useState<Record<string, { link: string; message: string }>>({});
   const [share, setShare] = useState<{ link: string; message: string } | null>(null);
+  const [newReceipt, setNewReceipt] = useState<{ id: string; number: string } | null>(null);
   const invoice = invoices.find((item) => item.id === selected);
   async function createShare(item: Invoice) {
+    setShareKind("invoice");
     setSharing(item);
     if (shareCache[item.id]) {
       setShare(shareCache[item.id]);
@@ -53,6 +57,14 @@ export function FinanceManager({
     }
     try { const response = await fetch(`/api/documents/${item.id}/share`, { method: "POST" }); const data = await response.json(); if (!response.ok) throw new Error(data.error); const payload={link:data.link,message:data.message}; setShareCache((current)=>({...current,[item.id]:payload})); setShare(payload); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not create secure share link"); setSharing(null); }
+  }
+  async function createReceiptShare(item: Invoice) {
+    if (!item.receipt) return;
+    setShareKind("receipt");
+    const document = { ...item, id: item.receipt.id, number: item.receipt.number };
+    setSharing(document);
+    try { const response=await fetch(`/api/receipts/${item.receipt.id}/share`,{method:"POST"});const data=await response.json();if(!response.ok)throw new Error(data.error);setShare({link:data.link,message:data.message}); }
+    catch(error){toast.error(error instanceof Error?error.message:"Could not prepare receipt sharing");setSharing(null)}
   }
   async function copyLink() { if (!share) return; await navigator.clipboard.writeText(share.link); toast.success("Secure link copied"); }
   async function copyMessage() { if (!share) return; await navigator.clipboard.writeText(share.message); toast.success("Message copied"); }
@@ -115,6 +127,7 @@ export function FinanceManager({
         { id: toastId },
       );
       setMode(null);
+      if (mode === "payment") setNewReceipt(data.receipt);
       setSelected("");
       router.refresh();
     } catch (error) {
@@ -124,6 +137,14 @@ export function FinanceManager({
     } finally {
       setSaving(false);
     }
+  }
+  async function voidInvoice(item: Invoice) {
+    const reason = window.prompt(`Why is ${item.number} being voided?`);
+    if (!reason) return;
+    const response = await fetch("/api/invoices", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "VOID", id: item.id, reason }) });
+    const data = await response.json();
+    if (!response.ok) return toast.error(data.error || "Could not void invoice");
+    toast.success(`${item.number} voided`); router.refresh();
   }
   return (
     <>
@@ -173,7 +194,7 @@ export function FinanceManager({
                       <div className="table-actions">
                         <button
                           className="btn btn-light"
-                          disabled={item.paid >= item.total}
+                          disabled={item.paid >= item.total || item.status === "VOID"}
                           onClick={() => {
                             setSelected(item.id);
                             setMode("payment");
@@ -190,6 +211,8 @@ export function FinanceManager({
                           <Download size={15} /> PDF
                         </a>
                         <button className="btn btn-light" onClick={() => createShare(item)}><Share2 size={15} /> Share</button>
+                        {item.receipt&&<><a className="btn btn-light" href={`/api/receipts/${item.receipt.id}/pdf?download=1`} download><ReceiptText size={15}/> Receipt</a><button className="btn btn-light" onClick={()=>createReceiptShare(item)}><Share2 size={15}/> Share receipt</button></>}
+                        {item.status==="DRAFT"&&item.paid===0&&<button className="btn btn-danger" onClick={()=>voidInvoice(item)}><Ban size={15}/> Void</button>}
                       </div>
                     </td>
                   </tr>
@@ -338,22 +361,25 @@ export function FinanceManager({
             <article className="record-card" key={item.id}>
               <span className="record-card-heading">
                 <b>{item.number}</b>
-                <small>{item.status.replaceAll("_", " ")}</small>
+                <StatusBadge value={item.status} />
               </span>
               <span>{item.patient}</span>
               <small>Total {money(item.total)} · Outstanding {money(Math.max(0, item.total - item.paid))}</small>
               <span className="record-card-actions">
-                <button className="icon-action" title="Record payment" aria-label={`Record payment for ${item.number}`} disabled={item.paid >= item.total} onClick={() => { setSelected(item.id); setMode("payment"); }}><WalletCards size={16}/></button>
+                <button className="icon-action" title="Record payment" aria-label={`Record payment for ${item.number}`} disabled={item.paid >= item.total || item.status === "VOID"} onClick={() => { setSelected(item.id); setMode("payment"); }}><WalletCards size={16}/></button>
                 <button className="icon-action" title="View invoice" aria-label={`View ${item.number}`} onClick={() => setViewing(item)}><Eye size={16}/></button>
                 <a className="icon-action" title="Download PDF" aria-label={`Download ${item.number}`} href={`/api/documents/${item.id}/pdf?download=1`} download><Download size={16}/></a>
                 <button className="icon-action" title="Share invoice" aria-label={`Share ${item.number}`} onClick={() => createShare(item)}><Share2 size={16}/></button>
+                {item.receipt&&<a className="icon-action" title="Download receipt" aria-label={`Download ${item.receipt.number}`} href={`/api/receipts/${item.receipt.id}/pdf?download=1`} download><ReceiptText size={16}/></a>}
+                {item.receipt&&<button className="icon-action" title="Share receipt" aria-label={`Share ${item.receipt.number}`} onClick={()=>createReceiptShare(item)}><Share2 size={16}/></button>}
               </span>
             </article>
           ))}
         </div>
       )}
       {viewing && <div className="appointment-modal finance-preview-modal" role="dialog" aria-modal="true"><button className="appointment-modal-backdrop" aria-label="Close preview" onClick={() => setViewing(null)} /><div className="appointment-panel"><div className="appointment-panel-heading"><div><span className="eyebrow">Invoice preview</span><h2>{viewing.number}</h2></div><button type="button" aria-label="Close" onClick={() => setViewing(null)}><X size={20} /></button></div><iframe className="finance-preview-frame" title={`Preview ${viewing.number}`} src={`/api/documents/${viewing.id}/pdf`} /><div className="appointment-panel-actions"><button className="btn btn-light" onClick={() => setViewing(null)}>Close</button><a className="btn btn-light" href={`/api/documents/${viewing.id}/pdf?download=1`} download><Download size={15}/> Download PDF</a><button className="btn btn-primary" onClick={() => createShare(viewing)}><Share2 size={15}/> Share</button></div></div></div>}
-      {sharing && <div className="appointment-modal" role="dialog" aria-modal="true"><button className="appointment-modal-backdrop" aria-label="Close share" onClick={() => { setSharing(null); setShare(null); }} /><div className="appointment-panel"><div className="appointment-panel-heading"><div><span className="eyebrow">Secure sharing</span><h2>Share {sharing.number}</h2><p>Review the message before opening a sharing option.</p></div><button type="button" aria-label="Close" onClick={() => { setSharing(null); setShare(null); }}><X size={20} /></button></div>{share ? <div className="appointment-form-grid"><div className="share-link-box dashboard-span-all"><b>Secure link</b><span>{share.link}</span></div><label className="field dashboard-span-all"><span>Message</span><textarea className="input share-message-preview" value={share.message} onChange={(event)=>updateShareMessage(event.target.value)} /></label><div className="share-actions dashboard-span-all"><a className="btn btn-primary" href={`https://wa.me/${(sharing.patientWhatsapp || sharing.patientPhone).replace(/\D/g, "")}?text=${encodeURIComponent(share.message)}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={15}/> WhatsApp</a>{sharing.patientEmail && <a className="btn btn-light" href={`mailto:${encodeURIComponent(sharing.patientEmail)}?subject=${encodeURIComponent(`Invoice ${sharing.number} - Mondesa Health`)}&body=${encodeURIComponent(share.message)}`}><Mail size={15}/> Email</a>}<button className="btn btn-light" onClick={copyMessage}><Copy size={15} /> Copy message</button><button className="btn btn-light" onClick={copyLink}><Copy size={15} /> Copy link</button>{"share" in navigator && <button className="btn btn-light" onClick={() => navigator.share({ title: `Invoice ${sharing.number}`, text: share.message, url: share.link })}>More sharing options</button>}</div></div> : <div className="share-loading"><Loader2 className="toast-spinner" size={18} /> Creating secure link…</div>}</div></div>}
+      {sharing && <div className="appointment-modal" role="dialog" aria-modal="true"><button className="appointment-modal-backdrop" aria-label="Close share" onClick={() => { setSharing(null); setShare(null); }} /><div className="appointment-panel"><div className="appointment-panel-heading"><div><span className="eyebrow">Secure sharing</span><h2>Share {sharing.number}</h2><p>Review the message before opening a sharing option. Opening an app does not mark it delivered.</p></div><button type="button" aria-label="Close" onClick={() => { setSharing(null); setShare(null); }}><X size={20} /></button></div>{share ? <div className="appointment-form-grid"><div className="share-link-box dashboard-span-all"><b>Secure link</b><span>{share.link}</span></div><label className="field dashboard-span-all"><span>Message</span><textarea className="input share-message-preview" value={share.message} onChange={(event)=>updateShareMessage(event.target.value)} /></label><div className="share-actions dashboard-span-all"><a className="btn btn-primary" href={`https://wa.me/${(sharing.patientWhatsapp || sharing.patientPhone).replace(/\D/g, "")}?text=${encodeURIComponent(share.message)}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={15}/> WhatsApp</a>{sharing.patientEmail && <a className="btn btn-light" href={`mailto:${encodeURIComponent(sharing.patientEmail)}?subject=${encodeURIComponent(`${shareKind==="receipt"?"Receipt":"Invoice"} ${sharing.number} - Mondesa Health`)}&body=${encodeURIComponent(share.message)}`}><Mail size={15}/> Email</a>}<button className="btn btn-light" onClick={copyMessage}><Copy size={15} /> Copy message</button><button className="btn btn-light" onClick={copyLink}><Copy size={15} /> Copy link</button>{"share" in navigator && <button className="btn btn-light" onClick={() => navigator.share({ title: `${shareKind==="receipt"?"Receipt":"Invoice"} ${sharing.number}`, text: share.message, url: share.link })}>More sharing options</button>}</div></div> : <div className="share-loading"><Loader2 className="toast-spinner" size={18} /> Creating secure link…</div>}</div></div>}
+      {newReceipt&&<div className="appointment-modal" role="dialog" aria-modal="true"><button className="appointment-modal-backdrop" aria-label="Close receipt" onClick={()=>setNewReceipt(null)}/><div className="appointment-panel"><div className="appointment-panel-heading"><div><span className="eyebrow">Payment recorded</span><h2>{newReceipt.number}</h2><p>The receipt is ready now. Sharing still requires a manual staff action.</p></div><button aria-label="Close" onClick={()=>setNewReceipt(null)}><X/></button></div><iframe className="finance-preview-frame" title={`Preview ${newReceipt.number}`} src={`/api/receipts/${newReceipt.id}/pdf`}/><div className="appointment-panel-actions"><a className="btn btn-primary" href={`/api/receipts/${newReceipt.id}/pdf?download=1`} download><Download size={15}/> Download receipt</a><button className="btn btn-light" onClick={()=>setNewReceipt(null)}>Close</button></div></div></div>}
     </>
   );
 }

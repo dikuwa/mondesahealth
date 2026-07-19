@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const { chromium } = require("/Users/stunna/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright");
 const fs = require("node:fs");
+const required = (key) => { if (!process.env[key]) throw new Error(`${key} is required.`); return process.env[key]; };
 
 const base = process.env.E2E_BASE_URL || "http://localhost:3000";
 const quick = process.env.E2E_QUICK === "1";
@@ -104,8 +105,8 @@ async function measure(page) {
   if (!quick) {
     await page.setViewportSize(viewports[1]);
     await page.goto(`${base}/login`, { waitUntil: "domcontentloaded" });
-    await page.locator('input[name="email"]').fill(process.env.E2E_OWNER_EMAIL || "owner@mondesahealth.na");
-    await page.locator('input[name="password"]').fill(process.env.E2E_OWNER_PASSWORD || "Mondesa2026!");
+    await page.locator('input[name="email"]').fill(required("E2E_OWNER_EMAIL"));
+    await page.locator('input[name="password"]').fill(required("E2E_OWNER_PASSWORD"));
     await page.getByRole("button", { name: "Sign in" }).click();
     await page.waitForURL("**/dashboard", { timeout: 15_000 });
   }

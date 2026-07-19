@@ -12,6 +12,7 @@
     "test:e2e:dashboard": "node scripts/dashboard-e2e.cjs",
     "test:e2e:responsive": "node scripts/responsive-audit.cjs",
     "test:e2e:patient-date": "node scripts/patient-date-e2e.cjs",
+    "env:check": "tsx scripts/validate-env.ts",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:bootstrap:polyclinic": "tsx --env-file=.env scripts/bootstrap-polyclinic.ts",

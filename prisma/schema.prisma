@@ -32,6 +32,8 @@ model User {
   batchesSubmitted     ClaimBatch[]               @relation("BatchSubmitter")
   claimAttachments     ClaimAttachment[]
   notifications        Notification[]
+  invoicesVoided       Invoice[]                  @relation("InvoiceVoider")
+  reminderActions      AppointmentReminder[]      @relation("ReminderActor")
 }
 
 model Notification {
@@ -159,6 +161,7 @@ model Appointment {
   invoice          Invoice?
   secureLinks      SecureLink[]
   changeRequests   AppointmentChangeRequest[]
+  reminders        AppointmentReminder[]
   createdAt        DateTime                   @default(now())
   updatedAt        DateTime                   @updatedAt
 
@@ -218,6 +221,8 @@ model PracticeSetting {
   claimEmail         String  @default("")
   claimPostalAddress String  @default("")
   consentWording     String  @default("I understand that diagnosis information may be represented using ICD-10 codes and disclosed to the selected medical-aid fund or its administrator for the purpose of processing and assessing my medical-aid claim.")
+  reminderEnabled    Boolean @default(true)
+  reminderLeadHours  Int     @default(24)
 }
 
 model PracticeContent {
@@ -564,11 +569,15 @@ model Invoice {
   medicalAidResponsibility Float               @default(0)
   patientPaid              Float               @default(0)
   medicalAidPaid           Float               @default(0)
+  voidedAt                 DateTime?
+  voidReason               String?
+  voidedByUserId           String?
   patient                  Patient             @relation(fields: [patientId], references: [id])
   appointment              Appointment?        @relation(fields: [appointmentId], references: [id])
   lines                    InvoiceLine[]
   payments                 Payment[]
   documents                GeneratedDocument[]
+  voidedBy                 User?               @relation("InvoiceVoider", fields: [voidedByUserId], references: [id])
   createdAt                DateTime            @default(now())
 }
 
@@ -605,11 +614,12 @@ model Payment {
 }
 
 model Receipt {
-  id        String   @id @default(cuid())
-  number    String   @unique
-  paymentId String   @unique
-  payment   Payment  @relation(fields: [paymentId], references: [id])
-  issuedAt  DateTime @default(now())
+  id        String              @id @default(cuid())
+  number    String              @unique
+  paymentId String              @unique
+  payment   Payment             @relation(fields: [paymentId], references: [id])
+  issuedAt  DateTime            @default(now())
+  documents GeneratedDocument[]
 }
 
 model GeneratedDocument {
@@ -618,9 +628,11 @@ model GeneratedDocument {
   type        String
   status      String    @default("ISSUED")
   invoiceId   String?
+  receiptId   String?
   secureToken String?   @unique
   expiresAt   DateTime?
   invoice     Invoice?  @relation(fields: [invoiceId], references: [id])
+  receipt     Receipt?  @relation(fields: [receiptId], references: [id])
   createdAt   DateTime  @default(now())
 }
 
@@ -653,6 +665,22 @@ model AppointmentChangeRequest {
   @@index([status, proposedStartAt, expiresAt])
 }
 
+model AppointmentReminder {
+  id                 String      @id @default(cuid())
+  appointmentId      String
+  appointmentStartAt DateTime
+  status             String      @default("PREPARED")
+  actedByUserId      String?
+  actedAt            DateTime?
+  appointment        Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  actedBy            User?       @relation("ReminderActor", fields: [actedByUserId], references: [id])
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@unique([appointmentId, appointmentStartAt])
+  @@index([status, appointmentStartAt])
+}
+
 model ActivityLog {
   id         String   @id @default(cuid())
   userId     String?
@@ -664,6 +692,10 @@ model ActivityLog {
   afterJson  String?
   user       User?    @relation(fields: [userId], references: [id])
   createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action, createdAt])
+  @@index([userId, createdAt])
 }
 
 model LoginThrottle {
