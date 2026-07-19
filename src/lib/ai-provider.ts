@@ -8,7 +8,7 @@ export const patientAssistantSchema = z.object({
 });
 
 export const patientSummarySchema = z.object({
-  summary: z.string().trim().min(10).max(1600),
+  summary: z.string().trim().min(10).max(1600).describe("A concise, natural clinical handover in two to four complete sentences. Begin with 'The patient reports' or equivalent. Use plain prose only: no JSON, headings, bullets, field labels, diagnosis, advice, or invented facts."),
   fields: z.object({
     symptomOnset: z.string().max(240).nullable(),
     symptomDuration: z.string().max(240).nullable(),

@@ -980,7 +980,7 @@ textarea.input {
 .assistant-message { justify-self: start; background: #e8f2ed; }
 .patient-message { justify-self: end; background: #fff; border: 1px solid #d9e2de; }
 .patient-ai-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.patient-summary-approved, .booking-review-intake { display: grid; gap: 7px; border-left: 3px solid #4a8b75; padding: 11px 13px; background: #f4f8f6; }
+.patient-summary-approved, .booking-review-intake { display: grid; gap: 7px; padding: 14px 15px; border: 1px solid #c9ddd4; border-radius: 11px; background: oklch(0.97 0.012 165); }
 .patient-summary-approved p, .booking-review-intake p { margin: 0; line-height: 1.55; }
 .patient-summary-approved button, .booking-review-intake button { justify-self: start; border: 0; background: transparent; color: var(--green); font-weight: 750; cursor: pointer; }
 .patient-emergency-notice { display: flex; gap: 11px; border: 1px solid #e1a59c; border-radius: 11px; background: #fff3f0; padding: 14px; color: #702d26; }
@@ -1015,19 +1015,36 @@ textarea.input {
 .settings-switch-control { display: grid; width: 20px; height: 20px; place-items: center; border: 1.5px solid #8ba198; border-radius: 6px; background: #fff; color: #fff; transition: background-color var(--motion-instant) var(--ease-out-quart), border-color var(--motion-instant) var(--ease-out-quart), transform var(--motion-instant) var(--ease-out-quart); }
 .settings-switch-row.is-on .settings-switch-control { border-color: var(--green); background: var(--green); }
 .settings-switch-row.is-on .settings-switch-control { animation: control-confirm var(--motion-state) var(--ease-out-expo); }
-.clinical-intake-card { display: grid; gap: 14px; border: 1px solid #cddbd5; border-radius: 12px; padding: 15px; background: #fff; }
-.clinical-intake-heading h3 { margin: 4px 0 0; }
-.clinical-intake-copy { display: grid; gap: 5px; }
-.clinical-intake-copy p { margin: 0; line-height: 1.6; }
-.clinical-intake-copy.is-reviewed { border-left: 3px solid var(--green); padding-left: 12px; }
-.clinical-intake-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin: 0; }
-.clinical-intake-fields div { border: 1px solid #e0e7e3; border-radius: 9px; padding: 9px; }
+.appointment-panel-clinical { width: min(760px, 100%); }
+.clinical-intake-card { display: grid; gap: 16px; padding: 0; background: transparent; }
+.clinical-intake-heading { padding-bottom: 13px; border-bottom: 1px solid #dde7e2; }
+.clinical-intake-heading h3 { margin: 4px 0 0; font-size: 1.18rem; }
+.clinical-summary-lead { display: grid; gap: 10px; padding: 18px; border: 1px solid #c7dbd2; border-radius: 12px; background: oklch(0.975 0.011 165); }
+.clinical-summary-lead.is-clinician { border-color: #a9cbbd; background: oklch(0.96 0.018 165); }
+.clinical-summary-label { display: flex; align-items: center; gap: 8px; color: #315f51; font-size: 12px; font-weight: 800; letter-spacing: .02em; }
+.clinical-summary-label svg { flex: 0 0 auto; }
+.clinical-summary-lead p { max-width: 72ch; margin: 0; color: #1c3932; font-size: 15.5px; line-height: 1.72; }
+.clinical-summary-lead small { color: #657970; line-height: 1.5; }
+.clinical-verification-note { display: flex; align-items: flex-start; gap: 10px; padding: 11px 13px; border-radius: 10px; background: oklch(0.965 0.018 82); color: #6f531c; }
+.clinical-verification-note svg { flex: 0 0 auto; margin-top: 1px; }
+.clinical-verification-note div { display: grid; gap: 2px; }
+.clinical-verification-note b { font-size: 12px; }
+.clinical-verification-note span { font-size: 12px; line-height: 1.45; }
+.clinical-key-details { display: grid; gap: 7px; }
+.clinical-key-details h4 { margin: 0; font-size: 13px; }
+.clinical-intake-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 24px; margin: 0; }
+.clinical-intake-fields div { display: grid; grid-template-columns: minmax(82px, .7fr) minmax(0, 1.3fr); gap: 12px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid #e4ebe7; }
 .clinical-intake-fields dt { color: #687b74; font-size: 11px; font-weight: 750; }
-.clinical-intake-fields dd { margin: 4px 0 0; line-height: 1.45; }
+.clinical-intake-fields dd { margin: 0; color: #24433b; font-size: 13px; line-height: 1.45; }
 .clinical-intake-images { display: flex; flex-wrap: wrap; gap: 8px; }
 .clinical-intake-images a { display: inline-flex; align-items: center; gap: 5px; color: var(--green); font-weight: 750; }
-.clinical-intake-conversation { border-top: 1px solid #e0e7e3; padding-top: 10px; }
-.clinical-intake-conversation summary { cursor: pointer; font-weight: 750; }
+.clinical-intake-conversation { border-top: 1px solid #e0e7e3; padding-top: 12px; }
+.clinical-intake-conversation summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: #48675e; font-size: 13px; font-weight: 750; }
+.clinical-intake-conversation > p { color: #61756d; font-size: 12px; line-height: 1.55; }
+.clinical-source-copy { display: grid; gap: 4px; margin: 8px 0 12px; padding: 12px; border-radius: 9px; background: oklch(0.975 0.006 165); }
+.clinical-source-copy b { font-size: 12px; }
+.clinical-source-copy p { margin: 0; color: #49645b; font-size: 13px; line-height: 1.55; }
+.clinical-intake-actions { padding-top: 2px; }
 .clinical-ai-output { display: grid; gap: 10px; border-top: 1px solid #d8e4de; padding-top: 13px; }
 .clinical-ai-output textarea { min-height: 180px; }
 @media (max-width: 680px) {

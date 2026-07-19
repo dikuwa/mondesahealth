@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     }
     const result = await requestStructuredAi({
       schema: patientSummarySchema,
-      system: "Organise only the supplied patient-reported facts into a concise summary for a clinician. Attribute claims to the patient, preserve uncertainty, do not diagnose, prescribe, invent, or reassure. Return JSON with summary, fields, and unansweredQuestions. Use null for unknown structured fields.",
+      system: "Organise only the supplied patient-reported facts for a clinician. Write the summary as a natural, human clinical handover in two to four complete sentences with a clear chronological flow. Start with 'The patient reports' or an equivalent attribution, include useful pertinent negatives, and preserve uncertainty. The visible summary must be plain prose only: never include JSON, headings, bullets, field names, markdown, meta-commentary, or a list of unknown values. Do not diagnose, prescribe, invent, or reassure. Populate the separate structured fields for machine use and use null for unknown fields.",
       payload: parsed.data,
     });
     return NextResponse.json({ ...result.data, provider: result.provider, model: result.model });

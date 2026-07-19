@@ -431,7 +431,7 @@ export function AppointmentsManager({ rows, canUseClinicalAi }: { rows: Row[]; c
             onClick={() => setSelected(null)}
             aria-label="Close appointment details"
           />
-          <div className="appointment-panel">
+          <div className={`appointment-panel${selected.intake ? " appointment-panel-clinical" : ""}`}>
             <div className="appointment-panel-heading">
               <div>
                 <span className="eyebrow">{selected.reference}</span>
