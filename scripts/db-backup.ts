@@ -1,7 +1,7 @@
-import { chmod, mkdir } from "node:fs/promises";
-import { homedir } from "node:os";
+import { chmod, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { opensslDecryptArgs, opensslEncryptArgs, pipeCommands, postgresEnv, required, run } from "./db-backup-common";
+import { completed, opensslDecryptArgs, opensslEncryptArgs, pipeCommands, postgresEnv, required, run } from "./db-backup-common";
 
 async function main(){
   const connection=required("DIRECT_URL"),key=required("BACKUP_ENCRYPTION_KEY");
@@ -14,9 +14,17 @@ async function main(){
   const encrypt=run("openssl",opensslEncryptArgs(output),{stdio:["pipe","ignore","inherit"]});
   await pipeCommands(dump,encrypt,"pg_dump","backup encryption");
   await chmod(output,0o600);
-  const decrypt=run("openssl",opensslDecryptArgs(output),{stdio:["ignore","pipe","inherit"]});
-  const inspect=run("pg_restore",["--list"],{stdio:["pipe","ignore","inherit"]});
-  await pipeCommands(decrypt,inspect,"backup decryption check","pg_restore verification");
+  const verificationDirectory=await mkdtemp(join(tmpdir(),"mondesahealth-backup-check-"));
+  const decryptedBackup=join(verificationDirectory,"backup.dump");
+  try{
+    const decrypt=run("openssl",[...opensslDecryptArgs(output),"-out",decryptedBackup],{stdio:["ignore","ignore","inherit"]});
+    await completed(decrypt,"backup decryption check");
+    await chmod(decryptedBackup,0o600);
+    const inspect=run("pg_restore",["--list",decryptedBackup],{stdio:["ignore","ignore","inherit"]});
+    await completed(inspect,"pg_restore verification");
+  }finally{
+    await rm(verificationDirectory,{recursive:true,force:true});
+  }
   console.log(`Encrypted backup created and verified: ${output}`);
 }
 
