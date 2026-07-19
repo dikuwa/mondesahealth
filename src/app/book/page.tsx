@@ -52,8 +52,7 @@ export default async function BookPage() {
               <Phone size={19} aria-hidden="true" />
               <span>
                 <b>{emergencyContacts[0] ? `Emergency? Call ${emergencyContacts[0].phone}` : "Emergency guidance"}</b>
-                <small>Online booking is not an emergency service.</small>
-                {!emergencyContacts.length && <small>{neutralEmergencyMessage}</small>}
+                <small>{emergencyContacts.length ? "Online booking is not an emergency service." : `Online booking is not an emergency service. ${neutralEmergencyMessage}`}</small>
               </span>
             </div>
           </div>

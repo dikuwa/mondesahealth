@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
-import { AlertTriangle, Camera, Check, Loader2, MessageCircle, RotateCcw, Send, Trash2, X } from "lucide-react";
+import { AlertTriangle, Camera, Check, ImagePlus, Loader2, MessageCircle, RotateCcw, Send, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import type { PublicEmergencyContact } from "@/lib/emergency";
 import { INTAKE_CONSENT_VERSION } from "@/lib/intake-safety";
@@ -55,6 +55,9 @@ export function PatientIntakeAssistant({ reason, serviceId, providerId, aiAvaila
   const [summaryReady, setSummaryReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pendingRestart, setPendingRestart] = useState(false);
+  const [pendingCapture, setPendingCapture] = useState<IntakeImageDraft | null>(null);
+  const cameraInput = useRef<HTMLInputElement>(null);
+  const savedPhotoInput = useRef<HTMLInputElement>(null);
   const primary = emergencyContacts[0] ?? null;
 
   function begin() {
@@ -124,11 +127,52 @@ export function PatientIntakeAssistant({ reason, serviceId, providerId, aiAvaila
     finally { setLoading(false); }
   }
 
+  async function reviewCapture(files: FileList | null) {
+    const file = files?.[0];
+    if (!file) return;
+    if (!value.imageConsent) return toast.error("Please provide photo consent before taking a photo.");
+    if (value.images.length >= 3) return toast.error("You can add up to three photos.");
+    setLoading(true);
+    try {
+      const prepared = await privateImage(file);
+      if (pendingCapture) URL.revokeObjectURL(pendingCapture.preview);
+      setPendingCapture(prepared);
+    } catch (error) { toast.error(error instanceof Error ? error.message : "The photo could not be prepared."); }
+    finally {
+      setLoading(false);
+      if (cameraInput.current) cameraInput.current.value = "";
+    }
+  }
+
+  function acceptCapture() {
+    if (!pendingCapture) return;
+    onChange({ ...value, images: [...value.images, pendingCapture] });
+    setPendingCapture(null);
+    toast.success("Photo added for the doctor");
+  }
+
+  function discardCapture() {
+    if (pendingCapture) URL.revokeObjectURL(pendingCapture.preview);
+    setPendingCapture(null);
+  }
+
   return <div className="patient-intake-tools">
     <button className="btn btn-light patient-ai-trigger" type="button" onClick={begin} disabled={!reason.trim()}><MessageCircle size={16}/> Help me explain with AI</button>
     {value.redFlags.length > 0 && !open && <div className="patient-emergency-notice" role="alert"><AlertTriangle size={20}/><div><b>Urgent safety notice</b><p>{primary ? `Your description may require urgent medical attention. Do not wait for an online appointment. Call ${primary.label} on ${primary.phone} or go to the nearest emergency facility.` : "Your description may require urgent medical attention. Do not wait for an online appointment. Contact your nearest emergency service or go to the nearest emergency facility."}</p><p>Online booking is not an emergency service.</p>{primary && <a className="btn btn-danger" href={`tel:${primary.phone}`}>Call {primary.phone}</a>}<label className="booking-choice"><input type="checkbox" checked={value.emergencyNoticeAcknowledged} onChange={(event) => onChange({ ...value, emergencyNoticeAcknowledged: event.target.checked })}/><span>I have read and understand this urgent notice.</span></label></div></div>}
     {value.approvedSummary && <div className="patient-summary-approved"><span>AI-organised summary · Patient approved</span><p>{value.approvedSummary}</p><button type="button" onClick={() => { setSummary(value.approvedSummary); setSummaryReady(true); setOpen(true); }}>Edit summary</button><button type="button" onClick={() => onChange({ ...value, approvedSummary: "", patientApprovedAt: null })}>Discard AI summary</button></div>}
-    {imagesAvailable && <div className="patient-photo-tool"><label className="booking-choice"><input type="checkbox" checked={value.imageConsent} onChange={(event) => onChange({ ...value, imageConsent: event.target.checked })}/><span>Photos are optional and will be shared securely with the practice. A photo cannot confirm a diagnosis.</span></label><label className="btn btn-light patient-photo-button"><Camera size={16}/> Add a photo for the doctor<input className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" multiple onChange={(event) => addImages(event.target.files)}/></label></div>}
+    {imagesAvailable && <div className="patient-photo-tool">
+      <label className="booking-choice"><input type="checkbox" checked={value.imageConsent} onChange={(event) => onChange({ ...value, imageConsent: event.target.checked })}/><span>Photos are optional and will be shared securely with the practice. A photo cannot confirm a diagnosis.</span></label>
+      <div className="patient-photo-actions">
+        <button className="btn btn-light" type="button" disabled={!value.imageConsent || loading || value.images.length >= 3} onClick={() => cameraInput.current?.click()}><Camera size={16}/> Take a photo</button>
+        <button className="btn btn-light" type="button" disabled={!value.imageConsent || loading || value.images.length >= 3} onClick={() => savedPhotoInput.current?.click()}><ImagePlus size={16}/> Choose saved photos</button>
+      </div>
+      <input ref={cameraInput} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={(event) => reviewCapture(event.target.files)}/>
+      <input ref={savedPhotoInput} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => { void addImages(event.target.files); event.currentTarget.value = ""; }}/>
+      {pendingCapture && <div className="patient-capture-review" role="group" aria-label="Review captured photo">
+        <Image src={pendingCapture.preview} alt="Photo ready for review" width={240} height={180} unoptimized/>
+        <div><b>Is this photo clear enough?</b><small>Use this photo, or take another before sharing it with the practice.</small><div className="patient-capture-actions"><button className="btn btn-primary" type="button" onClick={acceptCapture}><Check size={16}/> Use this photo</button><button className="btn btn-light" type="button" onClick={() => cameraInput.current?.click()}><RotateCcw size={16}/> Take another</button><button className="text-button" type="button" onClick={discardCapture}>Cancel</button></div></div>
+      </div>}
+    </div>}
     {!!value.images.length && <div className="patient-image-previews">{value.images.map((image, index) => <figure key={`${image.filename}-${index}`}><Image src={image.preview} alt={`Selected symptom photo ${index + 1}`} width={120} height={90} unoptimized/><button type="button" aria-label={`Remove photo ${index + 1}`} onClick={() => { URL.revokeObjectURL(image.preview); onChange({ ...value, images: value.images.filter((_, itemIndex) => itemIndex !== index) }); }}><Trash2 size={15}/></button></figure>)}</div>}
     {open && <div className="patient-ai-panel" aria-label="AI-assisted symptom intake">
       <div className="patient-ai-heading"><div><b>AI-assisted symptom intake</b><small>Patient-reported information · Not a diagnosis</small></div><button type="button" aria-label="Close AI assistant" onClick={() => setOpen(false)}><X size={18}/></button></div>
