@@ -36,6 +36,7 @@ yarn-error.log*
 /prisma/*.db
 /prisma/*.db-journal
 /e2e-artifacts/
+/.neon
 
 # vercel
 .vercel
