@@ -61,6 +61,10 @@ describe("sick note safety contracts", () => {
   });
 
   it("renders a branded, signed PDF with a QR image", async () => {
+    const source = readFileSync(join(process.cwd(), "src/lib/sick-note-document.tsx"), "utf8");
+    expect(source).toContain(">Sick note</Text>");
+    expect(source).toContain("verificationHost(verificationUrl)");
+    expect(source).not.toContain('Scan to verify this certificate{"\\n"}{verificationUrl}');
     const url = "https://mondesahealth.vercel.app/verify/sick-note/secure-token";
     const qrDataUrl = await QRCode.toDataURL(url);
     const now = new Date("2026-07-20T12:00:00Z");

@@ -6,11 +6,14 @@ type Note = SickNote & { patient: { fullName: string; patientNumber: string; ide
 
 const s = StyleSheet.create({
   page: { padding: 42, fontFamily: "Onest", fontSize: 9.5, color: "#18332d", lineHeight: 1.45 },
-  header: { flexDirection: "row", justifyContent: "space-between", paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: "#d9e3df" },
-  practice: { marginTop: 8, fontSize: 7.5, color: "#60736d", textAlign: "right" },
-  eyebrow: { marginTop: 26, fontSize: 8, color: "#8c6526", letterSpacing: 1.4, fontWeight: 700 },
-  title: { marginTop: 5, fontFamily: "Inter Tight", fontSize: 24, fontWeight: 700 },
-  number: { marginTop: 4, color: "#60736d" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: "#d9e3df" },
+  headerBrand: { width: "40%" },
+  practice: { width: "60%", marginTop: 6, fontSize: 7.5, lineHeight: 1.35, color: "#60736d", textAlign: "right" },
+  eyebrow: { marginTop: 26, fontFamily: "Inter Tight", fontSize: 7.5, color: "#8c6526", letterSpacing: 1.1, fontWeight: 600 },
+  titleRow: { marginTop: 6, minHeight: 30, flexDirection: "row", alignItems: "flex-end" },
+  title: { fontFamily: "Inter Tight", fontSize: 23, lineHeight: 1.15, fontWeight: 700 },
+  titleDescriptor: { marginLeft: 9, marginBottom: 4, fontSize: 7.5, lineHeight: 1, color: "#60736d", letterSpacing: .45 },
+  number: { marginTop: 5, fontSize: 8.5, lineHeight: 1.3, color: "#60736d" },
   status: { marginTop: 12, padding: 8, backgroundColor: "#fff1d6", color: "#7a4b00", borderRadius: 4, fontWeight: 700 },
   grid: { marginTop: 20, flexDirection: "row", flexWrap: "wrap", borderWidth: 1, borderColor: "#d9e3df", borderRadius: 8 },
   cell: { width: "50%", padding: 10, borderBottomWidth: 1, borderBottomColor: "#e6eeeb" },
@@ -20,24 +23,26 @@ const s = StyleSheet.create({
   sectionTitle: { fontFamily: "Inter Tight", fontSize: 12, fontWeight: 700, marginBottom: 6 },
   prose: { padding: 14, borderRadius: 7, backgroundColor: "#f4f8f6", fontSize: 10.5, lineHeight: 1.55 },
   footerRow: { marginTop: 26, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
-  verify: { width: 160, alignItems: "flex-end" },
+  verify: { width: 160, alignItems: "center" },
   qr: { width: 74, height: 74 },
-  verifyText: { marginTop: 5, fontSize: 6.7, color: "#60736d", textAlign: "right" },
+  verifyTitle: { marginTop: 6, fontSize: 7.2, fontWeight: 700, color: "#18332d", textAlign: "center" },
+  verifyMeta: { marginTop: 2, fontSize: 6.4, lineHeight: 1.35, color: "#60736d", textAlign: "center" },
   footer: { position: "absolute", left: 42, right: 42, bottom: 26, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#d9e3df", fontSize: 6.8, color: "#60736d", flexDirection: "row", justifyContent: "space-between" },
 });
 
 const displayDate = (value: Date) => new Intl.DateTimeFormat("en-NA", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" }).format(value);
 const label = (value: string) => value.replaceAll("_", " ").toLowerCase().replace(/^./, (letter) => letter.toUpperCase());
+const verificationHost = (value?: string) => value?.replace(/^https?:\/\//, "").split("/")[0] || "";
 
 export function SickNoteDocument({ note, practice, qrDataUrl, verificationUrl }: { note: Note; practice: PracticeSetting; qrDataUrl?: string; verificationUrl?: string }) {
   return <Document title={`${note.certificateNumber} medical certificate`} author={practice.practiceName}>
     <Page size="A4" style={s.page}>
       <View style={s.header}>
-        <DocumentBrand />
+        <View style={s.headerBrand}><DocumentBrand /></View>
         <Text style={s.practice}>{practice.practiceName}{"\n"}Practice no: {practice.practiceNumber}{"\n"}{practice.address}{"\n"}{practice.phone} · {practice.email}</Text>
       </View>
       <Text style={s.eyebrow}>OFFICIAL DOCUMENT</Text>
-      <Text style={s.title}>Medical certificate</Text>
+      <View style={s.titleRow} wrap={false}><Text style={s.title}>Medical certificate</Text><Text style={s.titleDescriptor}>Sick note</Text></View>
       <Text style={s.number}>{note.certificateNumber}</Text>
       {note.status === "REVOKED" && <Text style={s.status}>REVOKED — THIS CERTIFICATE IS NO LONGER VALID</Text>}
       {note.status === "DRAFT" && <Text style={s.status}>DRAFT PREVIEW — NOT VALID UNTIL ISSUED</Text>}
@@ -60,8 +65,9 @@ export function SickNoteDocument({ note, practice, qrDataUrl, verificationUrl }:
           {qrDataUrl && verificationUrl ? <>
           {/* eslint-disable-next-line jsx-a11y/alt-text -- React PDF Image has no alt prop in its API. */}
           <Image src={qrDataUrl} style={s.qr} />
-          <Text style={s.verifyText}>Scan to verify this certificate{"\n"}{verificationUrl}</Text>
-          </> : <Text style={s.verifyText}>Draft preview only{"\n"}No verification record has been issued.</Text>}
+          <Text style={s.verifyTitle}>Scan to verify this sick note</Text>
+          <Text style={s.verifyMeta}>{note.certificateNumber}{"\n"}{verificationHost(verificationUrl)}</Text>
+          </> : <><Text style={s.verifyTitle}>Draft preview only</Text><Text style={s.verifyMeta}>No verification record has been issued.</Text></>}
         </View>
       </View>
       <View style={s.footer}><Text>{practice.practiceName} · {practice.registrationNumber}</Text><Text>Issued securely by Mondesa Health</Text></View>

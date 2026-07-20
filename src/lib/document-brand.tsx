@@ -12,12 +12,12 @@ Font.register({ family: "Inter Tight", fonts: [{ src: interTightSemiBoldPath, fo
 Font.register({ family: "Allura", src: alluraPath });
 
 const styles = StyleSheet.create({
-  logo: { flexDirection: "row", alignItems: "center", gap: 8 },
-  mark: { width: 36, height: 36 },
+  logo: { flexDirection: "row", alignItems: "center", gap: 9 },
+  mark: { width: 41, height: 41 },
   wordmark: { gap: 0 },
-  brandLine: { fontFamily: "Inter Tight", fontSize: 9, fontWeight: 700, lineHeight: .88, letterSpacing: .18, color: "#18332d" },
+  brandLine: { fontFamily: "Inter Tight", fontSize: 9.8, fontWeight: 700, lineHeight: .9, letterSpacing: .15, color: "#18332d" },
   brandHealth: { color: "#8c6526" },
-  brandSub: { marginTop: 2.5, fontFamily: "Inter Tight", fontSize: 4.4, fontWeight: 600, letterSpacing: 1.05, lineHeight: 1, color: "#60736d" },
+  brandSub: { marginTop: 2.7, fontFamily: "Inter Tight", fontSize: 4.7, fontWeight: 600, letterSpacing: 1.08, lineHeight: 1, color: "#60736d" },
   signatureBlock: { width: 180 },
   signatureLabel: { fontFamily: "Onest", fontSize: 8.5, color: "#18332d" },
   signatureName: { marginTop: 8, marginBottom: 7, fontFamily: "Allura", fontSize: 19, letterSpacing: -.55, lineHeight: 1.08, color: "#18332d", transform: "rotate(-3deg)" },
