@@ -1,28 +1,12 @@
-import path from "node:path";
-import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { Invoice, InvoiceLine, Patient, PracticeSetting } from "@prisma/client";
+import { DocumentBrand, DocumentSignature } from "@/lib/document-brand";
 
 type Data = Invoice & { patient: Patient; lines: InvoiceLine[] };
-
-const onestPath = path.join(process.cwd(), "public/fonts/Onest-Variable.ttf");
-const interTightSemiBoldPath = path.join(process.cwd(), "public/fonts/InterTight-SemiBold.ttf");
-const interTightBoldPath = path.join(process.cwd(), "public/fonts/InterTight-Bold.ttf");
-const alluraPath = path.join(process.cwd(), "public/fonts/Allura-Regular.ttf");
-const markPath = path.join(process.cwd(), "public/images/mondesa-mark.svg");
-
-Font.register({ family: "Onest", fonts: [{ src: onestPath, fontWeight: 400 }, { src: onestPath, fontWeight: 700 }] });
-Font.register({ family: "Inter Tight", fonts: [{ src: interTightSemiBoldPath, fontWeight: 600 }, { src: interTightBoldPath, fontWeight: 700 }] });
-Font.register({ family: "Allura", src: alluraPath });
 
 const s = StyleSheet.create({
   page: { fontFamily: "Onest", fontSize: 9, padding: 38, color: "#18332d" },
   header: { flexDirection: "row", justifyContent: "space-between", paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: "#cbd7d1" },
-  logo: { flexDirection: "row", alignItems: "center", gap: 9 },
-  mark: { width: 40, height: 40 },
-  wordmark: { gap: 0 },
-  brandLine: { fontFamily: "Inter Tight", fontSize: 13, fontWeight: 700, lineHeight: .9, color: "#18332d" },
-  brandHealth: { color: "#8c6526" },
-  brandSub: { marginTop: 2, fontFamily: "Inter Tight", fontSize: 5.5, fontWeight: 600, letterSpacing: 1.1, lineHeight: .9, color: "#60736d" },
   clinicDetails: { marginTop: 7, fontSize: 7.5, lineHeight: 1.08, color: "#60736d" },
   title: { fontFamily: "Inter Tight", fontSize: 24, fontWeight: 700, lineHeight: .95, textAlign: "right" },
   invoiceMeta: { marginTop: 5, color: "#60736d", lineHeight: 1.15, textAlign: "right" },
@@ -33,7 +17,6 @@ const s = StyleSheet.create({
   desc: { width: "43%" },
   cell: { width: "14%", textAlign: "right" },
   total: { flexDirection: "row", justifyContent: "flex-end", gap: 20, paddingTop: 7 },
-  signature: { fontFamily: "Allura", fontSize: 25, marginTop: 10, marginBottom: 2, transform: "rotate(-4deg)" },
   footer: { position: "absolute", bottom: 32, left: 38, right: 38, borderTopWidth: 1, borderTopColor: "#dce4df", paddingTop: 10, color: "#647871", fontSize: 8 },
 });
 
@@ -43,11 +26,7 @@ export function InvoiceDocument({ invoice, practice }: { invoice: Data; practice
     <Page size="A4" style={s.page}>
       <View style={s.header}>
         <View>
-          <View style={s.logo}>
-            {/* eslint-disable-next-line jsx-a11y/alt-text -- React PDF Image has no alt prop in its type/API. */}
-            <Image src={markPath} style={s.mark} />
-            <View style={s.wordmark}><Text style={s.brandLine}>{practice.practiceName}</Text><Text style={s.brandSub}>PRACTICE DOCUMENT</Text></View>
-          </View>
+          <DocumentBrand />
           <Text style={s.clinicDetails}>{practice.practiceName}{"\n"}{practice.doctorName}{"\n"}Practice no: {practice.practiceNumber}{"\n"}Registration no: {practice.registrationNumber}{"\n"}{practice.address}{"\n"}{practice.phone} · {practice.email}</Text>
         </View>
         <View>
@@ -58,7 +37,7 @@ export function InvoiceDocument({ invoice, practice }: { invoice: Data; practice
       <View style={s.block}><View><Text>PATIENT</Text><Text style={{ fontWeight: 700, marginTop: 5 }}>{invoice.patient.fullName}</Text><Text>{invoice.patient.patientNumber} · {invoice.patient.phone}</Text></View><View><Text style={{ textAlign: "right" }}>PAYMENT RESPONSIBILITY</Text><Text style={{ fontWeight: 700, textAlign: "right", marginTop: 5 }}>{invoice.responsibility.replaceAll("_", " ")}</Text></View></View>
       <View style={s.table}><View style={[s.row, { fontWeight: 700 }]}><Text style={s.desc}>Description</Text><Text style={s.cell}>Code</Text><Text style={s.cell}>Qty</Text><Text style={s.cell}>Rate</Text><Text style={s.cell}>Total</Text></View>{invoice.lines.map((line) => <View key={line.id} style={s.row} wrap={false}><Text style={s.desc}>{line.description}</Text><Text style={s.cell}>{line.tariffCode || "—"}</Text><Text style={s.cell}>{line.quantity}</Text><Text style={s.cell}>{fmt(line.rate)}</Text><Text style={s.cell}>{fmt(line.total)}</Text></View>)}</View>
       <View style={{ marginTop: 18 }}><View style={s.total}><Text>Subtotal</Text><Text style={{ width: 85, textAlign: "right" }}>{fmt(invoice.subtotal)}</Text></View><View style={s.total}><Text>Medical aid responsibility</Text><Text style={{ width: 85, textAlign: "right" }}>{fmt(invoice.medicalAidResponsibility)}</Text></View><View style={s.total}><Text>Patient responsibility</Text><Text style={{ width: 85, textAlign: "right" }}>{fmt(invoice.patientResponsibility)}</Text></View><View style={[s.total, { fontWeight: 700, fontSize: 12, borderTopWidth: 1, borderTopColor: "#18332d", marginTop: 7, paddingTop: 10 }]}><Text>Balance due</Text><Text style={{ width: 85, textAlign: "right" }}>{fmt(invoice.total - invoice.patientPaid - invoice.medicalAidPaid)}</Text></View></View>
-      <View style={{ marginTop: 38 }}><Text>Authorised signatory</Text><Text style={s.signature}>{practice.signatureName}</Text><Text>{practice.signatureTitle}</Text></View>
+      <View style={{ marginTop: 38 }}><DocumentSignature name={practice.signatureName} title={practice.signatureTitle} /></View>
       <View style={s.footer}><Text>{practice.practiceName} · {practice.address} · {practice.phone}</Text><Text style={{ marginTop: 4 }}>This document was generated securely from the practice management system. Page 1</Text></View>
     </Page>
   </Document>;
