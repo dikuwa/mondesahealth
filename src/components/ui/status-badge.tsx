@@ -19,7 +19,7 @@ const labelMap: Record<string, string> = {
 const success = new Set(["ACTIVE", "ENABLED", "PAID", "COMPLETE", "COMPLETED", "CONFIRMED", "CURRENT", "READY", "READY_TO_SUBMIT", "ACKNOWLEDGED"]);
 const info = new Set(["PUBLISHED", "SUBMITTED", "BATCHED", "ISSUED", "READY_FOR_REVIEW"]);
 const warning = new Set(["DRAFT", "FUTURE", "NEEDS_INFORMATION", "INCOMPLETE", "NEW_REQUEST", "PARTIALLY_PAID", "PENDING", "PENDING_CONFIRMATION", "RESCHEDULE_PROPOSED", "RESCHEDULE_REQUESTED", "REVIEW_REQUIRED", "SETUP_NEEDED", "BASELINE_REFERENCE"]);
-const danger = new Set(["COMING_SOON", "CANCELLED", "NO_SHOW", "REJECTED", "RESUBMISSION_REQUIRED", "FAILED", "ERROR"]);
+const danger = new Set(["COMING_SOON", "CANCELLED", "NO_SHOW", "REJECTED", "REVOKED", "RESUBMISSION_REQUIRED", "FAILED", "ERROR"]);
 const neutral = new Set(["DISABLED", "HIDDEN", "PRIVATE", "HISTORICAL"]);
 
 export type StatusTone = "success" | "info" | "warning" | "danger" | "neutral";

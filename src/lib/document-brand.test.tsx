@@ -18,7 +18,7 @@ describe("shared PDF branding", () => {
   });
 
   it("is used by every generated document family", () => {
-    for (const file of ["invoice-document.tsx", "receipt-document.tsx", "claim-documents.tsx"]) {
+    for (const file of ["invoice-document.tsx", "receipt-document.tsx", "claim-documents.tsx", "sick-note-document.tsx"]) {
       const value = readFileSync(join(process.cwd(), "src/lib", file), "utf8");
       expect(value).toContain("DocumentBrand");
       expect(value).toContain("DocumentSignature");

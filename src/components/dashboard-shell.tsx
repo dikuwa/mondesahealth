@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ExternalLink,
   FileHeart,
+  FileText,
   Gauge,
   HeartPulse,
   LogOut,
@@ -44,6 +45,7 @@ const sections = [
     items: [
       ["Medical aid claims", "/dashboard/claims", FileHeart, "MANAGE_CLAIMS"],
       ["Claim batches", "/dashboard/claim-batches", FileHeart, "MANAGE_CLAIM_BATCHES"],
+      ["Sick notes", "/dashboard/sick-notes", FileText, "VIEW_SICK_NOTES"],
       ["Finance", "/dashboard/finance", Banknote, "MANAGE_FINANCE"],
       [
         "Availability",
@@ -72,6 +74,7 @@ const pageNames: Record<string, string> = {
   "/dashboard/patients": "Patients",
   "/dashboard/claims": "Medical aid claims",
   "/dashboard/claim-batches": "Claim batches",
+  "/dashboard/sick-notes": "Sick notes",
   "/dashboard/medical-aid": "Medical aid settings",
   "/dashboard/finance": "Finance",
   "/dashboard/availability": "Availability",

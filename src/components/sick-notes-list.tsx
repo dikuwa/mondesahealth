@@ -1,0 +1,21 @@
+"use client";
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { Copy, Download, Mail, MessageCircle, Search } from "lucide-react";
+import toast from "react-hot-toast";
+import { CustomSelect } from "@/components/ui/custom-select";
+import { DatePicker } from "@/components/ui/date-picker";
+import { StatusBadge } from "@/components/ui/status-badge";
+
+type Row = { id: string; certificateNumber: string; patient: string; purpose: string; status: string; consultationDate: string; leaveFrom: string; leaveTo: string; doctor: string };
+export function SickNotesList({ rows, canManage }: { rows: Row[]; canManage: boolean }) {
+  const [query, setQuery] = useState(""), [status, setStatus] = useState("ALL"), [purpose, setPurpose] = useState("ALL"), [from, setFrom] = useState(""), [to, setTo] = useState("");
+  const visible = useMemo(() => rows.filter((row) => (!query.trim() || `${row.certificateNumber} ${row.patient} ${row.doctor}`.toLowerCase().includes(query.toLowerCase())) && (status === "ALL" || row.status === status) && (purpose === "ALL" || row.purpose === purpose) && (!from || row.consultationDate.slice(0, 10) >= from) && (!to || row.consultationDate.slice(0, 10) <= to)), [rows, query, status, purpose, from, to]);
+  async function share(row: Row, channel: "COPY" | "WHATSAPP" | "EMAIL") {
+    const response = await fetch(`/api/sick-notes/${row.id}/share`, { method: "POST" }); const data = await response.json();
+    if (!response.ok) return toast.error(data.error || "Could not prepare sharing.");
+    if (channel === "COPY") { await navigator.clipboard.writeText(data.message); toast.success("Secure verification message copied"); }
+    else window.open(channel === "WHATSAPP" ? data.whatsappUrl : data.emailUrl || `mailto:?body=${encodeURIComponent(data.message)}`, "_self");
+  }
+  return <><div className="manager-toolbar"><div className="claim-filters"><div className="search-box"><Search size={17} /><input className="input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search certificate, patient or doctor" /></div><CustomSelect value={status} onChange={setStatus} options={["ALL", "DRAFT", "ISSUED", "REVOKED"].map((value) => ({ value, label: value === "ALL" ? "All statuses" : value }))} /><CustomSelect value={purpose} onChange={setPurpose} options={["ALL", "WORK", "SCHOOL", "OTHER"].map((value) => ({ value, label: value === "ALL" ? "All purposes" : value }))} /><DatePicker className="sick-note-filter-date" value={from} onChange={setFrom} ariaLabel="Consultation date from" placeholder="From date" /><DatePicker className="sick-note-filter-date" value={to} onChange={setTo} ariaLabel="Consultation date to" placeholder="To date" min={from || undefined} /></div></div><section className="card dashboard-card" style={{ padding: 20 }}>{visible.length ? <><div className="table-scroll"><table className="data-table"><thead><tr><th>Certificate</th><th>Patient</th><th>Consultation</th><th>Leave</th><th>Doctor</th><th>Status</th><th>Actions</th></tr></thead><tbody>{visible.map((row) => <tr key={row.id}><td><Link href={`/dashboard/sick-notes/${row.id}`}><b>{row.certificateNumber}</b></Link><small style={{ display: "block" }}>{row.purpose.toLowerCase()}</small></td><td>{row.patient}</td><td>{new Date(row.consultationDate).toLocaleDateString("en-NA")}</td><td>{new Date(row.leaveFrom).toLocaleDateString("en-NA")} – {new Date(row.leaveTo).toLocaleDateString("en-NA")}</td><td>{row.doctor}</td><td><StatusBadge value={row.status} /></td><td><div className="table-actions">{row.status === "ISSUED" && <><a className="icon-action" href={`/api/sick-notes/${row.id}/pdf?download=1`} aria-label="Download"><Download size={16} /></a>{canManage && <><button className="icon-action" onClick={() => share(row, "COPY")} aria-label="Copy sharing message"><Copy size={16} /></button><button className="icon-action" onClick={() => share(row, "WHATSAPP")} aria-label="Share on WhatsApp"><MessageCircle size={16} /></button><button className="icon-action" onClick={() => share(row, "EMAIL")} aria-label="Share by email"><Mail size={16} /></button></>}</>}</div></td></tr>)}</tbody></table></div></> : <div className="dashboard-inline-empty"><b>No matching sick notes</b><p>Create a draft or adjust the filters.</p></div>}</section></>;
+}

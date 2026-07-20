@@ -33,7 +33,11 @@ export const clinicianAssistantSchema = z.object({
   icd10SearchTerms: z.array(z.string().trim().max(120)).max(8),
 });
 
-export type AiCapability = "PATIENT_QUESTIONS" | "PATIENT_SUMMARY" | "CLINICIAN_ASSISTANCE";
+export const sickNoteWordingSchema = z.object({
+  wording: z.string().trim().min(10).max(2500).describe("Professional medical-certificate wording based only on the supplied clinician notes. Plain prose only."),
+});
+
+export type AiCapability = "PATIENT_QUESTIONS" | "PATIENT_SUMMARY" | "CLINICIAN_ASSISTANCE" | "SICK_NOTE_WORDING";
 
 export function normalizeAiRedFlagCategory(category: string | null) {
   const value = category?.trim() || null;
@@ -54,7 +58,7 @@ export function configuredAiProvider() {
 
 export function aiCapabilities() {
   const configured = Boolean(configuredAiProvider());
-  return { configured, imageInput: false, capabilities: configured ? ["PATIENT_QUESTIONS", "PATIENT_SUMMARY", "CLINICIAN_ASSISTANCE"] as AiCapability[] : [] };
+  return { configured, imageInput: false, capabilities: configured ? ["PATIENT_QUESTIONS", "PATIENT_SUMMARY", "CLINICIAN_ASSISTANCE", "SICK_NOTE_WORDING"] as AiCapability[] : [] };
 }
 
 export async function requestStructuredAi<T>({

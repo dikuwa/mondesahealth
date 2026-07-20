@@ -58,6 +58,7 @@ export default async function Appointments({
   const session = await getSession();
   const canViewIntake = session?.role === "OWNER" || session?.permissions.includes("VIEW_CLINICAL_INTAKE");
   const canUseClinicalAi = session?.role === "OWNER" || session?.permissions.includes("USE_CLINICAL_AI");
+  const canManageSickNotes = Boolean(session && (session.role === "OWNER" || (["ADMIN", "DOCTOR"].includes(session.role) && session.permissions.includes("MANAGE_SICK_NOTES"))));
   const [rows, patients, reminders, bookingDepartments] = await Promise.all([
     db.appointment.findMany({
       where,
@@ -135,7 +136,7 @@ export default async function Appointments({
         action={<ManualAppointment patients={patients} departments={bookingDepartments} />}
       />
       <ReminderQueue reminders={reminders.map(item=>({...item,appointmentStartAt:item.appointmentStartAt.toISOString()}))} />
-      <AppointmentsManager rows={serialised} canUseClinicalAi={Boolean(canUseClinicalAi)} />
+      <AppointmentsManager rows={serialised} canUseClinicalAi={Boolean(canUseClinicalAi)} canManageSickNotes={canManageSickNotes} />
     </>
   );
 }

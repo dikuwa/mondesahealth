@@ -9,6 +9,7 @@ const access:Record<string,Permission>={
   "/dashboard/appointments":"MANAGE_APPOINTMENTS",
   "/dashboard/patients":"MANAGE_PATIENTS",
   "/dashboard/claims":"MANAGE_CLAIMS",
+  "/dashboard/sick-notes":"VIEW_SICK_NOTES",
   "/dashboard/finance":"MANAGE_FINANCE",
   "/dashboard/availability":"MANAGE_AVAILABILITY",
   "/dashboard/settings":"MANAGE_PRACTICE",
@@ -21,8 +22,11 @@ export default async function proxy(request:NextRequest){
   if(!token)return NextResponse.redirect(new URL("/login",request.url));
   try{
     const {payload}=await jwtVerify(token,secret,{issuer:SESSION_ISSUER,audience:SESSION_AUDIENCE});
-    const permission=access[request.nextUrl.pathname];
-    if(permission&&payload.role!=="OWNER"&&(!Array.isArray(payload.permissions)||!payload.permissions.includes(permission))){
+    const permission=Object.entries(access)
+      .sort(([left],[right])=>right.length-left.length)
+      .find(([path])=>request.nextUrl.pathname===path||request.nextUrl.pathname.startsWith(`${path}/`))?.[1];
+    const roleDefaultSickNoteAccess=permission==="VIEW_SICK_NOTES"&&["ADMIN","DOCTOR"].includes(String(payload.role));
+    if(permission&&payload.role!=="OWNER"&&!roleDefaultSickNoteAccess&&(!Array.isArray(payload.permissions)||!payload.permissions.includes(permission))){
       return new NextResponse("Forbidden",{status:403,headers:{"Cache-Control":"no-store"}});
     }
     return NextResponse.next();

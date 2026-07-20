@@ -56,6 +56,7 @@ type Counts = {
   claims: number;
   batches: number;
   attachments: number;
+  sickNotes: number;
   activity: number;
 };
 
@@ -581,7 +582,8 @@ function DataResetTab({ isOwner }: { isOwner: boolean }) {
           counts.payments +
           counts.claims +
           counts.batches +
-          counts.attachments
+          counts.attachments +
+          counts.sickNotes
         : 0,
     [counts],
   );
@@ -635,6 +637,7 @@ function DataResetTab({ isOwner }: { isOwner: boolean }) {
             ["Invoices / payments", counts.invoices + counts.payments],
             ["Claims / batches", counts.claims + counts.batches],
             ["Attachments", counts.attachments],
+            ["Sick notes", counts.sickNotes],
             ["Activity entries", counts.activity],
           ].map(([label, value]) => (
             <div key={String(label)}>

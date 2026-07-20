@@ -12,11 +12,11 @@ async function requireOwner() {
 }
 
 const count = async () => {
-  const [patients, appointments, invoices, payments, claims, batches, attachments, activity, reminders, receipts, documents, storage] = await Promise.all([
+  const [patients, appointments, invoices, payments, claims, batches, attachments, sickNotes, activity, reminders, receipts, documents, storage] = await Promise.all([
     db.patient.count(), db.appointment.count(), db.invoice.count(), db.payment.count(), db.claim.count(), db.claimBatch.count(), db.claimAttachment.count(),
-    db.activityLog.count(), db.appointmentReminder.count(),db.receipt.count(),db.generatedDocument.count(),db.claimAttachment.aggregate({_sum:{fileSize:true}}),
+    db.sickNote.count(), db.activityLog.count(), db.appointmentReminder.count(),db.receipt.count(),db.generatedDocument.count(),db.claimAttachment.aggregate({_sum:{fileSize:true}}),
   ]);
-  return { patients, appointments, invoices, payments, claims, batches, attachments, activity, reminders, receipts, documents, attachmentBytes:storage._sum.fileSize||0 };
+  return { patients, appointments, invoices, payments, claims, batches, attachments, sickNotes, activity, reminders, receipts, documents, attachmentBytes:storage._sum.fileSize||0 };
 };
 
 export async function GET() {
@@ -58,6 +58,7 @@ export async function POST(request: Request) {
       await tx.secureLink.deleteMany();
       await tx.medicalAidConsent.deleteMany();
       await tx.patientMedicalAid.deleteMany();
+      await tx.sickNote.deleteMany();
       await tx.appointment.deleteMany();
       await tx.patient.deleteMany();
       await tx.blockedTime.deleteMany();

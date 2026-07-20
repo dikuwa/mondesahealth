@@ -57,10 +57,11 @@ export async function DELETE(request:Request){
     appointments:{select:{id:true}},payments:{select:{id:true}},logs:{select:{id:true}},appointmentResponses:{select:{id:true}},
     icd10Imports:{select:{id:true}},consentsCaptured:{select:{id:true}},claimsCreated:{select:{id:true}},claimEvents:{select:{id:true}},
     batchesSubmitted:{select:{id:true}},claimAttachments:{select:{id:true}},notifications:{select:{id:true}},
+    sickNotesAsDoctor:{select:{id:true}},sickNotesCreated:{select:{id:true}},sickNotesUpdated:{select:{id:true}},
   }});
   if(!target)return NextResponse.json({error:"Staff account not found."},{status:404});
   if(target.role==="OWNER")return NextResponse.json({error:"Owner accounts cannot be deleted from the dashboard. Disable or transfer ownership first."},{status:409});
-  const protectedReferences=target.appointments.length+target.payments.length+target.logs.length+target.appointmentResponses.length+target.icd10Imports.length+target.consentsCaptured.length+target.claimsCreated.length+target.claimEvents.length+target.batchesSubmitted.length+target.claimAttachments.length;
+  const protectedReferences=target.appointments.length+target.payments.length+target.logs.length+target.appointmentResponses.length+target.icd10Imports.length+target.consentsCaptured.length+target.claimsCreated.length+target.claimEvents.length+target.batchesSubmitted.length+target.claimAttachments.length+target.sickNotesAsDoctor.length+target.sickNotesCreated.length+target.sickNotesUpdated.length;
   if(protectedReferences>0)return NextResponse.json({error:`This user is linked to ${protectedReferences} audit, clinical, payment or claim record${protectedReferences===1?"":"s"}. Disable the account instead to preserve history.`},{status:409});
   await db.$transaction(async(tx)=>{
     await tx.notification.deleteMany({where:{userId:target.id}});

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CreditCard, Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { CreditCard, FileText, Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
@@ -54,9 +54,11 @@ const localPhone = (phone: string) => {
 export function PatientManager({
   initial,
   funds,
+  canManageSickNotes = false,
 }: {
   initial: Patient[];
   funds: Fund[];
+  canManageSickNotes?: boolean;
 }) {
   const router = useRouter();
   const [patients, setPatients] = useState(initial),
@@ -263,6 +265,7 @@ export function PatientManager({
                   <td>{p.visits}</td>
                   <td>
                     <div className="table-actions">
+                      {canManageSickNotes && <Link className="icon-action" href={`/dashboard/sick-notes/new?patient=${p.id}`} aria-label={`Create sick note for ${p.fullName}`} title="Create sick note"><FileText size={16}/></Link>}
                       <Link className="icon-action" href={`/dashboard/patients/${p.id}/medical-aid`} aria-label={`Benefits profile for ${p.fullName}`} title="Medical aid"><CreditCard size={16}/></Link>
                       <button
                         className="icon-action"
