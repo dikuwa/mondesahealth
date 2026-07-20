@@ -77,6 +77,7 @@ export async function PATCH(request: Request, { params }: Context) {
         if (!current) throw new Error("NOT_FOUND");
         if (current.status !== "ISSUED") throw new Error("NOT_ISSUED");
         const revoked = await tx.sickNote.update({ where: { id }, data: { status: "REVOKED", revokedAt: new Date(), revokedReason: reason, updatedById: session.id } });
+        await tx.generatedDocument.updateMany({ where: { sickNoteId: id, type: "SICK_NOTE_SHARE", status: "ISSUED" }, data: { status: "REVOKED" } });
         await tx.activityLog.create({ data: { userId: session.id, action: "SICK_NOTE_REVOKED", entityType: "SickNote", entityId: id, summary: `${revoked.certificateNumber} revoked: ${reason}` } });
         return revoked;
       });

@@ -1,11 +1,12 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, Copy, Download, Eye, Loader2, Mail, MessageCircle, Plus, ReceiptText, Share2, WalletCards, X } from "lucide-react";
+import { Ban, Download, Eye, Loader2, Plus, ReceiptText, Share2, WalletCards, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { DocumentPreviewModal, DocumentShareModal } from "@/components/ui/document-actions";
 import { money } from "@/lib/utils";
 type Patient = { id: string; fullName: string };
 type Invoice = {
@@ -69,8 +70,6 @@ export function FinanceManager({
     try { const response=await fetch(`/api/receipts/${item.receipt.id}/share`,{method:"POST"});const data=await response.json();if(!response.ok)throw new Error(data.error);setShare({link:data.link,message:data.message}); }
     catch(error){toast.error(error instanceof Error?error.message:"Could not prepare receipt sharing");setSharing(null)}
   }
-  async function copyLink() { if (!share) return; await navigator.clipboard.writeText(share.link); toast.success("Secure link copied"); }
-  async function copyMessage() { if (!share) return; await navigator.clipboard.writeText(share.message); toast.success("Message copied"); }
   function updateShareMessage(message: string) {
     if (!sharing || !share) return;
     const next = { ...share, message };
@@ -389,8 +388,8 @@ export function FinanceManager({
           ))}
         </div>
       )}
-      {viewing && <div className="appointment-modal finance-preview-modal" role="dialog" aria-modal="true"><button className="appointment-modal-backdrop" aria-label="Close preview" onClick={() => setViewing(null)} /><div className="appointment-panel"><div className="appointment-panel-heading"><div><span className="eyebrow">Invoice preview</span><h2>{viewing.number}</h2></div><button type="button" aria-label="Close" onClick={() => setViewing(null)}><X size={20} /></button></div><iframe className="finance-preview-frame" title={`Preview ${viewing.number}`} src={`/api/documents/${viewing.id}/pdf`} /><div className="appointment-panel-actions"><button className="btn btn-light" onClick={() => setViewing(null)}>Close</button><a className="btn btn-light" href={`/api/documents/${viewing.id}/pdf?download=1`} download><Download size={15}/> Download PDF</a><button className="btn btn-primary" onClick={() => createShare(viewing)}><Share2 size={15}/> Share</button></div></div></div>}
-      {sharing && <div className="appointment-modal" role="dialog" aria-modal="true"><button className="appointment-modal-backdrop" aria-label="Close share" onClick={() => { setSharing(null); setShare(null); }} /><div className="appointment-panel"><div className="appointment-panel-heading"><div><span className="eyebrow">Secure sharing</span><h2>Share {sharing.number}</h2><p>Review the message before opening a sharing option. Opening an app does not mark it delivered.</p></div><button type="button" aria-label="Close" onClick={() => { setSharing(null); setShare(null); }}><X size={20} /></button></div>{share ? <div className="appointment-form-grid"><div className="share-link-box dashboard-span-all"><b>Secure link</b><span>{share.link}</span></div><label className="field dashboard-span-all"><span>Message</span><textarea className="input share-message-preview" value={share.message} onChange={(event)=>updateShareMessage(event.target.value)} /></label><div className="share-actions dashboard-span-all"><a className="btn btn-primary" href={`https://wa.me/${(sharing.patientWhatsapp || sharing.patientPhone).replace(/\D/g, "")}?text=${encodeURIComponent(share.message)}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={15}/> WhatsApp</a>{sharing.patientEmail && <a className="btn btn-light" href={`mailto:${encodeURIComponent(sharing.patientEmail)}?subject=${encodeURIComponent(`${shareKind==="receipt"?"Receipt":"Invoice"} ${sharing.number} - Mondesa Health`)}&body=${encodeURIComponent(share.message)}`}><Mail size={15}/> Email</a>}<button className="btn btn-light" onClick={copyMessage}><Copy size={15} /> Copy message</button><button className="btn btn-light" onClick={copyLink}><Copy size={15} /> Copy link</button>{"share" in navigator && <button className="btn btn-light" onClick={() => navigator.share({ title: `${shareKind==="receipt"?"Receipt":"Invoice"} ${sharing.number}`, text: share.message, url: share.link })}>More sharing options</button>}</div></div> : <div className="share-loading"><Loader2 className="toast-spinner" size={18} /> Creating secure link…</div>}</div></div>}
+      <DocumentPreviewModal open={Boolean(viewing)} eyebrow="Invoice preview" number={viewing?.number || ""} previewUrl={viewing ? `/api/documents/${viewing.id}/pdf` : ""} downloadUrl={viewing ? `/api/documents/${viewing.id}/pdf?download=1` : undefined} onClose={() => setViewing(null)} onShare={viewing ? () => createShare(viewing) : undefined} />
+      <DocumentShareModal open={Boolean(sharing)} number={sharing?.number || ""} kind={shareKind === "receipt" ? "Receipt" : "Invoice"} share={share} patientPhone={sharing?.patientPhone || ""} patientWhatsapp={sharing?.patientWhatsapp || null} patientEmail={sharing?.patientEmail || null} onMessageChange={updateShareMessage} onClose={() => { setSharing(null); setShare(null); }} />
       {newReceipt&&<div className="appointment-modal" role="dialog" aria-modal="true"><button className="appointment-modal-backdrop" aria-label="Close receipt" onClick={()=>setNewReceipt(null)}/><div className="appointment-panel"><div className="appointment-panel-heading"><div><span className="eyebrow">Payment recorded</span><h2>{newReceipt.number}</h2><p>The receipt is ready now. Sharing still requires a manual staff action.</p></div><button aria-label="Close" onClick={()=>setNewReceipt(null)}><X/></button></div><iframe className="finance-preview-frame" title={`Preview ${newReceipt.number}`} src={`/api/receipts/${newReceipt.id}/pdf`}/><div className="appointment-panel-actions"><a className="btn btn-primary" href={`/api/receipts/${newReceipt.id}/pdf?download=1`} download><Download size={15}/> Download receipt</a><button className="btn btn-light" onClick={()=>setNewReceipt(null)}>Close</button></div></div></div>}
       <PromptDialog
         open={Boolean(voiding)}

@@ -42,6 +42,18 @@ describe("sick note safety contracts", () => {
     expect(source).toContain("maskedPatientName");
   });
 
+  it("shares issued certificates through expiring Finance-style document links", () => {
+    const shareRoute = readFileSync(join(process.cwd(), "src/app/api/sick-notes/[id]/share/route.ts"), "utf8");
+    const publicDocumentRoute = readFileSync(join(process.cwd(), "src/app/d/[token]/route.tsx"), "utf8");
+    expect(shareRoute).toContain("generatedDocument.create");
+    expect(shareRoute).toContain('type: "SICK_NOTE_SHARE"');
+    expect(shareRoute).toContain("addDays(new Date(), 14)");
+    expect(shareRoute).not.toContain("doctorNotes");
+    expect(shareRoute).not.toContain("diagnosisPlainText");
+    expect(publicDocumentRoute).toContain("SickNoteDocument");
+    expect(publicDocumentRoute).toContain('document.sickNote.status !== "ISSUED"');
+  });
+
   it("removes sick notes before patients during operational reset", () => {
     const source = readFileSync(join(process.cwd(), "src/app/api/practice/reset/route.ts"), "utf8");
     expect(source.indexOf("tx.sickNote.deleteMany")).toBeLessThan(source.indexOf("tx.patient.deleteMany"));

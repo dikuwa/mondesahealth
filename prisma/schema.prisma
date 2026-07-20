@@ -665,11 +665,15 @@ model GeneratedDocument {
   status      String    @default("ISSUED")
   invoiceId   String?
   receiptId   String?
+  sickNoteId  String?
   secureToken String?   @unique
   expiresAt   DateTime?
   invoice     Invoice?  @relation(fields: [invoiceId], references: [id])
   receipt     Receipt?  @relation(fields: [receiptId], references: [id])
+  sickNote    SickNote? @relation(fields: [sickNoteId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
+
+  @@index([sickNoteId, type, status])
 }
 
 model SecureLink {
@@ -735,9 +739,9 @@ model ActivityLog {
 }
 
 model SickNote {
-  id                  String       @id @default(cuid())
-  certificateNumber   String       @unique
-  verificationToken   String?      @unique
+  id                  String              @id @default(cuid())
+  certificateNumber   String              @unique
+  verificationToken   String?             @unique
   patientId           String
   appointmentId       String?
   doctorUserId        String
@@ -749,24 +753,25 @@ model SickNote {
   returnDate          DateTime
   fitnessStatus       String
   restrictions        String?
-  diagnosisDisclosure String       @default("NOT_DISCLOSED")
+  diagnosisDisclosure String              @default("NOT_DISCLOSED")
   diagnosisPlainText  String?
   doctorNotes         String
-  certificateWording  String       @default("")
-  aiDraftUsed         Boolean      @default(false)
-  status              String       @default("DRAFT")
+  certificateWording  String              @default("")
+  aiDraftUsed         Boolean             @default(false)
+  status              String              @default("DRAFT")
   issuedAt            DateTime?
   revokedAt           DateTime?
   revokedReason       String?
   createdById         String
   updatedById         String
-  patient             Patient      @relation(fields: [patientId], references: [id])
-  appointment         Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
-  doctor              User         @relation("SickNoteDoctor", fields: [doctorUserId], references: [id])
-  createdBy           User         @relation("SickNoteCreator", fields: [createdById], references: [id])
-  updatedBy           User         @relation("SickNoteUpdater", fields: [updatedById], references: [id])
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  patient             Patient             @relation(fields: [patientId], references: [id])
+  appointment         Appointment?        @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  doctor              User                @relation("SickNoteDoctor", fields: [doctorUserId], references: [id])
+  createdBy           User                @relation("SickNoteCreator", fields: [createdById], references: [id])
+  updatedBy           User                @relation("SickNoteUpdater", fields: [updatedById], references: [id])
+  generatedDocuments  GeneratedDocument[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
   @@index([status, createdAt])
   @@index([patientId, consultationDate])

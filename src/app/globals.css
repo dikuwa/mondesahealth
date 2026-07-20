@@ -2528,6 +2528,17 @@ textarea.input {
 .record-card-list .record-card {
   pointer-events: none;
 }
+.sick-notes-table-card {
+  padding: 20px;
+}
+.sick-notes-table .table-actions {
+  flex-wrap: nowrap;
+}
+.sick-note-card-list .record-card-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .record-card {
   display: grid;
   gap: 7px;
@@ -3155,7 +3166,8 @@ details[open] > :not(summary) {
   .patient-table,
   .finance-table,
   .claims-table,
-  .staff-table {
+  .staff-table,
+  .sick-notes-table {
     display: none;
   }
   .record-card-list {

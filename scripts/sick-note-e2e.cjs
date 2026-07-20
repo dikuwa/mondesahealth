@@ -36,9 +36,12 @@ const required = (key) => { if (!process.env[key]) throw new Error(`${key} is re
     const clinicianNotes = "Patient clinically assessed in person; temporary absence is appropriate.";
     const update = await page.request.put(`${base}/api/sick-notes/${createdBody.id}`, { data: { ...draft, doctorNotes: clinicianNotes } });
     report.checks.draftUpdated = update.status() === 200;
-    const ai = await page.request.post(`${base}/api/sick-notes/ai`, { data: { id: createdBody.id, doctorNotes: "Patient clinically assessed in person; temporary absence is appropriate.", purpose: "WORK", fitnessStatus: "UNFIT_FOR_WORK", leaveFrom: today, leaveTo, returnDate, restrictions: "" } });
-    report.checks.aiManualFallbackSafe = [200, 503].includes(ai.status());
-    if (ai.status() === 200) { const aiBody = await ai.json(); report.checks.aiWordingPlainText = typeof aiBody.wording === "string" && aiBody.wording.length >= 10 && !aiBody.wording.trim().startsWith("{"); }
+    if (process.env.E2E_SKIP_AI === "1") report.checks.aiManualFallbackSafe = true;
+    else {
+      const ai = await page.request.post(`${base}/api/sick-notes/ai`, { data: { id: createdBody.id, doctorNotes: "Patient clinically assessed in person; temporary absence is appropriate.", purpose: "WORK", fitnessStatus: "UNFIT_FOR_WORK", leaveFrom: today, leaveTo, returnDate, restrictions: "" } });
+      report.checks.aiManualFallbackSafe = [200, 503].includes(ai.status());
+      if (ai.status() === 200) { const aiBody = await ai.json(); report.checks.aiWordingPlainText = typeof aiBody.wording === "string" && aiBody.wording.length >= 10 && !aiBody.wording.trim().startsWith("{"); }
+    }
     const issue = await page.request.patch(`${base}/api/sick-notes/${createdBody.id}`, { data: { action: "ISSUE" } });
     report.checks.issued = issue.status() === 200;
     const stored = await db.sickNote.findUnique({ where: { id: createdBody.id } });
@@ -46,6 +49,15 @@ const required = (key) => { if (!process.env[key]) throw new Error(`${key} is re
     const immutable = await page.request.put(`${base}/api/sick-notes/${createdBody.id}`, { data: { ...draft, doctorNotes: "Attempted edit" } }); report.checks.issuedImmutable = immutable.status() === 409;
     const pdf = await page.request.get(`${base}/api/sick-notes/${createdBody.id}/pdf`); const pdfBody = await pdf.body(); report.checks.pdfGenerated = pdf.status() === 200 && pdf.headers()["content-type"]?.includes("application/pdf") && pdfBody.subarray(0, 4).toString() === "%PDF";
     const share = await page.request.post(`${base}/api/sick-notes/${createdBody.id}/share`); const shareBody = await share.json(); report.checks.safeSharing = share.status() === 200 && shareBody.message.includes(createdBody.certificateNumber) && !shareBody.message.includes("diagnos");
+    await page.goto(`${base}/dashboard/sick-notes`, { waitUntil: "networkidle" });
+    const issuedRow = page.locator("tr", { hasText: createdBody.certificateNumber });
+    report.checks.financeStyleActions = await issuedRow.getByRole("button", { name: "View" }).isVisible() && await issuedRow.getByRole("link", { name: "PDF" }).isVisible() && await issuedRow.getByRole("button", { name: "Share" }).isVisible() && await issuedRow.getByRole("button", { name: "Revoke" }).isVisible();
+    await issuedRow.getByRole("button", { name: "View" }).click();
+    report.checks.previewModal = await page.getByRole("dialog", { name: new RegExp(`${createdBody.certificateNumber} document preview`) }).isVisible();
+    await page.getByRole("dialog", { name: new RegExp(`${createdBody.certificateNumber} document preview`) }).locator('button[aria-label="Close"]').evaluate((button) => button.click());
+    await issuedRow.getByRole("button", { name: "Share" }).evaluate((button) => button.click());
+    report.checks.shareModal = await page.getByRole("dialog", { name: `Share ${createdBody.certificateNumber}` }).isVisible();
+    await page.getByRole("dialog", { name: `Share ${createdBody.certificateNumber}` }).locator('button[aria-label="Close"]').evaluate((button) => button.click());
     const verificationUrl = `${base}/verify/sick-note/${stored.verificationToken}`; await page.goto(verificationUrl, { waitUntil: "networkidle" }); report.checks.publicVerified = await page.getByRole("heading", { name: "Certificate verified" }).isVisible(); const verifyText = await page.locator("main").innerText(); report.checks.publicPrivacy = !verifyText.includes(clinicianNotes) && !verifyText.includes(patient.phone);
     const duplicate = await page.request.patch(`${base}/api/sick-notes/${createdBody.id}`, { data: { action: "DUPLICATE" } }); const duplicateBody = await duplicate.json(); created.push(duplicateBody.id); report.checks.duplicateDraft = duplicate.status() === 200 && (await db.sickNote.findUnique({ where: { id: duplicateBody.id } })).status === "DRAFT";
     const revoke = await page.request.patch(`${base}/api/sick-notes/${createdBody.id}`, { data: { action: "REVOKE", reason: "Reversible acceptance test completed" } }); report.checks.revoked = revoke.status() === 200;

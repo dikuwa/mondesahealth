@@ -29,7 +29,7 @@ const s = StyleSheet.create({
 const displayDate = (value: Date) => new Intl.DateTimeFormat("en-NA", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" }).format(value);
 const label = (value: string) => value.replaceAll("_", " ").toLowerCase().replace(/^./, (letter) => letter.toUpperCase());
 
-export function SickNoteDocument({ note, practice, qrDataUrl, verificationUrl }: { note: Note; practice: PracticeSetting; qrDataUrl: string; verificationUrl: string }) {
+export function SickNoteDocument({ note, practice, qrDataUrl, verificationUrl }: { note: Note; practice: PracticeSetting; qrDataUrl?: string; verificationUrl?: string }) {
   return <Document title={`${note.certificateNumber} medical certificate`} author={practice.practiceName}>
     <Page size="A4" style={s.page}>
       <View style={s.header}>
@@ -40,6 +40,7 @@ export function SickNoteDocument({ note, practice, qrDataUrl, verificationUrl }:
       <Text style={s.title}>Medical certificate</Text>
       <Text style={s.number}>{note.certificateNumber}</Text>
       {note.status === "REVOKED" && <Text style={s.status}>REVOKED — THIS CERTIFICATE IS NO LONGER VALID</Text>}
+      {note.status === "DRAFT" && <Text style={s.status}>DRAFT PREVIEW — NOT VALID UNTIL ISSUED</Text>}
       <View style={s.grid}>
         <View style={s.cell}><Text style={s.label}>Patient</Text><Text style={s.value}>{note.patient.fullName}</Text></View>
         <View style={s.cell}><Text style={s.label}>Patient number</Text><Text style={s.value}>{note.patient.patientNumber}</Text></View>
@@ -56,9 +57,11 @@ export function SickNoteDocument({ note, practice, qrDataUrl, verificationUrl }:
       <View style={s.footerRow}>
         <DocumentSignature name={note.doctor.name} title={practice.signatureTitle} />
         <View style={s.verify}>
+          {qrDataUrl && verificationUrl ? <>
           {/* eslint-disable-next-line jsx-a11y/alt-text -- React PDF Image has no alt prop in its API. */}
           <Image src={qrDataUrl} style={s.qr} />
           <Text style={s.verifyText}>Scan to verify this certificate{"\n"}{verificationUrl}</Text>
+          </> : <Text style={s.verifyText}>Draft preview only{"\n"}No verification record has been issued.</Text>}
         </View>
       </View>
       <View style={s.footer}><Text>{practice.practiceName} · {practice.registrationNumber}</Text><Text>Issued securely by Mondesa Health</Text></View>

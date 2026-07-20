@@ -19,4 +19,24 @@ describe("dashboard dialog contract", () => {
     expect(components).toContain("ConfirmationDialog");
     expect(components).toContain("PromptDialog");
   });
+
+  it("reuses the Finance document preview and sharing workflow for sick notes", () => {
+    const finance = source("src/components/finance-manager.tsx");
+    const sickNotes = source("src/components/sick-notes-list.tsx");
+    const shared = source("src/components/ui/document-actions.tsx");
+
+    for (const component of [finance, sickNotes]) {
+      expect(component).toContain("DocumentPreviewModal");
+      expect(component).toContain("DocumentShareModal");
+    }
+    expect(shared).toContain("finance-preview-frame");
+    expect(shared).toContain("WhatsApp");
+    expect(shared).toContain("Copy link");
+    expect(shared).toContain("Email");
+    expect(sickNotes).toContain("Certificate No.");
+    expect(sickNotes).toContain("Leave Period");
+    expect(sickNotes).not.toContain("Record payment");
+    expect(sickNotes).not.toContain("Outstanding");
+    expect(sickNotes).not.toContain("Balance due");
+  });
 });
