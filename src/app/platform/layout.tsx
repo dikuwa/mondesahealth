@@ -6,8 +6,19 @@ import { db } from "@/lib/db";
 export default async function PlatformLayout({ children }: { children: React.ReactNode }) {
   const session = await requirePlatformOwner();
   if (!session) redirect("/login");
-  const legacyPractice = session.scope === "TRANSITIONAL"
-    ? await db.practice.findUnique({ where: { id: session.practiceId }, select: { name: true } })
-    : null;
-  return <PlatformShell user={{ name: session.name, avatarData: session.avatarData }} legacyPractice={legacyPractice}>{children}</PlatformShell>;
+  const memberships = await db.practiceUser.findMany({
+    where: { userId: session.id, active: true },
+    include: { practice: { select: { id: true, name: true } } },
+    orderBy: { practice: { name: "asc" } },
+  });
+  return (
+    <PlatformShell
+      user={{ name: session.name, avatarData: session.avatarData }}
+      role={session.platformRole}
+      permissions={session.platformPermissions}
+      practices={memberships.map(({ practice }) => practice)}
+    >
+      {children}
+    </PlatformShell>
+  );
 }

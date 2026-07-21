@@ -1,22 +1,16 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requirePlatformOwner } from "@/lib/auth";
+import { requirePlatformPermission } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { addDays, addMonths, addYears } from "date-fns";
 const plan = z.object({
   name: z.string().trim().min(2).max(100),
-  description: z.string().trim().max(1000).optional(),
+  description: z.string().trim().max(1000).nullable().optional(),
   billingFrequency: z.enum(["MONTHLY", "QUARTERLY", "ANNUAL", "FIXED"]),
   fee: z.number().min(0),
   gracePeriodDays: z.number().int().min(0).max(90),
 });
 export async function POST(request: Request) {
-  const session = await requirePlatformOwner();
-  if (!session)
-    return NextResponse.json(
-      { error: "Platform-owner access is required." },
-      { status: 403 },
-    );
   const body = await request.json(),
     payment = z
       .object({
@@ -27,6 +21,8 @@ export async function POST(request: Request) {
         notes: z.string().max(1000).optional(),
       })
       .safeParse(body);
+  const session = await requirePlatformPermission(payment.success ? "RECORD_SUBSCRIPTION_PAYMENTS" : "MANAGE_SUBSCRIPTIONS");
+  if (!session) return NextResponse.json({ error: "You do not have permission to manage this platform finance action." }, { status: 403 });
   if (payment.success) {
     const subscription = await db.practiceSubscription.findUnique({
       where: { id: payment.data.subscriptionId },
@@ -85,7 +81,7 @@ export async function POST(request: Request) {
   return NextResponse.json({ id: created.id }, { status: 201 });
 }
 export async function PATCH(request: Request) {
-  const session = await requirePlatformOwner();
+  const session = await requirePlatformPermission("MANAGE_SUBSCRIPTIONS");
   if (!session)
     return NextResponse.json(
       { error: "Platform-owner access is required." },
@@ -136,4 +132,21 @@ export async function PATCH(request: Request) {
     return record;
   });
   return NextResponse.json({ ok: true, id: saved.id, graceUntil });
+}
+
+export async function PUT(request: Request) {
+  const session = await requirePlatformPermission("MANAGE_SUBSCRIPTIONS");
+  if (!session) return NextResponse.json({ error: "Subscription-plan administration is required." }, { status: 403 });
+  const parsed = plan.extend({ id: z.string().min(1), active: z.boolean() }).safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message || "Check the plan details." }, { status: 400 });
+  const { id, ...data } = parsed.data;
+  const current = await db.subscriptionPlan.findUnique({ where: { id }, include: { _count: { select: { subscriptions: true } } } });
+  if (!current) return NextResponse.json({ error: "Subscription plan not found." }, { status: 404 });
+  if (!data.active && current._count.subscriptions > 0) {
+    const activeSubscriptions = await db.practiceSubscription.count({ where: { planId: id, status: { in: ["ACTIVE", "OVERDUE", "SUSPENDED"] } } });
+    if (activeSubscriptions) return NextResponse.json({ error: "Reassign active subscriptions before archiving this plan." }, { status: 409 });
+  }
+  const updated = await db.subscriptionPlan.update({ where: { id }, data });
+  await db.activityLog.create({ data: { userId: session.id, practiceId: null, action: "SUBSCRIPTION_PLAN_UPDATED", entityType: "SubscriptionPlan", entityId: id, summary: `Updated subscription plan ${updated.name}` } });
+  return NextResponse.json({ ok: true });
 }

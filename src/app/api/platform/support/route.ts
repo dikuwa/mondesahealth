@@ -1,12 +1,12 @@
 import { addMinutes } from "date-fns";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requirePlatformOwner } from "@/lib/auth";
+import { requirePlatformPermission } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { requestAuditInfo } from "@/lib/tenant";
 
 export async function POST(request: Request) {
-  const session = await requirePlatformOwner();
+  const session = await requirePlatformPermission("MANAGE_SUPPORT_ACCESS");
   if (!session) return NextResponse.json({ error: "Platform-owner access is required." }, { status: 403 });
   const parsed = z.object({ practiceId: z.string(), patientNumber: z.string().trim().min(2).max(80), reason: z.string().trim().min(10).max(1000), durationMinutes: z.number().int().min(5).max(60) }).safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message || "Add a patient reference, reason, and short access duration." }, { status: 400 });
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const session = await requirePlatformOwner();
+  const session = await requirePlatformPermission("MANAGE_SUPPORT_ACCESS");
   if (!session) return NextResponse.json({ error: "Platform-owner access is required." }, { status: 403 });
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Support grant is required." }, { status: 400 });

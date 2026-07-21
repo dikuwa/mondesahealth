@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
 import { PageHeading } from "@/components/dashboard";
 import { PracticeManager } from "@/components/practice-manager";
-import { requirePlatformOwner } from "@/lib/auth";
+import { requirePlatformPermission } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 export default async function PracticesPage() {
-  if (!(await requirePlatformOwner())) notFound();
+  const session = await requirePlatformPermission("VIEW_PRACTICES");
+  if (!session) notFound();
   const [practices, plans, serviceTemplates] = await Promise.all([
     db.practice.findMany({ orderBy: { createdAt: "desc" } }),
     db.subscriptionPlan.findMany({
@@ -22,6 +23,7 @@ export default async function PracticesPage() {
     <>
       <PageHeading eyebrow="Platform administration" title="Practices" />
       <PracticeManager
+        canManage={session.platformPermissions.includes("MANAGE_PRACTICES")}
         initial={practices.map(
           ({
             id,

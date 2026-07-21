@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Building2, Clipboard, Loader2, Plus, X } from "lucide-react";
+import { Building2, Clipboard, Loader2, Plus, Search, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
@@ -33,10 +33,12 @@ export function PracticeManager({
   initial,
   plans,
   serviceTemplates,
+  canManage,
 }: {
   initial: Practice[];
   plans: { id: string; name: string }[];
   serviceTemplates: { id: string; name: string; department: string }[];
+  canManage: boolean;
 }) {
   const router = useRouter(),
     [open, setOpen] = useState(false),
@@ -45,11 +47,17 @@ export function PracticeManager({
     [planId, setPlanId] = useState(""),
     [initialServiceIds, setInitialServiceIds] = useState<string[]>([]),
     [sendInvitationEmail, setSendInvitationEmail] = useState(false),
+    [query, setQuery] = useState(""),
+    [statusFilter, setStatusFilter] = useState(""),
     [invite, setInvite] = useState(""),
     [pending, setPending] = useState<{
       practice: Practice;
       status: string;
     } | null>(null);
+  const visible = initial.filter((practice) => {
+    const text = `${practice.name} ${practice.ownerName || ""} ${practice.email || ""} ${practice.town || ""}`.toLowerCase();
+    return (!statusFilter || practice.status === statusFilter) && text.includes(query.trim().toLowerCase());
+  });
   async function create(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -155,9 +163,13 @@ export function PracticeManager({
             independently controlled.
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setOpen(true)}>
+        {canManage && <button className="btn btn-primary" onClick={() => setOpen(true)}>
           <Plus size={16} /> Register practice
-        </button>
+        </button>}
+      </div>
+      <div className="manager-toolbar platform-filter-toolbar">
+        <div className="search-box"><Search size={17}/><input className="input" aria-label="Search practices" placeholder="Search practice, owner, email or town" value={query} onChange={(event) => setQuery(event.target.value)}/></div>
+        <CustomSelect value={statusFilter} onChange={setStatusFilter} options={[{ value: "", label: "All statuses" }, ...statuses]}/>
       </div>
       <div className="card dashboard-card">
         <div className="table-scroll">
@@ -173,7 +185,7 @@ export function PracticeManager({
               </tr>
             </thead>
             <tbody>
-              {initial.map((item) => (
+              {visible.map((item) => (
                 <tr key={item.id}>
                   <td>
                     <b>{item.name}</b>
@@ -195,7 +207,7 @@ export function PracticeManager({
                   <td>
                     <div className="table-actions">
                       <Link className="btn btn-light" href={`/platform/practices/${item.id}`}>Open</Link>
-                      {item.status !== "ACTIVE" && (
+                      {canManage && !["ACTIVE", "SUSPENDED"].includes(item.status) && (
                         <button
                           className="btn btn-light"
                           onClick={() =>
@@ -205,7 +217,7 @@ export function PracticeManager({
                           Approve
                         </button>
                       )}
-                      {item.status === "ACTIVE" && (
+                      {canManage && item.status === "ACTIVE" && (
                         <button
                           className="btn btn-light"
                           onClick={() =>
@@ -215,7 +227,7 @@ export function PracticeManager({
                           Suspend
                         </button>
                       )}
-                      {item.status === "SUSPENDED" && (
+                      {canManage && item.status === "SUSPENDED" && (
                         <button
                           className="btn btn-light"
                           onClick={() =>
@@ -232,8 +244,8 @@ export function PracticeManager({
             </tbody>
           </table>
         </div>
-        {!initial.length && (
-          <div className="dashboard-empty">No practices registered.</div>
+        {!visible.length && (
+          <div className="dashboard-empty"><h3>No matching practices</h3><p>{initial.length ? "Change the search or status filter." : "Register the first subscribed practice."}</p></div>
         )}
       </div>
       {open && (
@@ -243,7 +255,7 @@ export function PracticeManager({
             onClick={() => setOpen(false)}
             aria-label="Close practice form"
           />
-          <form className="appointment-panel" onSubmit={create}>
+          <form className="appointment-panel platform-dialog-wide" onSubmit={create}>
             <div className="appointment-panel-heading">
               <div>
                 <span className="eyebrow">Platform administration</span>
@@ -256,6 +268,7 @@ export function PracticeManager({
               <button
                 type="button"
                 className="icon-action"
+                aria-label="Close practice registration"
                 onClick={() => setOpen(false)}
               >
                 <X />

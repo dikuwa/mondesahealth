@@ -6,7 +6,7 @@ import { Building2, LogIn } from "lucide-react";
 
 export function PlatformChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  if (pathname.startsWith("/dashboard") || pathname.startsWith("/platform") || pathname.startsWith("/practices/")) return <>{children}</>;
+  if (pathname.startsWith("/dashboard") || pathname === "/platform" || pathname.startsWith("/platform/") || pathname.startsWith("/practices/")) return <>{children}</>;
   return <>
     <a className="skip-link" href="#main-content">Skip to main content</a>
     <header className="site-header"><div className="container" style={{ minHeight: 74, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20 }}>

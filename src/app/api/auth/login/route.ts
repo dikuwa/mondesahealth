@@ -11,7 +11,6 @@ import {
   recordFailedLogin,
   requestAddress,
 } from "@/lib/login-throttle";
-import { parsePermissions } from "@/lib/permissions";
 
 const input = z.object({
   email: z.string().trim().email().max(254),
@@ -43,7 +42,10 @@ export async function POST(request: Request) {
     keys = loginThrottleKeys(email, requestAddress(request));
   const throttle = await checkLoginThrottle(keys);
   if (!throttle.allowed) return limited(throttle.retryAfter);
-  const user = await db.user.findUnique({ where: { email } });
+  const user = await db.user.findUnique({
+    where: { email },
+    include: { platformMembership: true },
+  });
   if (
     !user ||
     !user.active ||
@@ -67,14 +69,15 @@ export async function POST(request: Request) {
   }
   await clearCredentialThrottle(keys);
   await pruneLoginThrottles();
-  await createSession({
-    id: user.id,
-    sessionVersion: user.sessionVersion,
-    role: user.role,
-    permissions: parsePermissions(user.permissions, user.role),
-    practiceId: user.practiceId,
-    platformRole: user.platformRole,
-  });
+  const hasPlatformAccess = Boolean(
+    user.platformMembership?.active || user.platformRole === "PLATFORM_OWNER",
+  );
+  await createSession(
+    { id: user.id, sessionVersion: user.sessionVersion },
+    hasPlatformAccess
+      ? { scope: "PLATFORM" }
+      : { scope: "PRACTICE", practiceId: user.practiceId! },
+  );
   await db.activityLog.create({
     data: {
       userId: user.id,
@@ -85,7 +88,7 @@ export async function POST(request: Request) {
       summary: "Signed in to dashboard",
     },
   });
-  const destination = user.platformRole === "PLATFORM_OWNER" ? "/platform" : "/dashboard";
+  const destination = hasPlatformAccess ? "/platform" : "/dashboard";
   if (formRequest)
     return NextResponse.redirect(new URL(destination, request.url), 303);
   return NextResponse.json({ ok: true, destination }, { headers: noStore });

@@ -2,11 +2,10 @@ import { createHash, randomBytes } from "crypto";
 import { addDays } from "date-fns";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requirePlatformOwner } from "@/lib/auth";
+import { requirePlatformPermission } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendInvitationEmail } from "@/lib/invitation-email";
 import { requestAuditInfo } from "@/lib/tenant";
-import { canFinalizePlatformSeparation } from "@/lib/account-scope";
 
 const input = z.discriminatedUnion("action", [
   z.object({
@@ -22,7 +21,7 @@ const input = z.discriminatedUnion("action", [
 ]);
 
 export async function POST(request: Request) {
-  const session = await requirePlatformOwner();
+  const session = await requirePlatformPermission("MANAGE_PRACTICES");
   if (!session)
     return NextResponse.json({ error: "Platform-owner access is required." }, { status: 403 });
   const parsed = input.safeParse(await request.json().catch(() => null));
@@ -95,12 +94,8 @@ export async function POST(request: Request) {
     where: { practiceId: practice.id, role: "OWNER", active: true, platformRole: null },
     select: { id: true },
   });
-  if (!canFinalizePlatformSeparation({
-    scope: session.scope,
-    sessionPracticeId: session.practiceId,
-    targetPracticeId: practice.id,
-    hasIndependentOwner: Boolean(independentOwner),
-  }))
+  const legacyUser = await db.user.findFirst({ where: { id: session.id, practiceId: practice.id }, select: { id: true } });
+  if (!legacyUser || !independentOwner)
     return NextResponse.json({ error: "The independent practice owner must accept the invitation first." }, { status: 409 });
   await db.$transaction([
     db.practiceUser.updateMany({

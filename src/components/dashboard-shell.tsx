@@ -29,6 +29,7 @@ import {
   DashboardNotifications,
   useNotifications,
 } from "@/components/dashboard-notifications";
+import { WorkspaceSwitcher, type WorkspaceOption } from "@/components/workspace-switcher";
 
 const sections = [
   {
@@ -121,6 +122,8 @@ export function DashboardShell({
   permissions,
   avatarData,
   practice,
+  hasPlatformAccess,
+  workspaces,
 }: {
   children: React.ReactNode;
   name: string;
@@ -128,11 +131,14 @@ export function DashboardShell({
   permissions: string[];
   avatarData: string | null;
   practice: {
+    id: string;
     name: string;
     type: string;
     logoData: string | null;
     slug: string;
   };
+  hasPlatformAccess: boolean;
+  workspaces: WorkspaceOption[];
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -332,6 +338,12 @@ export function DashboardShell({
             </div>
           </div>
           <div className="dashboard-topbar-actions">
+            <WorkspaceSwitcher
+              currentScope="PRACTICE"
+              currentPracticeId={practice.id}
+              hasPlatformAccess={hasPlatformAccess}
+              practices={workspaces}
+            />
             <DashboardNotifications
               notifications={notifications}
               refresh={refreshNotifications}

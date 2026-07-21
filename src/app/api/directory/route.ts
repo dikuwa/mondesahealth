@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requirePermission, requirePlatformOwner } from "@/lib/auth";
+import { requirePermission, requirePlatformPermission } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { practiceWriteDenied } from "@/lib/practice-write-access";
 
@@ -69,7 +69,7 @@ export async function PATCH(request: Request) {
     );
   const body = parsed.data;
   const session = body.entity === "DEPARTMENT"
-    ? await requirePlatformOwner()
+    ? await requirePlatformPermission("MANAGE_SERVICE_TEMPLATES")
     : await requirePermission("MANAGE_PRACTICE");
   if (!session)
     return NextResponse.json(
@@ -197,7 +197,7 @@ export async function DELETE(request: Request) {
     );
   const { entity, id } = parsed.data;
   const session = entity === "DEPARTMENT"
-    ? await requirePlatformOwner()
+    ? await requirePlatformPermission("MANAGE_SERVICE_TEMPLATES")
     : await requirePermission("MANAGE_PRACTICE");
   if (!session)
     return NextResponse.json({ error: "You do not have permission to delete this directory content." }, { status: 403 });

@@ -16,28 +16,48 @@ import {
   Settings,
   ShieldCheck,
   SlidersHorizontal,
+  UserCog,
   X,
 } from "lucide-react";
+import { WorkspaceSwitcher, type WorkspaceOption } from "@/components/workspace-switcher";
+import { platformRoleLabels, type PlatformPermission, type PlatformRole } from "@/lib/platform-permissions";
 
 const items = [
-  ["Practices", "/platform/practices", Building2],
-  ["Plans", "/platform/subscriptions", Banknote],
-  ["Applications", "/platform/applications", FileText],
-  ["Service categories", "/platform/categories", SlidersHorizontal],
-  ["Practice billing", "/platform/billing", Banknote],
-  ["Platform analytics", "/platform/analytics", Gauge],
-  ["Platform audit", "/platform/audit", Activity],
-  ["Controlled support", "/platform/support", ShieldCheck],
+  ["Practices", "/platform/practices", Building2, "VIEW_PRACTICES"],
+  ["Applications", "/platform/applications", FileText, "VIEW_APPLICATIONS"],
+  ["Service templates", "/platform/categories", SlidersHorizontal, "VIEW_SERVICE_TEMPLATES"],
+  ["Plans", "/platform/subscriptions", Banknote, "VIEW_PLATFORM_FINANCE"],
+  ["Finance & billing", "/platform/billing", Banknote, "VIEW_PLATFORM_FINANCE"],
+  ["Platform analytics", "/platform/analytics", Gauge, "VIEW_PLATFORM_ANALYTICS"],
+  ["Platform audit", "/platform/audit", Activity, "VIEW_PLATFORM_AUDIT"],
+  ["Controlled support", "/platform/support", ShieldCheck, "MANAGE_SUPPORT_ACCESS"],
+  ["Platform team", "/platform/users", UserCog, "MANAGE_PLATFORM_USERS"],
 ] as const;
+const pageNames: Record<string, string> = {
+  "/platform/practices": "Practices",
+  "/platform/subscriptions": "Subscription plans",
+  "/platform/applications": "Practice applications",
+  "/platform/categories": "Service templates",
+  "/platform/billing": "Finance & billing",
+  "/platform/analytics": "Platform analytics",
+  "/platform/audit": "Platform audit",
+  "/platform/support": "Controlled support",
+  "/platform/users": "Platform team",
+  "/platform/profile": "Profile & security",
+};
 
 export function PlatformShell({
   children,
   user,
-  legacyPractice,
+  role,
+  permissions,
+  practices,
 }: {
   children: React.ReactNode;
   user: { name: string; avatarData: string | null };
-  legacyPractice: { name: string } | null;
+  role: PlatformRole;
+  permissions: PlatformPermission[];
+  practices: WorkspaceOption[];
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -59,7 +79,7 @@ export function PlatformShell({
         <nav className="dashboard-nav" aria-label="Platform administration">
           <div className="dashboard-nav-section">
             <span className="dashboard-nav-label">Platform</span>
-            {items.map(([label, href, Icon]) => {
+            {items.filter(([, , , permission]) => permissions.includes(permission)).map(([label, href, Icon]) => {
               const active = pathname === href || pathname.startsWith(`${href}/`);
               return (
                 <Link key={href} href={href} onClick={() => setMobileOpen(false)} className={`dashboard-nav-link${active ? " is-active" : ""}`}>
@@ -68,10 +88,15 @@ export function PlatformShell({
               );
             })}
           </div>
-          {legacyPractice && (
+          {practices.length > 0 && (
             <div className="dashboard-nav-section">
-              <span className="dashboard-nav-label">Temporary migration access</span>
-              <Link href="/dashboard" className="dashboard-nav-link"><Building2 size={18} /><span>{legacyPractice.name}</span></Link>
+              <span className="dashboard-nav-label">Assigned workspaces</span>
+              {practices.map((practice) => (
+                <button key={practice.id} type="button" className="dashboard-nav-link workspace-nav-button" onClick={async () => {
+                  const response = await fetch("/api/auth/scope", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scope: "PRACTICE", practiceId: practice.id }) });
+                  if (response.ok) window.location.assign("/dashboard");
+                }}><Building2 size={18} /><span>{practice.name}</span></button>
+              ))}
             </div>
           )}
         </nav>
@@ -79,7 +104,7 @@ export function PlatformShell({
           <Link href="/platform/profile" className="dashboard-avatar" aria-label="Open profile">
             {user.avatarData ? <Image src={user.avatarData} alt="" width={40} height={40} unoptimized /> : user.name.charAt(0).toUpperCase()}
           </Link>
-          <div className="dashboard-user-copy"><small>Platform owner</small><strong>{user.name}</strong></div>
+          <div className="dashboard-user-copy"><small>{platformRoleLabels[role]}</small><strong>{user.name}</strong></div>
           <form action="/api/auth/logout" method="post"><button aria-label="Sign out" title="Sign out"><LogOut size={17} /></button></form>
         </div>
       </aside>
@@ -87,11 +112,14 @@ export function PlatformShell({
         <header className="dashboard-topbar">
           <div className="dashboard-topbar-title">
             <button className="dashboard-menu-button" aria-label="Open platform navigation" onClick={() => setMobileOpen(true)}><Menu size={21} /></button>
-            <div><small>Mondesa Health</small><strong>Platform administration</strong></div>
+            <div><small>Mondesa Health Platform</small><strong>{Object.entries(pageNames).find(([path]) => pathname === path || pathname.startsWith(`${path}/`))?.[1] || "Platform administration"}</strong></div>
           </div>
-          <div className="dashboard-topbar-actions"><span className="dashboard-role"><Settings size={14} /> Platform owner</span></div>
+          <div className="dashboard-topbar-actions">
+            <WorkspaceSwitcher currentScope="PLATFORM" hasPlatformAccess practices={practices} />
+            <span className="dashboard-role"><Settings size={14} /> {platformRoleLabels[role]}</span>
+          </div>
         </header>
-        <main id="platform-content" tabIndex={-1} className="dashboard-content"><div key={pathname} className="dashboard-route-content">{children}</div></main>
+        <main id="platform-content" tabIndex={-1} className="dashboard-content platform-content"><div key={pathname} className="dashboard-route-content">{children}</div></main>
       </div>
     </div>
   );

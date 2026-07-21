@@ -1,1 +1,16 @@
-import{notFound}from"next/navigation";import{PageHeading}from"@/components/dashboard";import{requirePlatformOwner}from"@/lib/auth";import{db}from"@/lib/db";export default async function PlatformAudit(){if(!await requirePlatformOwner())notFound();const logs=await db.activityLog.findMany({where:{action:{in:["PRACTICE_CREATED","PRACTICE_UPDATED","PRACTICE_APPROVED","PRACTICE_SUSPENDED","SUBSCRIPTION_UPDATED","SUBSCRIPTION_PAYMENT_RECORDED","USER_LOGIN_FAILED"]}},include:{user:{select:{name:true}},},orderBy:{createdAt:"desc"},take:200});return <><PageHeading eyebrow="Security & governance" title="Platform audit log"/><div className="card dashboard-card"><div className="record-stack">{logs.map(x=><article className="record-row" key={x.id}><div><b>{x.action.replaceAll("_"," ")}</b><small>{x.createdAt.toLocaleString("en-NA")} · {x.user?.name||"System"} · {x.summary}</small></div></article>)}</div></div></>}
+import { notFound } from "next/navigation";
+import { PageHeading } from "@/components/dashboard";
+import { PlatformAuditExplorer } from "@/components/platform-audit-explorer";
+import { requirePlatformPermission } from "@/lib/auth";
+import { db } from "@/lib/db";
+
+export default async function PlatformAudit() {
+  if (!(await requirePlatformPermission("VIEW_PLATFORM_AUDIT"))) notFound();
+  const logs = await db.activityLog.findMany({
+    where: { OR: [{ practiceId: null }, { action: { startsWith: "PLATFORM_" } }, { action: { startsWith: "PRACTICE_" } }, { action: { startsWith: "SUBSCRIPTION_" } }, { action: "WORKSPACE_SCOPE_CHANGED" }] },
+    include: { user: { select: { name: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 500,
+  });
+  return <><PageHeading eyebrow="Security & governance" title="Platform audit log"/><PlatformAuditExplorer logs={logs.map((log) => ({ id: log.id, action: log.action, actor: log.user?.name || "System", summary: log.summary, practiceId: log.practiceId, createdAt: log.createdAt.toISOString() }))}/></>;
+}

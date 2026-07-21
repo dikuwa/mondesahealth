@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "crypto";
 import { addDays } from "date-fns";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requirePlatformOwner } from "@/lib/auth";
+import { requirePlatformPermission } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendInvitationEmail as deliverInvitationEmail } from "@/lib/invitation-email";
 import { requestAuditInfo } from "@/lib/tenant";
@@ -51,7 +51,7 @@ const slugify = (value: string) =>
     .replace(/^-|-$/g, "")
     .slice(0, 60);
 export async function POST(request: Request) {
-  const session = await requirePlatformOwner();
+  const session = await requirePlatformPermission("MANAGE_PRACTICES");
   if (!session)
     return NextResponse.json(
       { error: "Platform-owner access is required." },
@@ -224,7 +224,7 @@ export async function POST(request: Request) {
   );
 }
 export async function PATCH(request: Request) {
-  const session = await requirePlatformOwner();
+  const session = await requirePlatformPermission("MANAGE_PRACTICES");
   if (!session)
     return NextResponse.json(
       { error: "Platform-owner access is required." },

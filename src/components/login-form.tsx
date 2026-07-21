@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2, LockKeyhole } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -11,7 +10,6 @@ const notices:Record<string,string>={
 };
 
 export function LoginForm({reason}:{reason?:string}){
-  const router=useRouter();
   const[loading,setLoading]=useState(false);
   const notice=reason?notices[reason]:undefined;
 
@@ -25,8 +23,7 @@ export function LoginForm({reason}:{reason?:string}){
       const data=await response.json();
       if(!response.ok)throw new Error(data.error);
       toast.success("Welcome back",{id:toastId});
-      router.push(data.destination || "/dashboard");
-      router.refresh();
+      window.location.assign(data.destination || "/dashboard");
     }catch(error){
       toast.error(error instanceof Error?error.message:"Could not sign in",{id:toastId});
     }finally{setLoading(false)}

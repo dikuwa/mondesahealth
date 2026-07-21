@@ -35,6 +35,7 @@ type Staff = {
   active: boolean;
   mustChangePassword: boolean;
   avatarData: string | null;
+  platformAccount?: boolean;
 };
 
 const roleOptions = ROLES.map((value) => ({
@@ -60,6 +61,7 @@ export function StaffManager({
   const [permissions, setPermissions] = useState<Permission[]>(roleDefaults.RECEPTIONIST);
   const [temp, setTemp] = useState(password());
   const [issuedPassword, setIssuedPassword] = useState<{ user: string; password: string } | null>(null);
+  const [issuedInvite, setIssuedInvite] = useState<{ user: string; url: string } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Staff | null>(null);
   const availableRoles = currentRole === "OWNER" ? roleOptions : roleOptions.filter((option) => option.value !== "OWNER");
 
@@ -75,6 +77,7 @@ export function StaffManager({
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       if (data.password) setIssuedPassword({ user: data.name || "Staff member", password: data.password });
+      if (data.inviteUrl) setIssuedInvite({ user: data.name || "Staff member", url: `${location.origin}${data.inviteUrl}` });
       toast.success("Staff access updated", { id: toastId });
       setOpen(false);
       setEditing(null);
@@ -150,6 +153,7 @@ export function StaffManager({
           <button className="icon-action" type="button" aria-label="Dismiss password" onClick={() => setIssuedPassword(null)}><X size={16} /></button>
         </div>
       )}
+      {issuedInvite && <div className="password-copy-banner" role="status"><ShieldCheck size={22}/><div><b>Existing account invitation ready</b><code>{issuedInvite.url}</code><small>{issuedInvite.user} must sign in with their existing password to accept this practice membership.</small></div><button className="btn btn-light" type="button" onClick={() => navigator.clipboard.writeText(issuedInvite.url).then(() => toast.success("Invitation copied"))}><Clipboard size={16}/>Copy</button><button className="icon-action" type="button" aria-label="Dismiss invitation" onClick={() => setIssuedInvite(null)}><X size={16}/></button></div>}
       <div className="card dashboard-card" style={{ padding: 20 }}>
         <div className="manager-toolbar">
           <div>
@@ -339,7 +343,7 @@ function StaffActions({
     <div className="table-actions">
       <button className="icon-action" title="Edit role and permissions" aria-label={`Edit access for ${user.name}`} disabled={saving} onClick={onEdit}><ShieldCheck size={17} /></button>
       <button className="icon-action" title={user.active ? "Disable account" : "Enable account"} aria-label={`${user.active ? "Disable" : "Enable"} ${user.name}`} disabled={saving || user.id === currentId} onClick={onToggle}>{user.active ? <UserRoundX size={17} /> : <UserRoundCheck size={17} />}</button>
-      <button className="icon-action" title="Reset temporary password" aria-label={`Reset password for ${user.name}`} disabled={saving} onClick={onReset}><KeyRound size={17} /></button>
+      {!user.platformAccount && <button className="icon-action" title="Reset temporary password" aria-label={`Reset password for ${user.name}`} disabled={saving} onClick={onReset}><KeyRound size={17} /></button>}
       {canDelete && <button className="icon-action danger-action" title="Delete staff account" aria-label={`Delete ${user.name}`} disabled={saving || user.id === currentId || user.role === "OWNER"} onClick={onDelete}><Trash2 size={17} /></button>}
     </div>
   );

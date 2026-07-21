@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import { PageHeading } from "@/components/dashboard";
 import { ProviderApplicationsManager } from "@/components/provider-applications-manager";
-import { requirePlatformOwner } from "@/lib/auth";
+import { requirePlatformPermission } from "@/lib/auth";
 import { db } from "@/lib/db";
 
 export default async function Applications() {
-  if (!(await requirePlatformOwner())) notFound();
+  if (!(await requirePlatformPermission("VIEW_APPLICATIONS"))) notFound();
   const [applications, plans, serviceTemplates] = await Promise.all([
     db.practiceApplication.findMany({ orderBy: { createdAt: "desc" } }),
     db.subscriptionPlan.findMany({
@@ -25,6 +25,7 @@ export default async function Applications() {
         title="Provider applications"
       />
       <ProviderApplicationsManager
+        canManage={Boolean((await requirePlatformPermission("MANAGE_APPLICATIONS")))}
         applications={applications.map((application) => ({
           ...application,
           createdAt: application.createdAt.toISOString(),

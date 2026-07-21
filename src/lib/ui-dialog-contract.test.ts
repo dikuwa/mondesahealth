@@ -20,6 +20,16 @@ describe("dashboard dialog contract", () => {
     expect(components).toContain("PromptDialog");
   });
 
+  it("provides an accessible shared platform dialog and repaired form grid", () => {
+    const dialog = source("src/components/ui/platform-dialog.tsx");
+    const css = source("src/app/globals.css");
+    expect(dialog).toContain('aria-modal="true"');
+    expect(dialog).toContain('event.key === "Escape"');
+    expect(dialog).toContain('event.key !== "Tab"');
+    expect(css).toContain(".form-grid {");
+    expect(css).toContain(".platform-dialog-body");
+  });
+
   it("reuses the Finance document preview and sharing workflow for sick notes", () => {
     const finance = source("src/components/finance-manager.tsx");
     const sickNotes = source("src/components/sick-notes-list.tsx");
