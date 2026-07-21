@@ -3,11 +3,13 @@ import { z } from "zod";
 import { requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { normalizePhone, ref, validNamibianPhone } from "@/lib/utils";
-import { maskIdentifier, maskPhone, patientMatchWhere } from "@/lib/patient-matching";
+import { maskIdentifier, maskPhone, normalizeIdentity, patientMatchWhere } from "@/lib/patient-matching";
+import { subscriptionAccess } from "@/lib/subscription-access";
 
 const emptyForNull = (value: unknown) => (value == null ? "" : value);
 const schema = z.object({
   id: z.string().optional(),
+  forceSeparate: z.boolean().optional(),
   fullName: z.string().trim().min(3).max(120),
   dateOfBirth: z.preprocess(emptyForNull, z.string()),
   gender: z.preprocess(emptyForNull, z.string()),
@@ -73,11 +75,31 @@ async function mutate(request: Request, editing: boolean) {
       { status: 400 },
     );
   const input = parsed.data;
+  if (!editing) { const access = await subscriptionAccess(session.practiceId); if (!access.allowed) return NextResponse.json({ error: access.warning, code: "SUBSCRIPTION_RESTRICTED" }, { status: 402 }); }
   if (editing && !input.id)
     return NextResponse.json(
       { error: "Patient record not found." },
       { status: 400 },
     );
+  const birthDate = input.dateOfBirth ? new Date(`${input.dateOfBirth}T00:00:00.000Z`) : null;
+  if (birthDate && (Number.isNaN(birthDate.getTime()) || birthDate > new Date()))
+    return NextResponse.json({ error: "Date of birth cannot be in the future." }, { status: 400 });
+  if (!editing && !input.forceSeparate) {
+    const matches = await db.patient.findMany({
+      where: patientMatchWhere(session.practiceId, {
+        identityNumber: input.identityNumber,
+        passportNumber: input.passportNumber,
+        phone: input.phone,
+        email: input.email,
+        fullName: input.fullName,
+        dateOfBirth: birthDate,
+      }),
+      select: { id: true, fullName: true, dateOfBirth: true, identityNumber: true, passportNumber: true, phone: true, appointments: { where: { practiceId: session.practiceId }, select: { startAt: true }, orderBy: { startAt: "desc" }, take: 1 } },
+      take: 8,
+    });
+    if (matches.length)
+      return NextResponse.json({ code: "POSSIBLE_MATCH", error: "A patient with similar details already exists.", matches: matches.map((item) => ({ id: item.id, fullName: item.fullName, dateOfBirth: item.dateOfBirth, maskedId: maskIdentifier(item.identityNumber || item.passportNumber), maskedPhone: maskPhone(item.phone), lastVisit: item.appointments[0]?.startAt || null })) }, { status: 409 });
+  }
   const base = {
     fullName: input.fullName,
     surname: input.fullName.split(" ").pop() || "",
@@ -86,9 +108,7 @@ async function mutate(request: Request, editing: boolean) {
       .map((x) => x[0])
       .join("")
       .slice(0, 4),
-    dateOfBirth: input.dateOfBirth
-      ? new Date(`${input.dateOfBirth}T00:00:00.000Z`)
-      : null,
+    dateOfBirth: birthDate,
     gender: input.gender || null,
     phone: normalizePhone(input.phone),
     email: input.email || null,
@@ -98,8 +118,8 @@ async function mutate(request: Request, editing: boolean) {
     lastName: input.lastName || input.fullName.split(" ").pop() || null,
     sex: input.gender || null,
     identificationType: input.identificationType || null,
-    identityNumber: input.identityNumber || null,
-    passportNumber: input.passportNumber || null,
+    identityNumber: normalizeIdentity(input.identityNumber) || null,
+    passportNumber: normalizeIdentity(input.passportNumber) || null,
     normalizedPhone: normalizePhone(input.phone),
     whatsapp: input.whatsapp ? normalizePhone(input.whatsapp) : normalizePhone(input.phone),
     address: input.address || null,

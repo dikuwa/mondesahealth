@@ -1,9 +1,164 @@
-import {NextResponse} from "next/server";
-import {z} from "zod";
-import {requirePermission} from "@/lib/auth";
-import {db} from "@/lib/db";
-import {ref} from "@/lib/utils";
-const getSession=()=>requirePermission("MANAGE_FINANCE");
-export async function POST(request:Request){const session=await getSession();if(!session)return NextResponse.json({error:"Unauthorised"},{status:401});const parsed=z.object({patientId:z.string(),appointmentId:z.string().optional(),responsibility:z.string(),patientResponsibility:z.number().nonnegative(),medicalAidResponsibility:z.number().nonnegative(),lines:z.array(z.object({description:z.string().min(2),tariffCode:z.string().optional(),quantity:z.number().positive(),rate:z.number().nonnegative(),patientPortion:z.number().nonnegative(),medicalAidPortion:z.number().nonnegative()})).min(1)}).safeParse(await request.json());if(!parsed.success)return NextResponse.json({error:"Invoice details are incomplete."},{status:400});const total=parsed.data.lines.reduce((n,l)=>n+l.quantity*l.rate,0);if(Math.abs(total-parsed.data.patientResponsibility-parsed.data.medicalAidResponsibility)>.01)return NextResponse.json({error:"Patient and medical-aid portions must equal the invoice total."},{status:400});const invoice=await db.$transaction(async tx=>{const created=await tx.invoice.create({data:{number:ref("INV"),patientId:parsed.data.patientId,appointmentId:parsed.data.appointmentId||null,responsibility:parsed.data.responsibility,subtotal:total,total,patientResponsibility:parsed.data.patientResponsibility,medicalAidResponsibility:parsed.data.medicalAidResponsibility,lines:{create:parsed.data.lines.map(l=>({...l,total:l.quantity*l.rate}))}}});await tx.activityLog.create({data:{userId:session.id,action:"INVOICE_CREATED",entityType:"Invoice",entityId:created.id,summary:`Draft invoice ${created.number} created`}});return created});return NextResponse.json(invoice,{status:201});}
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { requirePermission } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { ref } from "@/lib/utils";
+import { subscriptionAccess } from "@/lib/subscription-access";
+const getSession = () => requirePermission("MANAGE_FINANCE");
+export async function POST(request: Request) {
+  const session = await getSession();
+  if (!session)
+    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  const subscription = await subscriptionAccess(session.practiceId);
+  if (!subscription.allowed) return NextResponse.json({ error: subscription.warning, code: "SUBSCRIPTION_RESTRICTED" }, { status: 402 });
+  const parsed = z
+    .object({
+      patientId: z.string(),
+      appointmentId: z.string().optional(),
+      responsibility: z.string(),
+      patientResponsibility: z.number().nonnegative(),
+      medicalAidResponsibility: z.number().nonnegative(),
+      lines: z
+        .array(
+          z.object({
+            description: z.string().min(2),
+            tariffCode: z.string().optional(),
+            quantity: z.number().positive(),
+            rate: z.number().nonnegative(),
+            patientPortion: z.number().nonnegative(),
+            medicalAidPortion: z.number().nonnegative(),
+          }),
+        )
+        .min(1),
+    })
+    .safeParse(await request.json());
+  if (!parsed.success)
+    return NextResponse.json(
+      { error: "Invoice details are incomplete." },
+      { status: 400 },
+    );
+  const total = parsed.data.lines.reduce((n, l) => n + l.quantity * l.rate, 0);
+  if (
+    Math.abs(
+      total -
+        parsed.data.patientResponsibility -
+        parsed.data.medicalAidResponsibility,
+    ) > 0.01
+  )
+    return NextResponse.json(
+      {
+        error: "Patient and medical-aid portions must equal the invoice total.",
+      },
+      { status: 400 },
+    );
+  const [patient, appointment] = await Promise.all([
+    db.patient.findFirst({ where: { id: parsed.data.patientId, practiceId: session.practiceId, archivedAt: null }, select: { id: true } }),
+    parsed.data.appointmentId ? db.appointment.findFirst({ where: { id: parsed.data.appointmentId, practiceId: session.practiceId, patientId: parsed.data.patientId }, select: { id: true } }) : null,
+  ]);
+  if (!patient || (parsed.data.appointmentId && !appointment))
+    return NextResponse.json({ error: "Patient or appointment not found." }, { status: 404 });
+  const invoice = await db.$transaction(async (tx) => {
+    const created = await tx.invoice.create({
+      data: {
+        practiceId: session.practiceId,
+        number: ref("INV"),
+        patientId: parsed.data.patientId,
+        appointmentId: parsed.data.appointmentId || null,
+        responsibility: parsed.data.responsibility,
+        subtotal: total,
+        total,
+        patientResponsibility: parsed.data.patientResponsibility,
+        medicalAidResponsibility: parsed.data.medicalAidResponsibility,
+        lines: {
+          create: parsed.data.lines.map((l) => ({
+            ...l,
+            total: l.quantity * l.rate,
+          })),
+        },
+      },
+    });
+    await tx.activityLog.create({
+      data: {
+        practiceId: session.practiceId,
+        userId: session.id,
+        action: "INVOICE_CREATED",
+        entityType: "Invoice",
+        entityId: created.id,
+        summary: `Draft invoice ${created.number} created`,
+      },
+    });
+    return created;
+  });
+  return NextResponse.json(invoice, { status: 201 });
+}
 
-export async function PATCH(request:Request){const session=await getSession();if(!session)return NextResponse.json({error:"Unauthorised"},{status:401});const parsed=z.object({action:z.literal("VOID"),id:z.string(),reason:z.string().trim().min(3).max(400)}).safeParse(await request.json());if(!parsed.success)return NextResponse.json({error:"A void reason is required."},{status:400});try{const invoice=await db.$transaction(async tx=>{const current=await tx.invoice.findUnique({where:{id:parsed.data.id}});if(!current)throw new Error("NOT_FOUND");if(current.status!=="DRAFT"||current.patientPaid+current.medicalAidPaid>0)throw new Error("NOT_VOIDABLE");const updated=await tx.invoice.update({where:{id:current.id},data:{status:"VOID",voidedAt:new Date(),voidReason:parsed.data.reason,voidedByUserId:session.id}});await tx.generatedDocument.updateMany({where:{invoiceId:current.id,status:"ISSUED"},data:{status:"REVOKED"}});await tx.activityLog.create({data:{userId:session.id,action:"INVOICE_VOIDED",entityType:"Invoice",entityId:current.id,summary:`Invoice ${current.number} voided: ${parsed.data.reason}`}});return updated});return NextResponse.json(invoice)}catch(error){if(error instanceof Error&&error.message==="NOT_FOUND")return NextResponse.json({error:"Invoice not found."},{status:404});if(error instanceof Error&&error.message==="NOT_VOIDABLE")return NextResponse.json({error:"Only unpaid draft invoices can be voided."},{status:409});return NextResponse.json({error:"Could not void invoice."},{status:500})}}
+export async function PATCH(request: Request) {
+  const session = await getSession();
+  if (!session)
+    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  const parsed = z
+    .object({
+      action: z.literal("VOID"),
+      id: z.string(),
+      reason: z.string().trim().min(3).max(400),
+    })
+    .safeParse(await request.json());
+  if (!parsed.success)
+    return NextResponse.json(
+      { error: "A void reason is required." },
+      { status: 400 },
+    );
+  try {
+    const invoice = await db.$transaction(async (tx) => {
+      const current = await tx.invoice.findFirst({
+        where: { id: parsed.data.id, practiceId: session.practiceId },
+      });
+      if (!current) throw new Error("NOT_FOUND");
+      if (
+        current.status !== "DRAFT" ||
+        current.patientPaid + current.medicalAidPaid > 0
+      )
+        throw new Error("NOT_VOIDABLE");
+      const updated = await tx.invoice.update({
+        where: { id: current.id },
+        data: {
+          status: "VOID",
+          voidedAt: new Date(),
+          voidReason: parsed.data.reason,
+          voidedByUserId: session.id,
+        },
+      });
+      await tx.generatedDocument.updateMany({
+        where: { practiceId: session.practiceId, invoiceId: current.id, status: "ISSUED" },
+        data: { status: "REVOKED" },
+      });
+      await tx.activityLog.create({
+        data: {
+          practiceId: session.practiceId,
+          userId: session.id,
+          action: "INVOICE_VOIDED",
+          entityType: "Invoice",
+          entityId: current.id,
+          summary: `Invoice ${current.number} voided: ${parsed.data.reason}`,
+        },
+      });
+      return updated;
+    });
+    return NextResponse.json(invoice);
+  } catch (error) {
+    if (error instanceof Error && error.message === "NOT_FOUND")
+      return NextResponse.json(
+        { error: "Invoice not found." },
+        { status: 404 },
+      );
+    if (error instanceof Error && error.message === "NOT_VOIDABLE")
+      return NextResponse.json(
+        { error: "Only unpaid draft invoices can be voided." },
+        { status: 409 },
+      );
+    return NextResponse.json(
+      { error: "Could not void invoice." },
+      { status: 500 },
+    );
+  }
+}

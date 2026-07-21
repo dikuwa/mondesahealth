@@ -9,7 +9,7 @@ import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { StatusBadge } from "@/components/ui/status-badge";
 
-type Service = { id: string; name: string; description: string | null; public: boolean; sortOrder: number; aiIntakeEnabled: boolean | null };
+type Service = { id: string; name: string; description: string | null; public: boolean; sortOrder: number; aiIntakeEnabled: boolean | null; durationMinutes: number; active: boolean };
 type Provider = { id: string; displayName: string; practiceName: string | null; biography: string | null; phone: string | null; email: string | null; operatingHours: string | null; public: boolean; sortOrder: number; aiIntakeEnabled: boolean | null };
 type Department = { id: string; slug: string; name: string; categoryLabel: string; summary: string; description: string; status: string; public: boolean; bookingEnabled: boolean; sortOrder: number; services: Service[]; providers: Provider[] };
 
@@ -23,7 +23,7 @@ function formObject(form: HTMLFormElement) {
   return Object.fromEntries(new FormData(form));
 }
 
-export function DirectoryManager({ departments }: { departments: Department[] }) {
+export function DirectoryManager({ departments, canManageCategories = false, categoriesOnly = false }: { departments: Department[]; canManageCategories?: boolean; categoriesOnly?: boolean }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [orders, setOrders] = useState<Record<string, number>>(() => Object.fromEntries(departments.map((department) => [department.id, department.sortOrder])));
@@ -81,7 +81,7 @@ export function DirectoryManager({ departments }: { departments: Department[] })
     event.preventDefault();
     const form = event.currentTarget;
     const data = formObject(form);
-    patch({ ...data, entity, departmentId, id, public: new FormData(form).has("public"), aiIntakeEnabled: data.aiIntakeMode === "INHERIT" ? null : data.aiIntakeMode === "ENABLED", sortOrder: Number(data.sortOrder) }, `Saving ${entity.toLowerCase()}…`, id ? undefined : form);
+    patch({ ...data, entity, departmentId, id, public: new FormData(form).has("public"), active: entity === "SERVICE" ? new FormData(form).has("active") : undefined, durationMinutes: entity === "SERVICE" ? Number(data.durationMinutes) : undefined, aiIntakeEnabled: data.aiIntakeMode === "INHERIT" ? null : data.aiIntakeMode === "ENABLED", sortOrder: Number(data.sortOrder) }, `Saving ${entity.toLowerCase()}…`, id ? undefined : form);
   }
 
   async function saveOrder() {
@@ -126,16 +126,16 @@ export function DirectoryManager({ departments }: { departments: Department[] })
         <p>Publish only confirmed information. Order values control how departments, services and providers appear publicly.</p>
         <div className="manager-actions">
           <b>{departments.length} departments</b>
-          <button className="btn btn-primary" type="button" onClick={() => setAdding(true)}><Plus size={17} /> Add department</button>
+          {canManageCategories && <button className="btn btn-primary" type="button" onClick={() => setAdding(true)}><Plus size={17} /> Add department</button>}
         </div>
       </div>
 
       <section className="card dashboard-card directory-table-panel">
         <div className="directory-table-actions">
-          <button className="btn btn-light" type="button" disabled={saving} onClick={saveOrder}>
+          {canManageCategories && <button className="btn btn-light" type="button" disabled={saving} onClick={saveOrder}>
             {saving ? <Loader2 className="toast-spinner" size={15} /> : <Save size={15} />}
             {saving ? "Saving order…" : "Save order"}
-          </button>
+          </button>}
         </div>
         <div className="table-scroll">
           <table className="data-table directory-table">
@@ -203,8 +203,8 @@ export function DirectoryManager({ departments }: { departments: Department[] })
           description={editing ? "Update public directory details, services and providers. Progress is confirmed as each save completes." : "Create a new public directory department without scrolling away from the list."}
           onClose={() => { setEditing(null); setAdding(false); }}
         >
-          <DepartmentForm department={editing ?? undefined} departments={departments} saving={saving} onSubmit={(event) => submitDepartment(event, editing?.id)} onDelete={editing ? () => setPendingDelete({ entity: "DEPARTMENT", id: editing.id, label: editing.name, detail: `${editing.services.length} services and ${editing.providers.length} providers will also be permanently deleted.` }) : undefined} />
-          {editing && (
+          {canManageCategories && <DepartmentForm department={editing ?? undefined} departments={departments} saving={saving} onSubmit={(event) => submitDepartment(event, editing?.id)} onDelete={editing ? () => setPendingDelete({ entity: "DEPARTMENT", id: editing.id, label: editing.name, detail: `${editing.services.length} services and ${editing.providers.length} providers will also be permanently deleted.` }) : undefined} />}
+          {editing && !categoriesOnly && (
             <div className="directory-child-sections">
               <section className="directory-admin-section">
                 <h2>Services</h2>
@@ -291,7 +291,9 @@ function ChildForm({ kind, item, saving, onSubmit, onDelete }: { kind: "SERVICE"
     <form className="directory-admin-child-form" onSubmit={onSubmit}>
       {kind === "SERVICE" ? <>
         <Field name="name" label="Service name" value={service?.name} required />
+        <Field name="durationMinutes" label="Appointment duration (minutes)" type="number" value={service?.durationMinutes ?? 30} required />
         <label className="field directory-wide"><span>Description (optional)</span><textarea className="input" name="description" defaultValue={service?.description ?? ""} /></label>
+        <label className="toggle-label directory-toggle"><input name="active" type="checkbox" defaultChecked={service?.active ?? true} /><span>Available for booking</span></label>
       </> : <>
         <Field name="displayName" label="Display name" value={provider?.displayName} required />
         <Field name="practiceName" label="Practice name (optional)" value={provider?.practiceName} />

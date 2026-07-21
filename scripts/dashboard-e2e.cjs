@@ -38,6 +38,7 @@ const widths = process.env.E2E_WIDTH
   const page = await browser.newPage({
     viewport: { width: 1440, height: 1000 },
   });
+  page.setDefaultNavigationTimeout(60_000);
   const report = { routes: {}, interactions: {}, runtimeErrors: [] };
   page.on("pageerror", (error) => report.runtimeErrors.push(`page: ${error.message}`));
   page.on("console", (message) => {
@@ -98,8 +99,11 @@ const widths = process.env.E2E_WIDTH
 
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto(`${base}/dashboard/appointments`, {
-    waitUntil: "networkidle",
+    waitUntil: "domcontentloaded",
   });
+  await page
+    .getByRole("button", { name: "Open dashboard navigation" })
+    .waitFor({ state: "visible" });
   await page.getByRole("button", { name: "Open dashboard navigation" }).click();
   await page.waitForTimeout(250);
   report.interactions.mobileDrawer = await page
@@ -117,6 +121,20 @@ const widths = process.env.E2E_WIDTH
   report.interactions.appointmentSheet = await page
     .locator(".appointment-panel")
     .isVisible();
+  await page.waitForTimeout(250);
+  report.interactions.appointmentSheetBounds = await page
+    .locator(".appointment-panel")
+    .evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      return {
+        left: Math.round(box.left),
+        right: Math.round(box.right),
+        top: Math.round(box.top),
+        bottom: Math.round(box.bottom),
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+      };
+    });
   report.interactions.appointmentSheetFits = await page
     .locator(".appointment-panel")
     .evaluate((element) => {
@@ -222,7 +240,7 @@ const widths = process.env.E2E_WIDTH
     .isVisible();
   await page.locator(".confirmation-actions .btn-light").click();
 
-  await page.goto(`${base}/dashboard/settings`, { waitUntil: "networkidle" });
+  await page.goto(`${base}/dashboard/settings`, { waitUntil: "domcontentloaded" });
   const settingsMetrics = await page.evaluate(() => {
     const practiceFields = document.querySelector(".settings-section-grid");
     const practiceActions = document.querySelector(".form-action-bar");

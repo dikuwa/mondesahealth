@@ -7,10 +7,13 @@ import { bootstrapPolyclinic } from "./polyclinic-data";
 const db = new PrismaClient();
 
 async function main() {
-  if(!process.env.OWNER_EMAIL||!process.env.OWNER_PASSWORD)throw new Error("OWNER_EMAIL and OWNER_PASSWORD must be supplied explicitly when seeding.");
-  const ownerEmail=process.env.OWNER_EMAIL.toLowerCase();
-  const ownerPassword=process.env.OWNER_PASSWORD;
-  const ownerName=process.env.OWNER_NAME||"Practice Owner";
+  if (!process.env.OWNER_EMAIL || !process.env.OWNER_PASSWORD)
+    throw new Error(
+      "OWNER_EMAIL and OWNER_PASSWORD must be supplied explicitly when seeding.",
+    );
+  const ownerEmail = process.env.OWNER_EMAIL.toLowerCase();
+  const ownerPassword = process.env.OWNER_PASSWORD;
+  const ownerName = process.env.OWNER_NAME || "Practice Owner";
   passwordSchema.parse(ownerPassword);
   await bootstrapPolyclinic(db);
 
@@ -27,7 +30,12 @@ async function main() {
   });
 
   await db.patient.upsert({
-    where: { patientNumber: "PAT-DEMO-001" },
+    where: {
+      practiceId_patientNumber: {
+        practiceId: "mondesa-health",
+        patientNumber: "PAT-DEMO-001",
+      },
+    },
     update: {},
     create: {
       patientNumber: "PAT-DEMO-001",
@@ -55,7 +63,12 @@ async function main() {
     await db.medicalAid.upsert({
       where: { normalizedName: name.toLowerCase().replace(/[^a-z0-9]/g, "") },
       update: {},
-      create: { name, normalizedName: name.toLowerCase().replace(/[^a-z0-9]/g, ""), abbreviation, sortOrder: funds.findIndex((f) => f[0] === name) },
+      create: {
+        name,
+        normalizedName: name.toLowerCase().replace(/[^a-z0-9]/g, ""),
+        abbreviation,
+        sortOrder: funds.findIndex((f) => f[0] === name),
+      },
     });
   }
 
@@ -67,9 +80,20 @@ async function main() {
     { weekday: 5, openTime: "08:00", closeTime: "16:00" },
   ]) {
     await db.availabilityRule.upsert({
-      where: { practiceId_weekday: { practiceId: "mondesa-health", weekday: rule.weekday } },
+      where: {
+        practiceId_weekday: {
+          practiceId: "mondesa-health",
+          weekday: rule.weekday,
+        },
+      },
       update: {},
-      create: { ...rule, practiceId: "mondesa-health", lunchStart: "13:00", lunchEnd: "14:00", durationMinutes: 30 },
+      create: {
+        ...rule,
+        practiceId: "mondesa-health",
+        lunchStart: "13:00",
+        lunchEnd: "14:00",
+        durationMinutes: 30,
+      },
     });
   }
 }

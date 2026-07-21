@@ -5,7 +5,7 @@ const required = (key) => { if (!process.env[key]) throw new Error(`${key} is re
 
 const base = process.env.E2E_BASE_URL || "http://localhost:3000";
 const quick = process.env.E2E_QUICK === "1";
-const publicRoutes = quick ? ["/"] : ["/", "/services", "/services/general-practice", "/services/dental-practice", "/book", "/login", "/policies"];
+const publicRoutes = quick ? ["/"] : ["/", "/services", "/services/general-practice", "/services/dental-practice", "/book", "/apply", "/login", "/policies"];
 const dashboardRoutes = quick ? [] : [
   "/dashboard",
   "/dashboard/appointments",
@@ -20,6 +20,15 @@ const dashboardRoutes = quick ? [] : [
   "/dashboard/users",
   "/dashboard/profile",
   "/dashboard/activity",
+  "/dashboard/subscription",
+  "/dashboard/platform/practices",
+  "/dashboard/platform/applications",
+  "/dashboard/platform/categories",
+  "/dashboard/platform/subscriptions",
+  "/dashboard/platform/billing",
+  "/dashboard/platform/analytics",
+  "/dashboard/platform/audit",
+  "/dashboard/platform/support",
 ];
 const viewports = quick ? [
   { width: 320, height: 720 },
@@ -83,6 +92,7 @@ async function measure(page) {
     executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
   });
   const page = await browser.newPage();
+  page.setDefaultNavigationTimeout(60_000);
   const report = { public: {}, dashboard: {} };
 
   for (const route of publicRoutes) {

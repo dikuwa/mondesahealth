@@ -17,4 +17,69 @@ const avatarDataSchema = z.union([
   z.literal(""),
 ]);
 
-export async function PATCH(request:Request){const session=await getSession();if(!session)return NextResponse.json({error:"Your session has expired."},{status:401,headers:{"X-Session-Expired":"true"}});const parsed=z.object({name:z.string().trim().min(2).max(80).optional(),avatarData:avatarDataSchema.optional(),currentPassword:z.string().optional(),newPassword:passwordSchema.optional()}).safeParse(await request.json());if(!parsed.success)return NextResponse.json({error:parsed.error.issues[0]?.message||"Check your profile changes."},{status:400});const user=await db.user.findUniqueOrThrow({where:{id:session.id}});const data:{name?:string;avatarData?:string|null;passwordHash?:string;mustChangePassword?:boolean;sessionVersion?:{increment:number}}={};if(parsed.data.name)data.name=parsed.data.name;if(parsed.data.avatarData!==undefined)data.avatarData=parsed.data.avatarData||null;if(parsed.data.newPassword){if(!parsed.data.currentPassword||!await compare(parsed.data.currentPassword,user.passwordHash))return NextResponse.json({error:"Your current password is incorrect."},{status:400});data.passwordHash=await hash(parsed.data.newPassword,12);data.mustChangePassword=false;data.sessionVersion={increment:1}}await db.$transaction([db.user.update({where:{id:user.id},data}),db.activityLog.create({data:{userId:user.id,action:"PROFILE_UPDATED",entityType:"User",entityId:user.id,summary:parsed.data.newPassword?"Updated profile and password":"Updated staff profile"}})]);return NextResponse.json({ok:true,sessionInvalidated:Boolean(parsed.data.newPassword)});}
+export async function PATCH(request: Request) {
+  const session = await getSession();
+  if (!session)
+    return NextResponse.json(
+      { error: "Your session has expired." },
+      { status: 401, headers: { "X-Session-Expired": "true" } },
+    );
+  const parsed = z
+    .object({
+      name: z.string().trim().min(2).max(80).optional(),
+      avatarData: avatarDataSchema.optional(),
+      currentPassword: z.string().optional(),
+      newPassword: passwordSchema.optional(),
+    })
+    .safeParse(await request.json());
+  if (!parsed.success)
+    return NextResponse.json(
+      {
+        error: parsed.error.issues[0]?.message || "Check your profile changes.",
+      },
+      { status: 400 },
+    );
+  const user = await db.user.findUniqueOrThrow({ where: { id: session.id } });
+  const data: {
+    name?: string;
+    avatarData?: string | null;
+    passwordHash?: string;
+    mustChangePassword?: boolean;
+    sessionVersion?: { increment: number };
+  } = {};
+  if (parsed.data.name) data.name = parsed.data.name;
+  if (parsed.data.avatarData !== undefined)
+    data.avatarData = parsed.data.avatarData || null;
+  if (parsed.data.newPassword) {
+    if (
+      !parsed.data.currentPassword ||
+      !(await compare(parsed.data.currentPassword, user.passwordHash))
+    )
+      return NextResponse.json(
+        { error: "Your current password is incorrect." },
+        { status: 400 },
+      );
+    data.passwordHash = await hash(parsed.data.newPassword, 12);
+    data.mustChangePassword = false;
+    data.sessionVersion = { increment: 1 };
+  }
+  await db.$transaction([
+    db.user.update({ where: { id: user.id }, data }),
+    db.activityLog.create({
+      data: {
+        userId: user.id,
+        practiceId: user.practiceId,
+        action: "PROFILE_UPDATED",
+        entityType: "User",
+        entityId: user.id,
+        summary: parsed.data.newPassword
+          ? "Updated profile and password"
+          : "Updated staff profile",
+      },
+    }),
+  ]);
+  return NextResponse.json({
+    ok: true,
+    sessionInvalidated: Boolean(parsed.data.newPassword),
+  });
+}

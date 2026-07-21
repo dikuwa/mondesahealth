@@ -10,7 +10,16 @@ export const dynamic = "force-dynamic";
 export default async function WebsiteContentPage() {
   const session = await requirePermission("MANAGE_PRACTICE");
   if (!session) notFound();
-  const record = await db.practiceContent.findUnique({ where: { id: "practice" } });
-  const initial = (record?.content as PracticeContent | undefined) || DEFAULT_PRACTICE_CONTENT;
-  return <><PageHeading eyebrow="Public website" title="Website content" /><ContentManager initial={initial} /></>;
+  const record = await db.practiceContent.findUnique({
+    where: { practiceId: session.practiceId },
+  });
+  const initial =
+    (record?.content as PracticeContent | undefined) ||
+    DEFAULT_PRACTICE_CONTENT;
+  return (
+    <>
+      <PageHeading eyebrow="Public website" title="Website content" />
+      <ContentManager initial={initial} />
+    </>
+  );
 }

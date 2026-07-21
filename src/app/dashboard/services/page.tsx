@@ -11,7 +11,7 @@ export default async function ServicesAndProvidersPage() {
   if (!session) notFound();
   const departments = await db.department.findMany({
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    include: { services: { orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }, providers: { orderBy: [{ sortOrder: "asc" }, { displayName: "asc" }] } },
+    include: { services: { where: { practiceId: session.practiceId }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }, providers: { where: { practiceId: session.practiceId }, orderBy: [{ sortOrder: "asc" }, { displayName: "asc" }] } },
   });
-  return <><PageHeading eyebrow="Public directory" title="Services & providers" /><DirectoryManager departments={departments} /></>;
+  return <><PageHeading eyebrow="Public directory" title="Services & providers" /><DirectoryManager departments={departments} canManageCategories={session.platformRole === "PLATFORM_OWNER"} /></>;
 }

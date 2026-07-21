@@ -11,6 +11,12 @@ import {
   nextAppointmentStatus,
   type AppointmentAction,
 } from "@/lib/appointment-state";
+import {
+  maskIdentifier,
+  maskPhone,
+  patientMatchWhere,
+} from "@/lib/patient-matching";
+import { subscriptionAccess } from "@/lib/subscription-access";
 
 const staffSession = () => requirePermission("MANAGE_APPOINTMENTS");
 const createSchema = z.object({
@@ -29,6 +35,7 @@ const createSchema = z.object({
   departmentId: z.string().optional(),
   serviceId: z.string().optional(),
   providerId: z.string().optional(),
+  forceSeparate: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -48,6 +55,12 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   const input = parsed.data;
+  const subscription = await subscriptionAccess(session.practiceId);
+  if (!subscription.allowed)
+    return NextResponse.json(
+      { error: subscription.warning, code: "SUBSCRIPTION_RESTRICTED" },
+      { status: 402 },
+    );
   if (input.patientMode === "EXISTING" && !input.patientId)
     return NextResponse.json({ error: "Select a patient." }, { status: 400 });
   if (
@@ -69,6 +82,48 @@ export async function POST(request: Request) {
       { error: "Enter a valid email address." },
       { status: 400 },
     );
+  if (input.patientMode === "NEW" && !input.forceSeparate) {
+    const matches = await db.patient.findMany({
+      where: patientMatchWhere(session.practiceId, {
+        phone: input.phone,
+        email: input.email,
+        fullName: input.fullName,
+      }),
+      select: {
+        id: true,
+        fullName: true,
+        dateOfBirth: true,
+        identityNumber: true,
+        passportNumber: true,
+        phone: true,
+        appointments: {
+          where: { practiceId: session.practiceId },
+          select: { startAt: true },
+          orderBy: { startAt: "desc" },
+          take: 1,
+        },
+      },
+      take: 8,
+    });
+    if (matches.length)
+      return NextResponse.json(
+        {
+          code: "POSSIBLE_MATCH",
+          error: "A patient with similar details already exists.",
+          matches: matches.map((item) => ({
+            id: item.id,
+            fullName: item.fullName,
+            dateOfBirth: item.dateOfBirth,
+            maskedId: maskIdentifier(
+              item.identityNumber || item.passportNumber,
+            ),
+            maskedPhone: maskPhone(item.phone),
+            lastVisit: item.appointments[0]?.startAt || null,
+          })),
+        },
+        { status: 409 },
+      );
+  }
   let startAt: Date;
   let duration = 30;
   if (input.timing === "NOW") {
@@ -80,32 +135,88 @@ export async function POST(request: Request) {
         { error: "Choose an appointment date and time." },
         { status: 400 },
       );
-    const slots = await availableSlots(input.date, new Date(), session.practiceId, input.providerId, input.serviceId);
+    const slots = await availableSlots(
+      input.date,
+      new Date(),
+      session.practiceId,
+      input.providerId,
+      input.serviceId,
+    );
     if (!slots.includes(input.time))
       return NextResponse.json(
         { error: "That time is no longer available." },
         { status: 409 },
       );
-    const rule = await db.availabilityRule.findUnique({ where: { practiceId_weekday: { practiceId: session.practiceId, weekday: new Date(`${input.date}T00:00:00`).getDay() } } });
+    const rule = await db.availabilityRule.findUnique({
+      where: {
+        practiceId_weekday: {
+          practiceId: session.practiceId,
+          weekday: new Date(`${input.date}T00:00:00`).getDay(),
+        },
+      },
+    });
     duration = rule?.durationMinutes || 30;
     startAt = new Date(`${input.date}T${input.time}:00`);
   }
   const [department, service, provider] = await Promise.all([
-    input.departmentId ? db.department.findFirst({ where: { id: input.departmentId, bookingEnabled: true, status: "ACTIVE" } }) : null,
-    input.serviceId ? db.departmentService.findFirst({ where: { id: input.serviceId, practiceId: session.practiceId, departmentId: input.departmentId, active: true } }) : null,
-    input.providerId ? db.provider.findFirst({ where: { id: input.providerId, practiceId: session.practiceId, departmentId: input.departmentId } }) : null,
+    input.departmentId
+      ? db.department.findFirst({
+          where: {
+            id: input.departmentId,
+            bookingEnabled: true,
+            status: "ACTIVE",
+          },
+        })
+      : null,
+    input.serviceId
+      ? db.departmentService.findFirst({
+          where: {
+            id: input.serviceId,
+            practiceId: session.practiceId,
+            departmentId: input.departmentId,
+            active: true,
+          },
+        })
+      : null,
+    input.providerId
+      ? db.provider.findFirst({
+          where: {
+            id: input.providerId,
+            practiceId: session.practiceId,
+            departmentId: input.departmentId,
+          },
+        })
+      : null,
   ]);
-  if (input.departmentId && !department) return NextResponse.json({ error: "The selected service area is not bookable." }, { status: 400 });
-  if (input.serviceId && !service) return NextResponse.json({ error: "The selected service does not belong to that service area." }, { status: 400 });
-  if (input.providerId && !provider) return NextResponse.json({ error: "The selected provider does not belong to that service area." }, { status: 400 });
+  if (input.departmentId && !department)
+    return NextResponse.json(
+      { error: "The selected service area is not bookable." },
+      { status: 400 },
+    );
+  if (input.serviceId && !service)
+    return NextResponse.json(
+      { error: "The selected service does not belong to that service area." },
+      { status: 400 },
+    );
+  if (input.providerId && !provider)
+    return NextResponse.json(
+      { error: "The selected provider does not belong to that service area." },
+      { status: 400 },
+    );
+  duration = service?.durationMinutes || duration;
   try {
     const result = await db.$transaction(async (tx) => {
+      let createdPatient = false;
       let patient = input.patientId
         ? await tx.patient.findFirst({
-            where: { id: input.patientId, practiceId: session.practiceId, archivedAt: null },
+            where: {
+              id: input.patientId,
+              practiceId: session.practiceId,
+              archivedAt: null,
+            },
           })
         : null;
-      if (!patient && input.patientMode === "NEW")
+      if (!patient && input.patientMode === "NEW") {
         patient = await tx.patient.create({
           data: {
             patientNumber: ref("PAT"),
@@ -126,6 +237,8 @@ export async function POST(request: Request) {
             preferredMethod: input.source === "WHATSAPP" ? "WHATSAPP" : "PHONE",
           },
         });
+        createdPatient = true;
+      }
       if (!patient) throw new Error("PATIENT_NOT_FOUND");
       const appointment = await tx.appointment.create({
         data: {
@@ -158,6 +271,20 @@ export async function POST(request: Request) {
           entityType: "Appointment",
           entityId: appointment.id,
           summary: `${input.source} appointment ${appointment.reference} created for ${patient.fullName}`,
+        },
+      });
+      await tx.activityLog.create({
+        data: {
+          userId: session.id,
+          practiceId: session.practiceId,
+          action: createdPatient
+            ? "PATIENT_CREATED"
+            : "BOOKING_LINKED_TO_PATIENT",
+          entityType: "Patient",
+          entityId: patient.id,
+          summary: createdPatient
+            ? `Created patient ${patient.fullName} from staff booking`
+            : `Linked appointment ${appointment.reference} to existing patient ${patient.fullName}`,
         },
       });
       return appointment;
@@ -228,7 +355,13 @@ export async function PATCH(request: Request) {
           { error: "Choose the proposed date and time." },
           { status: 400 },
         );
-      const slots = await availableSlots(input.date, new Date(), session.practiceId, appointment.providerId || undefined, appointment.serviceId || undefined);
+      const slots = await availableSlots(
+        input.date,
+        new Date(),
+        session.practiceId,
+        appointment.providerId || undefined,
+        appointment.serviceId || undefined,
+      );
       if (!slots.includes(input.time))
         return NextResponse.json(
           { error: "That proposed time is no longer available." },
@@ -372,11 +505,33 @@ export async function PATCH(request: Request) {
         },
         { status: 409 },
       );
-    const startsInFuture = Boolean(appointment.startAt && appointment.startAt > new Date());
-    if (appointment.status === "REVIEW_REQUIRED" && input.action === "CONFIRM" && !startsInFuture)
-      return NextResponse.json({ error: "Past review-required appointments cannot be confirmed; complete, mark no-show, or cancel instead." }, { status: 409 });
-    if (appointment.status === "REVIEW_REQUIRED" && ["COMPLETE", "NO_SHOW"].includes(input.action) && startsInFuture)
-      return NextResponse.json({ error: "Future review-required appointments must be confirmed or cancelled." }, { status: 409 });
+    const startsInFuture = Boolean(
+      appointment.startAt && appointment.startAt > new Date(),
+    );
+    if (
+      appointment.status === "REVIEW_REQUIRED" &&
+      input.action === "CONFIRM" &&
+      !startsInFuture
+    )
+      return NextResponse.json(
+        {
+          error:
+            "Past review-required appointments cannot be confirmed; complete, mark no-show, or cancel instead.",
+        },
+        { status: 409 },
+      );
+    if (
+      appointment.status === "REVIEW_REQUIRED" &&
+      ["COMPLETE", "NO_SHOW"].includes(input.action) &&
+      startsInFuture
+    )
+      return NextResponse.json(
+        {
+          error:
+            "Future review-required appointments must be confirmed or cancelled.",
+        },
+        { status: 409 },
+      );
     const next = nextAppointmentStatus(input.action as AppointmentAction);
     await db.$transaction([
       db.appointment.update({
@@ -504,7 +659,13 @@ export async function PATCH(request: Request) {
       { error: "Choose another available date and time." },
       { status: 400 },
     );
-  const slots = await availableSlots(patient.data.date);
+  const slots = await availableSlots(
+    patient.data.date,
+    new Date(),
+    appointment.practiceId,
+    appointment.providerId || undefined,
+    appointment.serviceId || undefined,
+  );
   if (!slots.includes(patient.data.time))
     return NextResponse.json(
       { error: "That time is no longer available." },

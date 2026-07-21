@@ -24,7 +24,10 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { DashboardNotifications, useNotifications } from "@/components/dashboard-notifications";
+import {
+  DashboardNotifications,
+  useNotifications,
+} from "@/components/dashboard-notifications";
 
 const sections = [
   {
@@ -44,7 +47,12 @@ const sections = [
     label: "Operations",
     items: [
       ["Medical aid claims", "/dashboard/claims", FileHeart, "MANAGE_CLAIMS"],
-      ["Claim batches", "/dashboard/claim-batches", FileHeart, "MANAGE_CLAIM_BATCHES"],
+      [
+        "Claim batches",
+        "/dashboard/claim-batches",
+        FileHeart,
+        "MANAGE_CLAIM_BATCHES",
+      ],
       ["Sick notes", "/dashboard/sick-notes", FileText, "VIEW_SICK_NOTES"],
       ["Finance", "/dashboard/finance", Banknote, "MANAGE_FINANCE"],
       [
@@ -58,11 +66,22 @@ const sections = [
   {
     label: "System",
     items: [
-      ["Services & providers", "/dashboard/services", Building2, "MANAGE_PRACTICE"],
+      [
+        "Services & providers",
+        "/dashboard/services",
+        Building2,
+        "MANAGE_PRACTICE",
+      ],
       ["Website content", "/dashboard/content", Building2, "MANAGE_PRACTICE"],
-      ["Medical aid", "/dashboard/medical-aid", FileHeart, "MANAGE_MEDICAL_AID_SETTINGS"],
+      [
+        "Medical aid",
+        "/dashboard/medical-aid",
+        FileHeart,
+        "MANAGE_MEDICAL_AID_SETTINGS",
+      ],
       ["Settings", "/dashboard/settings", Settings, "MANAGE_PRACTICE"],
       ["Staff users", "/dashboard/users", UserCog, "MANAGE_USERS"],
+      ["Subscription", "/dashboard/subscription", Banknote, "MANAGE_PRACTICE"],
       ["Activity log", "/dashboard/activity", Activity, "VIEW_ACTIVITY"],
     ],
   },
@@ -73,6 +92,7 @@ const pageNames: Record<string, string> = {
   "/dashboard/appointments": "Appointments",
   "/dashboard/patients": "Patients",
   "/dashboard/claims": "Medical aid claims",
+  "/dashboard/subscription": "Subscription",
   "/dashboard/claim-batches": "Claim batches",
   "/dashboard/sick-notes": "Sick notes",
   "/dashboard/medical-aid": "Medical aid settings",
@@ -104,7 +124,11 @@ export function DashboardShell({
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { notifications, refresh: refreshNotifications, updateNotifications } = useNotifications();
+  const {
+    notifications,
+    refresh: refreshNotifications,
+    updateNotifications,
+  } = useNotifications();
   const appointmentNotificationCount = notifications.filter(
     (item) => item.type === "APPOINTMENT" && !item.readAt,
   ).length;
@@ -161,7 +185,11 @@ export function DashboardShell({
         aria-label="Close navigation"
         onClick={() => setMobileOpen(false)}
       />
-      <aside ref={sidebarRef} className="dashboard-sidebar" aria-label="Dashboard sidebar">
+      <aside
+        ref={sidebarRef}
+        className="dashboard-sidebar"
+        aria-label="Dashboard sidebar"
+      >
         <div className="dashboard-brand-row">
           <Link
             href="/dashboard"
@@ -194,7 +222,65 @@ export function DashboardShell({
           <span>{collapsed ? "Expand" : "Collapse"}</span>
         </button>
         <nav className="dashboard-nav" aria-label="Dashboard operations">
-          {platformRole === "PLATFORM_OWNER" && <div className="dashboard-nav-section"><span className="dashboard-nav-label">Platform</span><Link href="/dashboard/platform/practices" onClick={()=>setMobileOpen(false)} className={`dashboard-nav-link${pathname==="/dashboard/platform/practices"?" is-active":""}`}><Building2 size={18}/><span>Practices</span></Link><Link href="/dashboard/platform/subscriptions" onClick={()=>setMobileOpen(false)} className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/subscriptions")?" is-active":""}`}><Banknote size={18}/><span>Subscriptions</span></Link><Link href="/dashboard/platform/analytics" onClick={()=>setMobileOpen(false)} className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/analytics")?" is-active":""}`}><Gauge size={18}/><span>Platform analytics</span></Link><Link href="/dashboard/platform/audit" onClick={()=>setMobileOpen(false)} className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/audit")?" is-active":""}`}><Activity size={18}/><span>Platform audit</span></Link></div>}
+          {platformRole === "PLATFORM_OWNER" && (
+            <div className="dashboard-nav-section">
+              <span className="dashboard-nav-label">Platform</span>
+              <Link
+                href="/dashboard/platform/practices"
+                onClick={() => setMobileOpen(false)}
+                className={`dashboard-nav-link${pathname === "/dashboard/platform/practices" ? " is-active" : ""}`}
+              >
+                <Building2 size={18} />
+                <span>Practices</span>
+              </Link>
+              <Link
+                href="/dashboard/platform/subscriptions"
+                onClick={() => setMobileOpen(false)}
+                className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/subscriptions") ? " is-active" : ""}`}
+              >
+                <Banknote size={18} />
+                <span>Plans</span>
+              </Link>
+              <Link href="/dashboard/platform/applications" onClick={() => setMobileOpen(false)} className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/applications") ? " is-active" : ""}`}>
+                <FileText size={18} /><span>Applications</span>
+              </Link>
+              <Link href="/dashboard/platform/categories" onClick={() => setMobileOpen(false)} className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/categories") ? " is-active" : ""}`}>
+                <SlidersHorizontal size={18} /><span>Service categories</span>
+              </Link>
+              <Link
+                href="/dashboard/platform/billing"
+                onClick={() => setMobileOpen(false)}
+                className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/billing") ? " is-active" : ""}`}
+              >
+                <Banknote size={18} />
+                <span>Practice billing</span>
+              </Link>
+              <Link
+                href="/dashboard/platform/analytics"
+                onClick={() => setMobileOpen(false)}
+                className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/analytics") ? " is-active" : ""}`}
+              >
+                <Gauge size={18} />
+                <span>Platform analytics</span>
+              </Link>
+              <Link
+                href="/dashboard/platform/audit"
+                onClick={() => setMobileOpen(false)}
+                className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/audit") ? " is-active" : ""}`}
+              >
+                <Activity size={18} />
+                <span>Platform audit</span>
+              </Link>
+              <Link
+                href="/dashboard/platform/support"
+                onClick={() => setMobileOpen(false)}
+                className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/support") ? " is-active" : ""}`}
+              >
+                <HeartPulse size={18} />
+                <span>Support access</span>
+              </Link>
+            </div>
+          )}
           {sections.map((section) => (
             <div className="dashboard-nav-section" key={section.label}>
               <span className="dashboard-nav-label">{section.label}</span>
@@ -208,7 +294,8 @@ export function DashboardShell({
                     href === "/dashboard"
                       ? pathname === href
                       : pathname.startsWith(href);
-                  const notificationCount = notificationCountsByRoute[href] ?? 0;
+                  const notificationCount =
+                    notificationCountsByRoute[href] ?? 0;
                   return (
                     <Link
                       key={href}
@@ -219,9 +306,19 @@ export function DashboardShell({
                       title={collapsed ? label : undefined}
                     >
                       <Icon size={18} />
-                      <span className={notificationCount > 0 ? "dashboard-nav-label-with-badge" : undefined}>
+                      <span
+                        className={
+                          notificationCount > 0
+                            ? "dashboard-nav-label-with-badge"
+                            : undefined
+                        }
+                      >
                         {label}
-                        {notificationCount > 0 && <i className="dashboard-nav-count">{notificationCount}</i>}
+                        {notificationCount > 0 && (
+                          <i className="dashboard-nav-count">
+                            {notificationCount}
+                          </i>
+                        )}
                       </span>
                     </Link>
                   );
@@ -236,7 +333,13 @@ export function DashboardShell({
             aria-label="Open your profile"
           >
             {avatarData ? (
-              <Image src={avatarData} alt="" width={40} height={40} unoptimized />
+              <Image
+                src={avatarData}
+                alt=""
+                width={40}
+                height={40}
+                unoptimized
+              />
             ) : (
               name.trim().charAt(0).toUpperCase()
             )}

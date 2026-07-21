@@ -8,7 +8,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const image = await db.patientIntakeImage.findFirst({ where: { id, intake: { practiceId: session.practiceId } } });
   if (!image) return NextResponse.json({ error: "Intake image not found." }, { status: 404 });
-  await db.activityLog.create({ data: { userId: session.id, action: "PATIENT_INTAKE_IMAGE_VIEWED", entityType: "PatientIntakeImage", entityId: image.id, summary: "Restricted patient intake image viewed" } });
+  await db.activityLog.create({ data: { practiceId: session.practiceId, userId: session.id, action: "PATIENT_INTAKE_IMAGE_VIEWED", entityType: "PatientIntakeImage", entityId: image.id, summary: "Restricted patient intake image viewed" } });
   const filename = image.filename.replace(/[\r\n"\\]/g, "_");
   return new NextResponse(image.data, { headers: { "Content-Type": image.mimeType, "Content-Disposition": `inline; filename="${filename}"`, "Cache-Control": "private, no-store" } });
 }

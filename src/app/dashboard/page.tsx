@@ -16,45 +16,66 @@ export const dynamic = "force-dynamic";
 
 export default async function Overview() {
   const today = new Date();
-  const [session, appointments, pending, claims, balances, payments, nextSlot, reminders] =
-    await Promise.all([
-      getSession(),
-      db.appointment.findMany({
-        where: { startAt: { gte: startOfDay(today), lte: endOfDay(today) } },
-        include: { patient: true },
-        orderBy: { startAt: "asc" },
-      }),
-      db.appointment.count({
-        where: {
-          status: {
-            in: [
-              "NEW_REQUEST",
-              "PENDING_CONFIRMATION",
-              "RESCHEDULE_PROPOSED",
-              "RESCHEDULE_REQUESTED",
-              "REVIEW_REQUIRED",
-            ],
-          },
+  const session = await getSession();
+  if (!session) return null;
+  const [
+    appointments,
+    pending,
+    claims,
+    balances,
+    payments,
+    nextSlot,
+    reminders,
+  ] = await Promise.all([
+    db.appointment.findMany({
+      where: {
+        practiceId: session.practiceId,
+        startAt: { gte: startOfDay(today), lte: endOfDay(today) },
+      },
+      include: { patient: true },
+      orderBy: { startAt: "asc" },
+    }),
+    db.appointment.count({
+      where: {
+        practiceId: session.practiceId,
+        status: {
+          in: [
+            "NEW_REQUEST",
+            "PENDING_CONFIRMATION",
+            "RESCHEDULE_PROPOSED",
+            "RESCHEDULE_REQUESTED",
+            "REVIEW_REQUIRED",
+          ],
         },
-      }),
-      db.claim.count({
-        where: {
-          status: {
-            in: ["NEEDS_INFORMATION", "MISSING_INFORMATION", "REJECTED", "RESUBMISSION_REQUIRED"],
-          },
+      },
+    }),
+    db.claim.count({
+      where: {
+        practiceId: session.practiceId,
+        status: {
+          in: [
+            "NEEDS_INFORMATION",
+            "MISSING_INFORMATION",
+            "REJECTED",
+            "RESUBMISSION_REQUIRED",
+          ],
         },
-      }),
-      db.invoice.aggregate({
-        _sum: { total: true, patientPaid: true, medicalAidPaid: true },
-        where: { status: { not: "VOID" } },
-      }),
-      db.payment.aggregate({
-        _sum: { amount: true },
-        where: { paidAt: { gte: startOfDay(today), lte: endOfDay(today) } },
-      }),
-      nextAvailableSlot(today),
-      getDueReminders(today),
-    ]);
+      },
+    }),
+    db.invoice.aggregate({
+      _sum: { total: true, patientPaid: true, medicalAidPaid: true },
+      where: { practiceId: session.practiceId, status: { not: "VOID" } },
+    }),
+    db.payment.aggregate({
+      _sum: { amount: true },
+      where: {
+        practiceId: session.practiceId,
+        paidAt: { gte: startOfDay(today), lte: endOfDay(today) },
+      },
+    }),
+    nextAvailableSlot(today, session.practiceId),
+    getDueReminders(session.practiceId, today),
+  ]);
   const greeting = windhoekGreeting(today);
   const localDate = new Intl.DateTimeFormat("en-NA", {
     timeZone: "Africa/Windhoek",
@@ -130,7 +151,16 @@ export default async function Overview() {
                 marginTop: 8,
               }}
             >
-              {nextSlot ? new Intl.DateTimeFormat("en-NA", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Windhoek" }).format(nextSlot) : "No slot available"}
+              {nextSlot
+                ? new Intl.DateTimeFormat("en-NA", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZone: "Africa/Windhoek",
+                  }).format(nextSlot)
+                : "No slot available"}
             </b>
           </div>
           <p style={{ fontSize: 13, lineHeight: 1.7, color: "#63766f" }}>

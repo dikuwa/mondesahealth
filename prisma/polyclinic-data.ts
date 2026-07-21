@@ -6,8 +6,7 @@ export const POLYCLINIC_LOCATION = {
   publicDescription:
     "Mondesa Health Polyclinic brings together multiple healthcare disciplines under one roof, providing convenient access to quality healthcare services for individuals, families, and the community.",
   phone: "+264 83 783 7216",
-  address:
-    "Erf 1083, Vrede Rede Street, Mahetago, Mondesa, Swakopmund",
+  address: "Erf 1083, Vrede Rede Street, Mahetago, Mondesa, Swakopmund",
   locationNote: "Across from Mondesa Police Station",
   mapsUrl:
     "https://www.google.com/maps?q=-22.658405303955078,14.546859741210938&z=17&hl=en",
@@ -126,7 +125,12 @@ export const DEPARTMENTS = [
       "The future imaging centre will broaden access to diagnostic investigations and screening services.",
     status: "COMING_SOON",
     bookingEnabled: false,
-    services: ["Ultrasound", "X-ray", "Diagnostic imaging", "Screening services"],
+    services: [
+      "Ultrasound",
+      "X-ray",
+      "Diagnostic imaging",
+      "Screening services",
+    ],
   },
   {
     slug: "php-health-plan",
@@ -149,20 +153,87 @@ export const DEPARTMENTS = [
 ] as const;
 
 export const DEFAULT_PRACTICE_CONTENT = {
-  hero: { eyebrow: "Integrated community healthcare", headline: "Your Health. Your Choice. Your Community.", description: "Mondesa Health Polyclinic brings together multiple healthcare disciplines under one roof, providing convenient access to quality healthcare services for individuals, families, and the community.", bookingLabel: "Book GP appointment", servicesLabel: "Explore services", trustPoints: ["No patient account needed", "More healthcare services as we grow"] },
-  about: { eyebrow: "One trusted destination", heading: "Healthcare that grows with your community.", lead: "Mondesa Health Polyclinic is becoming an integrated healthcare destination where patients can discover services and connect with the right healthcare team.", body: "General Practice is available now. Dental, laboratory, optometry, pharmacy, imaging and PHP healthcare access services will be added carefully as each department becomes ready.", values: [{ title: "Your choice", text: "Clear routes to the care you need." }, { title: "Trusted care", text: "Private, respectful and community-centred." }] },
-  appointment: { eyebrow: "Your appointment", heading: "Simple to arrange. Easy to prepare for.", ctaLabel: "View GP appointment times", steps: [{ number: "01", title: "Choose General Practice", text: "GP appointments are available now. Other departments will open as their teams and services are confirmed." }, { number: "02", title: "Book an available time", text: "Choose a date and time online. No patient account is required." }, { number: "03", title: "Keep your secure link", text: "Use your private link if you need to review or manage your appointment." }] },
-  contact: { eyebrow: "Contact & location", heading: "Healthcare close to home.", phoneLabel: "Call", directionsLabel: "Get directions" },
-  closing: { eyebrow: "Care that fits your life", heading: "Start with the care you need.", description: "Find your healthcare provider and book General Practice online.", bookingLabel: "Book GP appointment" },
+  hero: {
+    eyebrow: "Integrated community healthcare",
+    headline: "Your Health. Your Choice. Your Community.",
+    description:
+      "Mondesa Health Polyclinic brings together multiple healthcare disciplines under one roof, providing convenient access to quality healthcare services for individuals, families, and the community.",
+    bookingLabel: "Book GP appointment",
+    servicesLabel: "Explore services",
+    trustPoints: [
+      "No patient account needed",
+      "More healthcare services as we grow",
+    ],
+  },
+  about: {
+    eyebrow: "One trusted destination",
+    heading: "Healthcare that grows with your community.",
+    lead: "Mondesa Health Polyclinic is becoming an integrated healthcare destination where patients can discover services and connect with the right healthcare team.",
+    body: "General Practice is available now. Dental, laboratory, optometry, pharmacy, imaging and PHP healthcare access services will be added carefully as each department becomes ready.",
+    values: [
+      { title: "Your choice", text: "Clear routes to the care you need." },
+      {
+        title: "Trusted care",
+        text: "Private, respectful and community-centred.",
+      },
+    ],
+  },
+  appointment: {
+    eyebrow: "Your appointment",
+    heading: "Simple to arrange. Easy to prepare for.",
+    ctaLabel: "View GP appointment times",
+    steps: [
+      {
+        number: "01",
+        title: "Choose General Practice",
+        text: "GP appointments are available now. Other departments will open as their teams and services are confirmed.",
+      },
+      {
+        number: "02",
+        title: "Book an available time",
+        text: "Choose a date and time online. No patient account is required.",
+      },
+      {
+        number: "03",
+        title: "Keep your secure link",
+        text: "Use your private link if you need to review or manage your appointment.",
+      },
+    ],
+  },
+  contact: {
+    eyebrow: "Contact & location",
+    heading: "Healthcare close to home.",
+    phoneLabel: "Call",
+    directionsLabel: "Get directions",
+  },
+  closing: {
+    eyebrow: "Care that fits your life",
+    heading: "Start with the care you need.",
+    description:
+      "Find your healthcare provider and book General Practice online.",
+    bookingLabel: "Book GP appointment",
+  },
 } as const;
 
 export async function bootstrapPolyclinic(db: PrismaClient) {
   await db.practiceSetting.upsert({
-    where: { id: "practice" },
+    where: { practiceId: "mondesa-health" },
     update: POLYCLINIC_LOCATION,
-    create: { id: "practice", ...POLYCLINIC_LOCATION },
+    create: {
+      id: "practice",
+      practiceId: "mondesa-health",
+      ...POLYCLINIC_LOCATION,
+    },
   });
-  await db.practiceContent.upsert({ where: { id: "practice" }, update: {}, create: { id: "practice", content: DEFAULT_PRACTICE_CONTENT } });
+  await db.practiceContent.upsert({
+    where: { practiceId: "mondesa-health" },
+    update: {},
+    create: {
+      id: "practice",
+      practiceId: "mondesa-health",
+      content: DEFAULT_PRACTICE_CONTENT,
+    },
+  });
 
   for (const [sortOrder, entry] of DEPARTMENTS.entries()) {
     const department = await db.department.upsert({
@@ -183,7 +254,13 @@ export async function bootstrapPolyclinic(db: PrismaClient) {
 
     for (const [serviceOrder, name] of entry.services.entries()) {
       await db.departmentService.upsert({
-        where: { practiceId_departmentId_name: { practiceId: "mondesa-health", departmentId: department.id, name } },
+        where: {
+          practiceId_departmentId_name: {
+            practiceId: "mondesa-health",
+            departmentId: department.id,
+            name,
+          },
+        },
         update: {},
         create: {
           departmentId: department.id,

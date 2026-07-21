@@ -29,9 +29,29 @@ type AppointmentPayload = {
   departmentId: string;
   serviceId: string;
   providerId: string;
+  forceSeparate?: boolean;
 };
-type BookingDepartment = { id: string; name: string; services: { id: string; name: string }[]; providers: { id: string; displayName: string }[] };
-export function ManualAppointment({ patients, departments }: { patients: PatientOption[]; departments: BookingDepartment[] }) {
+type PatientMatch = {
+  id: string;
+  fullName: string;
+  dateOfBirth: string | null;
+  maskedId: string | null;
+  maskedPhone: string | null;
+  lastVisit: string | null;
+};
+type BookingDepartment = {
+  id: string;
+  name: string;
+  services: { id: string; name: string }[];
+  providers: { id: string; displayName: string }[];
+};
+export function ManualAppointment({
+  patients,
+  departments,
+}: {
+  patients: PatientOption[];
+  departments: BookingDepartment[];
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false),
     [mode, setMode] = useState("EXISTING"),
@@ -49,7 +69,10 @@ export function ManualAppointment({ patients, departments }: { patients: Patient
     [providerId, setProviderId] = useState(""),
     [pendingWalkIn, setPendingWalkIn] = useState<AppointmentPayload | null>(
       null,
-    );
+    ),
+    [possibleMatches, setPossibleMatches] = useState<PatientMatch[]>([]),
+    [pendingMatchPayload, setPendingMatchPayload] =
+      useState<AppointmentPayload | null>(null);
   useEffect(() => {
     if (!open) return;
     const close = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
@@ -113,6 +136,12 @@ export function ManualAppointment({ patients, departments }: { patients: Patient
         body: JSON.stringify(payload),
       });
       const data = await response.json();
+      if (response.status === 409 && data.code === "POSSIBLE_MATCH") {
+        toast.dismiss(toastId);
+        setPossibleMatches(data.matches || []);
+        setPendingMatchPayload(payload);
+        return;
+      }
       if (!response.ok) throw new Error(data.error);
       toast.success(`Appointment ${data.reference} created`, { id: toastId });
       setPendingWalkIn(null);
@@ -161,7 +190,64 @@ export function ManualAppointment({ patients, departments }: { patients: Patient
               </button>
             </div>
             <div className="appointment-form-grid">
-              {departments.length > 0 && <><div className="field"><label>Service area</label><CustomSelect ariaLabel="Service area" value={departmentId} onChange={(value) => { setDepartmentId(value); setServiceId(""); setProviderId(""); }} options={departments.map((department) => ({ value: department.id, label: department.name }))}/></div>{departments.find((department) => department.id === departmentId)?.services.length ? <div className="field"><label>Service</label><CustomSelect ariaLabel="Service" value={serviceId} onChange={setServiceId} placeholder="General consultation" options={departments.find((department) => department.id === departmentId)!.services.map((service) => ({ value: service.id, label: service.name }))}/></div> : null}{departments.find((department) => department.id === departmentId)?.providers.length ? <div className="field dashboard-span-all"><label>Clinician or provider</label><CustomSelect ariaLabel="Clinician or provider" value={providerId} onChange={setProviderId} placeholder="Any available provider" options={departments.find((department) => department.id === departmentId)!.providers.map((provider) => ({ value: provider.id, label: provider.displayName }))}/></div> : null}</>}
+              {departments.length > 0 && (
+                <>
+                  <div className="field">
+                    <label>Service area</label>
+                    <CustomSelect
+                      ariaLabel="Service area"
+                      value={departmentId}
+                      onChange={(value) => {
+                        setDepartmentId(value);
+                        setServiceId("");
+                        setProviderId("");
+                      }}
+                      options={departments.map((department) => ({
+                        value: department.id,
+                        label: department.name,
+                      }))}
+                    />
+                  </div>
+                  {departments.find(
+                    (department) => department.id === departmentId,
+                  )?.services.length ? (
+                    <div className="field">
+                      <label>Service</label>
+                      <CustomSelect
+                        ariaLabel="Service"
+                        value={serviceId}
+                        onChange={setServiceId}
+                        placeholder="General consultation"
+                        options={departments
+                          .find((department) => department.id === departmentId)!
+                          .services.map((service) => ({
+                            value: service.id,
+                            label: service.name,
+                          }))}
+                      />
+                    </div>
+                  ) : null}
+                  {departments.find(
+                    (department) => department.id === departmentId,
+                  )?.providers.length ? (
+                    <div className="field dashboard-span-all">
+                      <label>Clinician or provider</label>
+                      <CustomSelect
+                        ariaLabel="Clinician or provider"
+                        value={providerId}
+                        onChange={setProviderId}
+                        placeholder="Any available provider"
+                        options={departments
+                          .find((department) => department.id === departmentId)!
+                          .providers.map((provider) => ({
+                            value: provider.id,
+                            label: provider.displayName,
+                          }))}
+                      />
+                    </div>
+                  ) : null}
+                </>
+              )}
               <div className="field">
                 <label>Patient</label>
                 <CustomSelect
@@ -325,6 +411,120 @@ export function ManualAppointment({ patients, departments }: { patients: Patient
               </button>
             </div>
           </form>
+        </div>
+      )}
+      {possibleMatches.length > 0 && pendingMatchPayload && (
+        <div
+          className="appointment-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="patient-match-title"
+        >
+          <button
+            className="appointment-modal-backdrop"
+            aria-label="Cancel patient matching"
+            onClick={() => {
+              setPossibleMatches([]);
+              setPendingMatchPayload(null);
+            }}
+          />
+          <section className="appointment-panel">
+            <div className="appointment-panel-heading">
+              <div>
+                <span className="eyebrow">Possible duplicate</span>
+                <h2 id="patient-match-title">
+                  A patient with similar details already exists.
+                </h2>
+                <p>
+                  Review the masked details before linking this booking or
+                  deliberately creating a separate profile.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => {
+                  setPossibleMatches([]);
+                  setPendingMatchPayload(null);
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="record-stack">
+              {possibleMatches.map((match) => (
+                <article className="record-row" key={match.id}>
+                  <div>
+                    <b>{match.fullName}</b>
+                    <small>
+                      {match.dateOfBirth
+                        ? new Date(match.dateOfBirth).toLocaleDateString(
+                            "en-NA",
+                          )
+                        : "Date of birth not recorded"}{" "}
+                      · {match.maskedId || "ID not recorded"} ·{" "}
+                      {match.maskedPhone || "Phone not recorded"}
+                    </small>
+                    <small>
+                      {match.lastVisit
+                        ? `Last visit ${new Date(match.lastVisit).toLocaleDateString("en-NA")}`
+                        : "No previous visit"}
+                    </small>
+                  </div>
+                  <div className="table-actions">
+                    <a
+                      className="btn btn-light"
+                      href={`/dashboard/patients/${match.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Review patient
+                    </a>
+                    <button
+                      className="btn btn-primary"
+                      type="button"
+                      onClick={() => {
+                        const next = {
+                          ...pendingMatchPayload,
+                          patientMode: "EXISTING",
+                          patientId: match.id,
+                        };
+                        setPossibleMatches([]);
+                        setPendingMatchPayload(null);
+                        createAppointment(next);
+                      }}
+                    >
+                      Link booking
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className="appointment-panel-actions">
+              <button
+                className="btn btn-light"
+                type="button"
+                onClick={() => {
+                  setPossibleMatches([]);
+                  setPendingMatchPayload(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-light"
+                type="button"
+                onClick={() => {
+                  const next = { ...pendingMatchPayload, forceSeparate: true };
+                  setPossibleMatches([]);
+                  setPendingMatchPayload(null);
+                  createAppointment(next);
+                }}
+              >
+                Create separate patient
+              </button>
+            </div>
+          </section>
         </div>
       )}
       <ConfirmationDialog

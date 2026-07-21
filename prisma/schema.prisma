@@ -85,6 +85,8 @@ model Practice {
   availabilityRules  AvailabilityRule[]
   blockedTimes       BlockedTime[]
   setting            PracticeSetting?
+  content            PracticeContent?
+  emergencyContacts  EmergencyContact[]
   subscriptions      PracticeSubscription[]
   invitations        UserInvitation[]
 
@@ -125,7 +127,7 @@ model Notification {
 
 model Patient {
   id                    String              @id @default(cuid())
-  patientNumber         String              @unique
+  patientNumber         String
   fullName              String
   surname               String              @default("")
   initials              String              @default("")
@@ -280,7 +282,7 @@ model Appointment {
   practice         Practice                   @relation(fields: [practiceId], references: [id])
   encounters       ClinicalEncounter[]
 
-  @@unique([startAt])
+  @@unique([practiceId, startAt])
   @@index([status, startAt])
   @@index([practiceId, startAt])
   @@index([practiceId, status, startAt])
@@ -364,17 +366,21 @@ model EmergencyContact {
   sortOrder   Int      @default(0)
   active      Boolean  @default(true)
   primary     Boolean  @default(false)
+  practiceId  String   @default("mondesa-health")
+  practice    Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([active, primary, sortOrder])
+  @@index([practiceId, active, primary, sortOrder])
 }
 
 model PracticeContent {
-  id        String   @id @default("practice")
-  content   Json
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  id         String   @id @default(cuid())
+  practiceId String   @unique @default("mondesa-health")
+  content    Json
+  practice   Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
 }
 
 model Department {
@@ -587,12 +593,13 @@ model MedicalAidConsent {
   capturedByUserId      String
   signatureData         String?
   notes                 String?
+  practiceId            String             @default("mondesa-health")
   patient               Patient            @relation(fields: [patientId], references: [id])
   patientMedicalAid     PatientMedicalAid? @relation(fields: [patientMedicalAidId], references: [id])
   capturedBy            User               @relation("ConsentCapturer", fields: [capturedByUserId], references: [id])
   createdAt             DateTime           @default(now())
 
-  @@index([patientId, consentDate])
+  @@index([practiceId, patientId, consentDate])
 }
 
 model Icd10Import {
@@ -1244,6 +1251,44 @@ model UserInvitation {
   practice    Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
 
   @@index([practiceId, email, acceptedAt])
+}
+
+model SupportAccessGrant {
+  id          String    @id @default(cuid())
+  practiceId  String
+  patientId   String
+  reason      String
+  grantedToId String
+  grantedById String
+  expiresAt   DateTime
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([grantedToId, expiresAt, revokedAt])
+  @@index([practiceId, patientId, expiresAt])
+}
+
+model PracticeApplication {
+  id                 String    @id @default(cuid())
+  practiceName       String
+  practiceType       String
+  ownerName          String
+  email              String
+  phone              String?
+  registrationNumber String?
+  town               String?
+  region             String?
+  description        String?
+  status             String    @default("SUBMITTED")
+  reviewNotes        String?
+  reviewedById       String?
+  reviewedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([email, createdAt])
 }
 
 model LoginThrottle {

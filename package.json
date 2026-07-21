@@ -13,6 +13,7 @@
     "test:e2e:brief": "node scripts/brief-acceptance.cjs",
     "test:e2e:responsive": "node scripts/responsive-audit.cjs",
     "test:e2e:patient-date": "node scripts/patient-date-e2e.cjs",
+    "test:e2e:patient-records": "node scripts/patient-records-e2e.cjs",
     "env:check": "tsx scripts/validate-env.ts",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",

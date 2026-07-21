@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { ORIGINAL_PRACTICE_ID } from "@/lib/practice-constants";
 import { DEFAULT_PRACTICE_CONTENT } from "../../prisma/polyclinic-data";
 
 export type PracticeContent = typeof DEFAULT_PRACTICE_CONTENT;
@@ -40,10 +41,16 @@ export type PublicDepartment = {
   }[];
 };
 
-export async function getPublicSiteConfig(): Promise<PublicSiteConfig> {
-  const setting = await db.practiceSetting.findUnique({ where: { id: "practice" } });
+export async function getPublicSiteConfig(
+  practiceId = ORIGINAL_PRACTICE_ID,
+): Promise<PublicSiteConfig> {
+  const setting = await db.practiceSetting.findUnique({
+    where: { practiceId },
+  });
   if (!setting) throw new Error("Practice settings are not configured.");
-  const contentRecord = await db.practiceContent.findUnique({ where: { id: "practice" } });
+  const contentRecord = await db.practiceContent.findUnique({
+    where: { practiceId },
+  });
   return {
     practiceName: setting.practiceName,
     tagline: setting.tagline,
@@ -57,7 +64,9 @@ export async function getPublicSiteConfig(): Promise<PublicSiteConfig> {
     mapLatitude: setting.mapLatitude,
     mapLongitude: setting.mapLongitude,
     publicHours: setting.publicHours?.trim() || null,
-    content: (contentRecord?.content as PracticeContent | undefined) || DEFAULT_PRACTICE_CONTENT,
+    content:
+      (contentRecord?.content as PracticeContent | undefined) ||
+      DEFAULT_PRACTICE_CONTENT,
   };
 }
 
@@ -74,12 +83,19 @@ export async function getPublicDepartments(): Promise<PublicDepartment[]> {
       status: true,
       bookingEnabled: true,
       services: {
-        where: { public: true, active: true, practice: { status: "ACTIVE", publicVisible: true } },
+        where: {
+          public: true,
+          active: true,
+          practice: { status: "ACTIVE", publicVisible: true },
+        },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
         select: { id: true, name: true, description: true },
       },
       providers: {
-        where: { public: true, practice: { status: "ACTIVE", publicVisible: true } },
+        where: {
+          public: true,
+          practice: { status: "ACTIVE", publicVisible: true },
+        },
         orderBy: [{ sortOrder: "asc" }, { displayName: "asc" }],
         select: {
           id: true,
@@ -109,12 +125,19 @@ export async function getPublicDepartment(slug: string) {
       status: true,
       bookingEnabled: true,
       services: {
-        where: { public: true, active: true, practice: { status: "ACTIVE", publicVisible: true } },
+        where: {
+          public: true,
+          active: true,
+          practice: { status: "ACTIVE", publicVisible: true },
+        },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
         select: { id: true, name: true, description: true },
       },
       providers: {
-        where: { public: true, practice: { status: "ACTIVE", publicVisible: true } },
+        where: {
+          public: true,
+          practice: { status: "ACTIVE", publicVisible: true },
+        },
         orderBy: [{ sortOrder: "asc" }, { displayName: "asc" }],
         select: {
           id: true,

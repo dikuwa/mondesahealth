@@ -51,6 +51,7 @@ ALTER TABLE "AvailabilityRule" ADD COLUMN "practiceId" TEXT NOT NULL DEFAULT 'mo
 ALTER TABLE "BlockedTime" ADD COLUMN "practiceId" TEXT NOT NULL DEFAULT 'mondesa-health';
 ALTER TABLE "BlockedTime" ADD COLUMN "providerId" TEXT;
 ALTER TABLE "PracticeSetting" ADD COLUMN "practiceId" TEXT NOT NULL DEFAULT 'mondesa-health';
+ALTER TABLE "PracticeContent" ADD COLUMN "practiceId" TEXT NOT NULL DEFAULT 'mondesa-health';
 ALTER TABLE "DepartmentService" ADD COLUMN "practiceId" TEXT NOT NULL DEFAULT 'mondesa-health';
 ALTER TABLE "DepartmentService" ADD COLUMN "durationMinutes" INTEGER NOT NULL DEFAULT 30;
 ALTER TABLE "DepartmentService" ADD COLUMN "active" BOOLEAN NOT NULL DEFAULT true;
@@ -75,6 +76,7 @@ ALTER TABLE "Appointment" ADD CONSTRAINT "Appointment_practiceId_fkey" FOREIGN K
 ALTER TABLE "AvailabilityRule" ADD CONSTRAINT "AvailabilityRule_practiceId_fkey" FOREIGN KEY ("practiceId") REFERENCES "Practice"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "BlockedTime" ADD CONSTRAINT "BlockedTime_practiceId_fkey" FOREIGN KEY ("practiceId") REFERENCES "Practice"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "PracticeSetting" ADD CONSTRAINT "PracticeSetting_practiceId_fkey" FOREIGN KEY ("practiceId") REFERENCES "Practice"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "PracticeContent" ADD CONSTRAINT "PracticeContent_practiceId_fkey" FOREIGN KEY ("practiceId") REFERENCES "Practice"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "DepartmentService" ADD CONSTRAINT "DepartmentService_practiceId_fkey" FOREIGN KEY ("practiceId") REFERENCES "Practice"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "Provider" ADD CONSTRAINT "Provider_practiceId_fkey" FOREIGN KEY ("practiceId") REFERENCES "Practice"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -82,14 +84,18 @@ DROP INDEX IF EXISTS "AvailabilityRule_weekday_key";
 DROP INDEX IF EXISTS "DepartmentService_departmentId_name_key";
 CREATE UNIQUE INDEX "AvailabilityRule_practiceId_weekday_key" ON "AvailabilityRule"("practiceId","weekday");
 CREATE UNIQUE INDEX "PracticeSetting_practiceId_key" ON "PracticeSetting"("practiceId");
+CREATE UNIQUE INDEX "PracticeContent_practiceId_key" ON "PracticeContent"("practiceId");
 CREATE UNIQUE INDEX "DepartmentService_practiceId_departmentId_name_key" ON "DepartmentService"("practiceId","departmentId","name");
 CREATE UNIQUE INDEX "Patient_practiceId_patientNumber_key" ON "Patient"("practiceId","patientNumber");
+DROP INDEX IF EXISTS "Patient_patientNumber_key";
 CREATE INDEX "User_practiceId_active_idx" ON "User"("practiceId","active");
 CREATE INDEX "Patient_practiceId_archivedAt_fullName_idx" ON "Patient"("practiceId","archivedAt","fullName");
 CREATE INDEX "Patient_practiceId_normalizedPhone_idx" ON "Patient"("practiceId","normalizedPhone");
 CREATE INDEX "Patient_practiceId_identityNumber_idx" ON "Patient"("practiceId","identityNumber");
 CREATE INDEX "Appointment_practiceId_startAt_idx" ON "Appointment"("practiceId","startAt");
 CREATE INDEX "Appointment_practiceId_status_startAt_idx" ON "Appointment"("practiceId","status","startAt");
+DROP INDEX IF EXISTS "Appointment_startAt_key";
+CREATE UNIQUE INDEX "Appointment_practiceId_startAt_key" ON "Appointment"("practiceId","startAt");
 CREATE INDEX "BlockedTime_practiceId_startAt_endAt_idx" ON "BlockedTime"("practiceId","startAt","endAt");
 CREATE INDEX "DepartmentService_practiceId_active_public_idx" ON "DepartmentService"("practiceId","active","public");
 CREATE INDEX "Provider_practiceId_public_idx" ON "Provider"("practiceId","public");
@@ -158,3 +164,18 @@ CREATE INDEX "SubscriptionPayment_subscriptionId_paidAt_idx" ON "SubscriptionPay
 CREATE TABLE "UserInvitation" ("id" TEXT NOT NULL,"practiceId" TEXT NOT NULL,"email" TEXT NOT NULL,"name" TEXT NOT NULL,"role" TEXT NOT NULL DEFAULT 'OWNER',"tokenHash" TEXT NOT NULL,"expiresAt" TIMESTAMP(3) NOT NULL,"acceptedAt" TIMESTAMP(3),"invitedById" TEXT NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "UserInvitation_pkey" PRIMARY KEY("id"),CONSTRAINT "UserInvitation_practiceId_fkey" FOREIGN KEY("practiceId") REFERENCES "Practice"("id") ON DELETE CASCADE ON UPDATE CASCADE);
 CREATE UNIQUE INDEX "UserInvitation_tokenHash_key" ON "UserInvitation"("tokenHash");
 CREATE INDEX "UserInvitation_practiceId_email_acceptedAt_idx" ON "UserInvitation"("practiceId","email","acceptedAt");
+
+CREATE TABLE "SupportAccessGrant" ("id" TEXT NOT NULL,"practiceId" TEXT NOT NULL,"patientId" TEXT NOT NULL,"reason" TEXT NOT NULL,"grantedToId" TEXT NOT NULL,"grantedById" TEXT NOT NULL,"expiresAt" TIMESTAMP(3) NOT NULL,"lastUsedAt" TIMESTAMP(3),"revokedAt" TIMESTAMP(3),"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "SupportAccessGrant_pkey" PRIMARY KEY("id"));
+CREATE INDEX "SupportAccessGrant_grantedToId_expiresAt_revokedAt_idx" ON "SupportAccessGrant"("grantedToId","expiresAt","revokedAt");
+CREATE INDEX "SupportAccessGrant_practiceId_patientId_expiresAt_idx" ON "SupportAccessGrant"("practiceId","patientId","expiresAt");
+CREATE TABLE "PracticeApplication" ("id" TEXT NOT NULL,"practiceName" TEXT NOT NULL,"practiceType" TEXT NOT NULL,"ownerName" TEXT NOT NULL,"email" TEXT NOT NULL,"phone" TEXT,"registrationNumber" TEXT,"town" TEXT,"region" TEXT,"description" TEXT,"status" TEXT NOT NULL DEFAULT 'SUBMITTED',"reviewNotes" TEXT,"reviewedById" TEXT,"reviewedAt" TIMESTAMP(3),"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"updatedAt" TIMESTAMP(3) NOT NULL,CONSTRAINT "PracticeApplication_pkey" PRIMARY KEY("id"));
+CREATE INDEX "PracticeApplication_status_createdAt_idx" ON "PracticeApplication"("status","createdAt");
+CREATE INDEX "PracticeApplication_email_createdAt_idx" ON "PracticeApplication"("email","createdAt");
+
+ALTER TABLE "EmergencyContact" ADD COLUMN "practiceId" TEXT NOT NULL DEFAULT 'mondesa-health';
+ALTER TABLE "MedicalAidConsent" ADD COLUMN "practiceId" TEXT NOT NULL DEFAULT 'mondesa-health';
+ALTER TABLE "EmergencyContact" ADD CONSTRAINT "EmergencyContact_practiceId_fkey" FOREIGN KEY ("practiceId") REFERENCES "Practice"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DROP INDEX IF EXISTS "EmergencyContact_active_primary_sortOrder_idx";
+DROP INDEX IF EXISTS "MedicalAidConsent_patientId_consentDate_idx";
+CREATE INDEX "EmergencyContact_practiceId_active_primary_sortOrder_idx" ON "EmergencyContact"("practiceId","active","primary","sortOrder");
+CREATE INDEX "MedicalAidConsent_practiceId_patientId_consentDate_idx" ON "MedicalAidConsent"("practiceId","patientId","consentDate");

@@ -18,11 +18,27 @@ import toast from "react-hot-toast";
 import { DatePicker } from "@/components/ui/date-picker";
 import { NativeSelect } from "@/components/ui/native-select";
 import { validNamibianPhone } from "@/lib/utils";
-import { PatientIntakeAssistant, emptyIntake, type IntakeDraft } from "@/components/patient-intake-assistant";
+import {
+  PatientIntakeAssistant,
+  emptyIntake,
+  type IntakeDraft,
+} from "@/components/patient-intake-assistant";
 import type { PublicEmergencyContact } from "@/lib/emergency";
 
 type Fund = { id: string; name: string; abbreviation: string | null };
-type BookingDepartment = { key: string; id: string; practiceId: string; practiceName: string; name: string; services: { id: string; name: string; aiIntakeEnabled: boolean | null }[]; providers: { id: string; displayName: string; aiIntakeEnabled: boolean | null }[] };
+type BookingDepartment = {
+  key: string;
+  id: string;
+  practiceId: string;
+  practiceName: string;
+  name: string;
+  services: { id: string; name: string; aiIntakeEnabled: boolean | null }[];
+  providers: {
+    id: string;
+    displayName: string;
+    aiIntakeEnabled: boolean | null;
+  }[];
+};
 
 const initialForm = {
   fullName: "",
@@ -48,7 +64,7 @@ const initialForm = {
   departmentId: "",
   serviceId: "",
   providerId: "",
-  practiceId: "mondesa-health",
+  practiceId: "",
 };
 
 type BookingValues = typeof initialForm;
@@ -57,7 +73,21 @@ function readableDate(value: string) {
   return value ? format(parseISO(value), "EEEE, d MMMM yyyy") : "";
 }
 
-export function BookingForm({ funds, mode, departments, emergencyContacts, aiIntakeEnabled, aiImageEnabled }: { funds: Fund[]; mode: string; departments: BookingDepartment[]; emergencyContacts: PublicEmergencyContact[]; aiIntakeEnabled: boolean; aiImageEnabled: boolean }) {
+export function BookingForm({
+  funds,
+  mode,
+  departments,
+  emergencyContacts,
+  aiIntakeEnabled,
+  aiImageEnabled,
+}: {
+  funds: Fund[];
+  mode: string;
+  departments: BookingDepartment[];
+  emergencyContacts: PublicEmergencyContact[];
+  aiIntakeEnabled: boolean;
+  aiImageEnabled: boolean;
+}) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -65,15 +95,30 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
   const [reference, setReference] = useState("");
   const [manageUrl, setManageUrl] = useState("");
   const [error, setError] = useState("");
-  const [form, setForm] = useState<BookingValues>(() => ({ ...initialForm, departmentId: departments[0]?.id || "", practiceId: departments[0]?.practiceId || "mondesa-health" }));
+  const [form, setForm] = useState<BookingValues>(() => ({
+    ...initialForm,
+    departmentId: departments[0]?.id || "",
+    practiceId: departments[0]?.practiceId || "",
+  }));
   const [intake, setIntake] = useState<IntakeDraft>(emptyIntake);
   const stepHeading = useRef<HTMLHeadingElement>(null);
   const slotsRequest = useRef<AbortController | null>(null);
   const today = format(new Date(), "yyyy-MM-dd");
-  const selectedDepartment = departments.find((item) => item.id === form.departmentId && item.practiceId === form.practiceId) || departments[0];
-  const selectedService = selectedDepartment?.services.find((item) => item.id === form.serviceId) || null;
-  const selectedProvider = selectedDepartment?.providers.find((item) => item.id === form.providerId) || null;
-  const intakeAvailable = aiIntakeEnabled && selectedService?.aiIntakeEnabled !== false && selectedProvider?.aiIntakeEnabled !== false;
+  const selectedDepartment =
+    departments.find(
+      (item) =>
+        item.id === form.departmentId && item.practiceId === form.practiceId,
+    ) || departments[0];
+  const selectedService =
+    selectedDepartment?.services.find((item) => item.id === form.serviceId) ||
+    null;
+  const selectedProvider =
+    selectedDepartment?.providers.find((item) => item.id === form.providerId) ||
+    null;
+  const intakeAvailable =
+    aiIntakeEnabled &&
+    selectedService?.aiIntakeEnabled !== false &&
+    selectedProvider?.aiIntakeEnabled !== false;
 
   useEffect(() => {
     if (step > 1 && step < 4) stepHeading.current?.focus();
@@ -103,7 +148,12 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
     slotsRequest.current = controller;
     setSlotsLoading(true);
     try {
-      const slotParams = new URLSearchParams({date,practiceId:form.practiceId});if(form.providerId)slotParams.set("providerId",form.providerId);if(form.serviceId)slotParams.set("serviceId",form.serviceId);
+      const slotParams = new URLSearchParams({
+        date,
+        practiceId: form.practiceId,
+      });
+      if (form.providerId) slotParams.set("providerId", form.providerId);
+      if (form.serviceId) slotParams.set("serviceId", form.serviceId);
       const response = await fetch(`/api/slots?${slotParams}`, {
         signal: controller.signal,
       });
@@ -111,7 +161,8 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
       if (!response.ok) throw new Error(data.error);
       setSlots(data.slots || []);
     } catch (caught) {
-      if (caught instanceof DOMException && caught.name === "AbortError") return;
+      if (caught instanceof DOMException && caught.name === "AbortError")
+        return;
       const message =
         caught instanceof Error
           ? caught.message
@@ -164,14 +215,36 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
     }
     if (step === 2) {
       try {
-        const response = await fetch("/api/intake/assistant", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "CHECK", reason: form.reason, messages: intake.messages, serviceId: form.serviceId || null, providerId: form.providerId || null }) });
+        const response = await fetch("/api/intake/assistant", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "CHECK",
+            reason: form.reason,
+            practiceId: form.practiceId,
+            messages: intake.messages,
+            serviceId: form.serviceId || null,
+            providerId: form.providerId || null,
+          }),
+        });
         const data = await response.json();
         if (response.ok && data.redFlags?.length) {
-          const nextIntake = { ...intake, redFlags: data.redFlags, emergencyNoticeShown: true };
+          const nextIntake = {
+            ...intake,
+            redFlags: data.redFlags,
+            emergencyNoticeShown: true,
+          };
           setIntake(nextIntake);
-          if (!nextIntake.emergencyNoticeAcknowledged) { showError("Read and acknowledge the urgent safety notice before continuing."); return; }
+          if (!nextIntake.emergencyNoticeAcknowledged) {
+            showError(
+              "Read and acknowledge the urgent safety notice before continuing.",
+            );
+            return;
+          }
         }
-      } catch { /* A safety endpoint failure must not erase manual booking data. Server validation runs again on submit. */ }
+      } catch {
+        /* A safety endpoint failure must not erase manual booking data. Server validation runs again on submit. */
+      }
     }
     setError("");
     setStep((current) => current + 1);
@@ -201,7 +274,18 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
       const response = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, intake: { ...intake, images: intake.images.map((image) => ({ filename: image.filename, mimeType: image.mimeType, fileSize: image.fileSize, data: image.data })) } }),
+        body: JSON.stringify({
+          ...form,
+          intake: {
+            ...intake,
+            images: intake.images.map((image) => ({
+              filename: image.filename,
+              mimeType: image.mimeType,
+              fileSize: image.fileSize,
+              data: image.data,
+            })),
+          },
+        }),
       });
       const data = await response.json();
       if (!response.ok)
@@ -233,12 +317,18 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
       );
       toast.success("Secure appointment link copied");
     } catch {
-      toast.error("Could not copy the link. Open it and copy from the browser.");
+      toast.error(
+        "Could not copy the link. Open it and copy from the browser.",
+      );
     }
   }
 
   function restart() {
-    setForm({ ...initialForm, departmentId: departments[0]?.id || "", practiceId: departments[0]?.practiceId || "mondesa-health" });
+    setForm({
+      ...initialForm,
+      departmentId: departments[0]?.id || "",
+      practiceId: departments[0]?.practiceId || "",
+    });
     setSlots([]);
     setReference("");
     setManageUrl("");
@@ -271,7 +361,9 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
             <b>{reference}</b>
           </div>
           <div>
-            <span>{mode === "AVAILABLE_TIME" ? "Appointment" : "Preferred date"}</span>
+            <span>
+              {mode === "AVAILABLE_TIME" ? "Appointment" : "Preferred date"}
+            </span>
             <b>
               {readableDate(form.date)}
               {form.time ? ` at ${form.time}` : ""}
@@ -283,7 +375,11 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
             <Link className="btn btn-primary" href={manageUrl}>
               Manage appointment <ExternalLink size={17} aria-hidden="true" />
             </Link>
-            <button className="btn btn-light" type="button" onClick={copyManagementLink}>
+            <button
+              className="btn btn-light"
+              type="button"
+              onClick={copyManagementLink}
+            >
               <Copy size={17} aria-hidden="true" /> Copy secure link
             </button>
           </div>
@@ -295,7 +391,10 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
     );
 
   return (
-    <section className="card booking-form-card" aria-labelledby="booking-step-title">
+    <section
+      className="card booking-form-card"
+      aria-labelledby="booking-step-title"
+    >
       <div
         className="booking-progress"
         role="progressbar"
@@ -304,11 +403,27 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
         aria-valuemax={3}
         aria-valuenow={step}
       >
-        <div className="booking-progress-line" aria-hidden="true"><span style={{ width: `${((step - 1) / 2) * 100}%` }} /></div>
+        <div className="booking-progress-line" aria-hidden="true">
+          <span style={{ width: `${((step - 1) / 2) * 100}%` }} />
+        </div>
         <ol className="booking-progress-steps">
-          {[[1, "Your details"], [2, "Appointment"], [3, "Review"]].map(([number, label]) => (
-            <li className={step > Number(number) ? "is-complete" : step === Number(number) ? "is-current" : ""} key={number}>
-              <span>{number}</span><small>{label}</small>
+          {[
+            [1, "Your details"],
+            [2, "Appointment"],
+            [3, "Review"],
+          ].map(([number, label]) => (
+            <li
+              className={
+                step > Number(number)
+                  ? "is-complete"
+                  : step === Number(number)
+                    ? "is-current"
+                    : ""
+              }
+              key={number}
+            >
+              <span>{number}</span>
+              <small>{label}</small>
             </li>
           ))}
         </ol>
@@ -388,9 +503,7 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
                   id="booking-whatsapp"
                   className="input"
                   value={form.whatsapp}
-                  onChange={(event) =>
-                    update("whatsapp", event.target.value)
-                  }
+                  onChange={(event) => update("whatsapp", event.target.value)}
                   inputMode="tel"
                   autoComplete="tel"
                 />
@@ -427,9 +540,7 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
                 id="booking-patient-type"
                 aria-label="Patient *"
                 value={form.patientType}
-                onChange={(event) =>
-                  update("patientType", event.target.value)
-                }
+                onChange={(event) => update("patientType", event.target.value)}
               >
                 <option value="NEW">New patient</option>
                 <option value="RETURNING">Returning patient</option>
@@ -458,9 +569,74 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
 
         {step === 2 && (
           <div className="booking-field-stack">
-            {departments.length > 1 && <div className="field"><label htmlFor="booking-department">Practice and service area *</label><NativeSelect id="booking-department" value={selectedDepartment?.key || ""} onChange={(event) => {const next=departments.find(item=>item.key===event.target.value);if(next)setForm((current) => ({ ...current, departmentId: next.id, practiceId:next.practiceId, serviceId: "", providerId: "",date:"",time:"" }))}}>{departments.map((department) => <option key={department.key} value={department.key}>{department.practiceName} · {department.name}</option>)}</NativeSelect></div>}
-            {!!selectedDepartment?.services.length && <div className="field"><label htmlFor="booking-service">Service (optional)</label><NativeSelect id="booking-service" value={form.serviceId} onChange={(event) => update("serviceId", event.target.value)}><option value="">General consultation</option>{selectedDepartment.services.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}</NativeSelect></div>}
-            {!!selectedDepartment?.providers.length && <div className="field"><label htmlFor="booking-provider">Preferred clinician or provider (optional)</label><NativeSelect id="booking-provider" value={form.providerId} onChange={(event) => update("providerId", event.target.value)}><option value="">Any available provider</option>{selectedDepartment.providers.map((provider) => <option key={provider.id} value={provider.id}>{provider.displayName}</option>)}</NativeSelect></div>}
+            {departments.length > 1 && (
+              <div className="field">
+                <label htmlFor="booking-department">
+                  Practice and service area *
+                </label>
+                <NativeSelect
+                  id="booking-department"
+                  value={selectedDepartment?.key || ""}
+                  onChange={(event) => {
+                    const next = departments.find(
+                      (item) => item.key === event.target.value,
+                    );
+                    if (next)
+                      setForm((current) => ({
+                        ...current,
+                        departmentId: next.id,
+                        practiceId: next.practiceId,
+                        serviceId: "",
+                        providerId: "",
+                        date: "",
+                        time: "",
+                      }));
+                  }}
+                >
+                  {departments.map((department) => (
+                    <option key={department.key} value={department.key}>
+                      {department.practiceName} · {department.name}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </div>
+            )}
+            {!!selectedDepartment?.services.length && (
+              <div className="field">
+                <label htmlFor="booking-service">Service (optional)</label>
+                <NativeSelect
+                  id="booking-service"
+                  value={form.serviceId}
+                  onChange={(event) => update("serviceId", event.target.value)}
+                >
+                  <option value="">General consultation</option>
+                  {selectedDepartment.services.map((service) => (
+                    <option key={service.id} value={service.id}>
+                      {service.name}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </div>
+            )}
+            {!!selectedDepartment?.providers.length && (
+              <div className="field">
+                <label htmlFor="booking-provider">
+                  Preferred clinician or provider (optional)
+                </label>
+                <NativeSelect
+                  id="booking-provider"
+                  value={form.providerId}
+                  onChange={(event) => update("providerId", event.target.value)}
+                >
+                  <option value="">Any available provider</option>
+                  {selectedDepartment.providers.map((provider) => (
+                    <option key={provider.id} value={provider.id}>
+                      {provider.displayName}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </div>
+            )}
             <div className="field">
               <label htmlFor="booking-date">Preferred date *</label>
               <DatePicker
@@ -484,7 +660,10 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
                     available times…
                   </p>
                 ) : slots.length ? (
-                  <div className="booking-slot-grid" aria-label="Available times">
+                  <div
+                    className="booking-slot-grid"
+                    aria-label="Available times"
+                  >
                     {slots.map((slot) => (
                       <button
                         type="button"
@@ -537,9 +716,21 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
                 required
               />
               <small className="booking-field-help">
-                Briefly describe what is troubling you. You may write it yourself or use optional AI assistance. {form.reason.length}/2000
+                Briefly describe what is troubling you. You may write it
+                yourself or use optional AI assistance. {form.reason.length}
+                /2000
               </small>
-              <PatientIntakeAssistant reason={form.reason} serviceId={form.serviceId} providerId={form.providerId} aiAvailable={intakeAvailable} imagesAvailable={aiImageEnabled} emergencyContacts={emergencyContacts} value={intake} onChange={setIntake}/>
+              <PatientIntakeAssistant
+                reason={form.reason}
+                practiceId={form.practiceId}
+                serviceId={form.serviceId}
+                providerId={form.providerId}
+                aiAvailable={intakeAvailable}
+                imagesAvailable={aiImageEnabled}
+                emergencyContacts={emergencyContacts}
+                value={intake}
+                onChange={setIntake}
+              />
             </div>
             <div className="field">
               <label htmlFor="booking-notes">Additional notes (optional)</label>
@@ -559,14 +750,34 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
             <div className="booking-review-card">
               <CalendarCheck2 size={20} aria-hidden="true" />
               <div>
-                <span>{mode === "AVAILABLE_TIME" ? "Appointment" : "Preferred date"}</span>
+                <span>
+                  {mode === "AVAILABLE_TIME" ? "Appointment" : "Preferred date"}
+                </span>
                 <b>
                   {readableDate(form.date)}
                   {form.time ? ` at ${form.time}` : ""}
                 </b>
               </div>
             </div>
-            <div className="booking-review-intake"><b>Reason for visit</b><p>{form.reason}</p>{intake.approvedSummary && <><b>AI-organised summary · Patient approved</b><p>{intake.approvedSummary}</p></>}{intake.images.length > 0 && <span>{intake.images.length} optional photo{intake.images.length === 1 ? "" : "s"} attached securely</span>}<button type="button" onClick={() => setStep(2)}>Edit appointment information</button></div>
+            <div className="booking-review-intake">
+              <b>Reason for visit</b>
+              <p>{form.reason}</p>
+              {intake.approvedSummary && (
+                <>
+                  <b>AI-organised summary · Patient approved</b>
+                  <p>{intake.approvedSummary}</p>
+                </>
+              )}
+              {intake.images.length > 0 && (
+                <span>
+                  {intake.images.length} optional photo
+                  {intake.images.length === 1 ? "" : "s"} attached securely
+                </span>
+              )}
+              <button type="button" onClick={() => setStep(2)}>
+                Edit appointment information
+              </button>
+            </div>
             <div className="field">
               <label htmlFor="booking-payment">
                 How will you pay for your consultation?
@@ -575,9 +786,7 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
                 id="booking-payment"
                 aria-label="How will you pay for your consultation?"
                 value={form.paymentType}
-                onChange={(event) =>
-                  update("paymentType", event.target.value)
-                }
+                onChange={(event) => update("paymentType", event.target.value)}
               >
                 <option value="PRIVATE">Private or cash</option>
                 <option value="MEDICAL_AID">Medical aid</option>
@@ -587,7 +796,9 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
             {form.paymentType === "MEDICAL_AID" && (
               <>
                 <div className="field">
-                  <label htmlFor="booking-medical-aid">Medical aid fund *</label>
+                  <label htmlFor="booking-medical-aid">
+                    Medical aid fund *
+                  </label>
                   <NativeSelect
                     id="booking-medical-aid"
                     aria-label="Medical aid fund *"
@@ -608,7 +819,9 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
                 </div>
                 {form.medicalAidId === "OTHER" && (
                   <div className="field">
-                    <label htmlFor="booking-fund-name">Medical aid name *</label>
+                    <label htmlFor="booking-fund-name">
+                      Medical aid name *
+                    </label>
                     <input
                       id="booking-fund-name"
                       className="input"
@@ -641,8 +854,8 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
                 onChange={(event) => update("consent", event.target.checked)}
               />
               <span>
-                I consent to Mondesa Health using this information to arrange
-                my appointment and contact me about my care.
+                I consent to Mondesa Health using this information to arrange my
+                appointment and contact me about my care.
               </span>
             </label>
             <label className="booking-choice is-consent">
@@ -653,7 +866,11 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
               />
               <span>
                 I understand online booking is not for emergencies. For urgent
-                help, I will {emergencyContacts[0] ? `call ${emergencyContacts[0].label} on ${emergencyContacts[0].phone} or ` : "contact my nearest emergency service or "}visit the nearest emergency facility.
+                help, I will{" "}
+                {emergencyContacts[0]
+                  ? `call ${emergencyContacts[0].label} on ${emergencyContacts[0].phone} or `
+                  : "contact my nearest emergency service or "}
+                visit the nearest emergency facility.
               </span>
             </label>
           </div>

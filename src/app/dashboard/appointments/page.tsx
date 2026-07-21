@@ -91,7 +91,7 @@ export default async function Appointments({
       select: { id: true, fullName: true, patientNumber: true, phone: true },
       orderBy: { fullName: "asc" },
     }),
-    getDueReminders(),
+    getDueReminders(session.practiceId),
     db.department.findMany({ where: { status: "ACTIVE", bookingEnabled: true }, select: { id: true, name: true, services: { where: { practiceId: session.practiceId, active: true, public: true }, select: { id: true, name: true }, orderBy: { sortOrder: "asc" } }, providers: { where: { practiceId: session.practiceId, public: true }, select: { id: true, displayName: true }, orderBy: { sortOrder: "asc" } } }, orderBy: { sortOrder: "asc" } }),
   ]);
   const intakeRows = canViewIntake && rows.length ? await db.patientIntake.findMany({ where: { practiceId: session.practiceId, appointmentId: { in: rows.map((row) => row.id) } }, include: { messages: { orderBy: { createdAt: "asc" } }, images: { select: { id: true, filename: true } } } }) : [];
