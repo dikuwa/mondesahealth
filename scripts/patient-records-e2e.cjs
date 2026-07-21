@@ -14,6 +14,7 @@ const db = new PrismaClient();
 (async () => {
   let browser;
   let encounterId;
+  let destinationPracticeId;
   try {
     const owner = await db.user.findFirst({
       where: { role: "OWNER", active: true },
@@ -48,6 +49,16 @@ const db = new PrismaClient();
       },
     });
     encounterId = encounter.id;
+    const destinationPractice = await db.practice.create({
+      data: {
+        slug: `e2e-shared-destination-${Date.now()}`,
+        name: "E2E Shared Destination",
+        type: "GENERAL_PRACTICE",
+        status: "ACTIVE",
+        publicVisible: false,
+      },
+    });
+    destinationPracticeId = destinationPractice.id;
 
     browser = await chromium.launch({
       headless: true,
@@ -74,12 +85,23 @@ const db = new PrismaClient();
 
     const report = {
       patient: {},
+      patientList: {},
       encounter: {},
       interactions: {},
       runtimeErrors,
     };
     for (const width of [320, 768, 1440]) {
       await page.setViewportSize({ width, height: width < 800 ? 900 : 1000 });
+      await page.goto(`${base}/dashboard/patients`, {
+        waitUntil: "domcontentloaded",
+      });
+      report.patientList[width] =
+        (await page
+          .getByRole("button", { name: "Add patient" })
+          .isVisible()) &&
+        (await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ));
       await page.goto(`${base}/dashboard/patients/${patient.id}`, {
         waitUntil: "domcontentloaded",
       });
@@ -93,13 +115,33 @@ const db = new PrismaClient();
       await page.goto(`${base}/dashboard/encounters/${encounter.id}`, {
         waitUntil: "domcontentloaded",
       });
-      report.encounter[width] =
-        (await page
-          .getByText("Clinical attachments", { exact: true })
-          .isVisible()) &&
-        (await page.evaluate(
-          () => document.documentElement.scrollWidth <= window.innerWidth,
-        ));
+      const attachmentVisible = await page
+        .getByText("Clinical attachments", { exact: true })
+        .isVisible();
+      const encounterLayout = await page.evaluate(() => ({
+        innerWidth: window.innerWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        overflowing: [...document.querySelectorAll("body *")]
+          .filter((element) => {
+            const box = element.getBoundingClientRect();
+            return box.left < -1 || box.right > window.innerWidth + 1;
+          })
+          .slice(0, 5)
+          .map((element) => ({
+            className:
+              typeof element.className === "string" ? element.className : "",
+            text: (element.textContent || "").trim().slice(0, 50),
+            left: Math.round(element.getBoundingClientRect().left),
+            right: Math.round(element.getBoundingClientRect().right),
+          })),
+      }));
+      report.encounter[width] = {
+        ok:
+          attachmentVisible &&
+          encounterLayout.scrollWidth <= encounterLayout.innerWidth,
+        attachmentVisible,
+        ...encounterLayout,
+      };
     }
 
     await page.setViewportSize({ width: 375, height: 812 });
@@ -125,6 +167,25 @@ const db = new PrismaClient();
       .getByRole("button", { name: "Merge duplicate" })
       .isVisible();
     await page.getByRole("button", { name: "Close", exact: true }).click();
+    await page.getByRole("button", { name: "Share by consent" }).click();
+    report.interactions.consentSharing =
+      (await page.getByText("Explicit patient consent", { exact: true }).isVisible()) &&
+      (await page.getByText(/read-only, may be revoked at any time/i).isVisible());
+    await page
+      .getByRole("button", { name: "Close sharing consent form" })
+      .last()
+      .click();
+    await page.goto(
+      `${base}/dashboard/patients/${patient.id}?tab=activity-log`,
+      { waitUntil: "domcontentloaded" },
+    );
+    report.interactions.timelineAttribution = await page
+      .locator(".record-row small")
+      .first()
+      .evaluate(
+        (element) =>
+          ((element.textContent || "").match(/ · /g) || []).length >= 2,
+      );
     await page.goto(`${base}/dashboard/encounters/${encounter.id}`, {
       waitUntil: "domcontentloaded",
     });
@@ -135,8 +196,11 @@ const db = new PrismaClient();
       ...Object.entries(report.patient)
         .filter(([, value]) => !value)
         .map(([key]) => `patient.${key}`),
-      ...Object.entries(report.encounter)
+      ...Object.entries(report.patientList)
         .filter(([, value]) => !value)
+        .map(([key]) => `patientList.${key}`),
+      ...Object.entries(report.encounter)
+        .filter(([, value]) => !value.ok)
         .map(([key]) => `encounter.${key}`),
       ...Object.entries(report.interactions)
         .filter(([, value]) => !value)
@@ -149,6 +213,12 @@ const db = new PrismaClient();
   } finally {
     if (encounterId)
       await db.clinicalEncounter.deleteMany({ where: { id: encounterId } });
+    if (destinationPracticeId) {
+      await db.patientShareConsent.deleteMany({
+        where: { destinationPracticeId },
+      });
+      await db.practice.deleteMany({ where: { id: destinationPracticeId } });
+    }
     if (browser) await browser.close();
     await db.$disconnect();
   }

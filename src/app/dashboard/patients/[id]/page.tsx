@@ -11,9 +11,12 @@ import {
 import { PageHeading } from "@/components/dashboard";
 import { PatientMergeAction } from "@/components/patient-merge-action";
 import { PatientMedicalSummaryAction } from "@/components/patient-medical-summary-action";
+import { PatientSharingManager } from "@/components/patient-sharing-manager";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { maskIdentifier, missingPatientFields } from "@/lib/patient-matching";
+import { getPatientTimeline } from "@/lib/patient-timeline";
+import { parsePatientShareScopes } from "@/lib/patient-sharing";
 
 const tabs = [
   "overview",
@@ -47,7 +50,7 @@ export default async function PatientPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; page?: string }>;
 }) {
   const session = await getSession();
   if (
@@ -56,7 +59,8 @@ export default async function PatientPage({
   )
     notFound();
   const { id } = await params,
-    requested = (await searchParams).tab || "overview",
+    query = await searchParams,
+    requested = query.tab || "overview",
     tab = tabs.includes(requested as never) ? requested : "overview";
   const patient = await db.patient.findFirst({
     where: { id, practiceId: session.practiceId, archivedAt: null },
@@ -116,54 +120,40 @@ export default async function PatientPage({
   const canClinical =
     session.role === "OWNER" ||
     session.permissions.includes("VIEW_CLINICAL_RECORDS");
-  const timeline = [
-    {
-      at: patient.createdAt,
-      type: "Patient created",
-      text: `Patient profile ${patient.patientNumber} created`,
-      href: null,
-    },
-    ...patient.appointments.map((item) => ({
-      at: item.createdAt,
-      type: "Booking",
-      text: `${item.reference} · ${item.status.replaceAll("_", " ")}`,
-      href: `/dashboard/appointments?appointment=${item.id}`,
-    })),
-    ...(canClinical
-      ? patient.encounters.map((item) => ({
-          at: item.startedAt,
-          type: "Clinical encounter",
-          text: `${item.status} · ${item.clinician.name}`,
-          href: `/dashboard/encounters/${item.id}`,
-        }))
-      : []),
-    ...patient.sickNotes.map((item) => ({
-      at: item.createdAt,
-      type: "Sick note",
-      text: `${item.certificateNumber} · ${item.status}`,
-      href: `/dashboard/sick-notes/${item.id}`,
-    })),
-    ...patient.invoices.map((item) => ({
-      at: item.createdAt,
-      type: "Invoice",
-      text: `${item.number} · ${item.status}`,
-      href: "/dashboard/finance",
-    })),
-    ...patient.payments.map((item) => ({
-      at: item.paidAt,
-      type: "Payment",
-      text: `${item.reference} · N$${item.amount.toFixed(2)}`,
-      href: "/dashboard/finance",
-    })),
-    ...patient.claims.map((item) => ({
-      at: item.updatedAt,
-      type: "Claim",
-      text: `${item.claimNumber} · ${item.status}`,
-      href: `/dashboard/claims/${item.id}`,
-    })),
-  ]
-    .sort((a, b) => b.at.getTime() - a.at.getTime())
-    .slice(0, 50);
+  const canShare =
+    canClinical &&
+    (session.role === "OWNER" ||
+      session.permissions.includes("MANAGE_CONSENTS"));
+  const [sharingDestinations, sharingConsents] = canShare
+    ? await Promise.all([
+        db.practice.findMany({
+          where: {
+            id: { not: session.practiceId },
+            status: { in: ["APPROVED", "ACTIVE"] },
+          },
+          select: { id: true, name: true, town: true },
+          orderBy: { name: "asc" },
+        }),
+        db.patientShareConsent.findMany({
+          where: {
+            patientId: patient.id,
+            sourcePracticeId: session.practiceId,
+          },
+          include: { destinationPractice: { select: { name: true } } },
+          orderBy: { createdAt: "desc" },
+        }),
+      ])
+    : [[], []];
+  const requestedPage = Math.max(1, Number.parseInt(query.page || "1", 10) || 1);
+  const timeline =
+    tab === "activity-log"
+      ? await getPatientTimeline({
+          patientId: patient.id,
+          practiceId: session.practiceId,
+          page: requestedPage,
+          canViewClinical: canClinical,
+        })
+      : { events: [], total: 0, pages: 1, page: 1 };
   const aid = patient.memberships[0];
   return (
     <>
@@ -233,6 +223,21 @@ export default async function PatientPage({
           )}
         </div>
       </section>
+      {canShare && (
+        <PatientSharingManager
+          patientId={patient.id}
+          patientName={patient.fullName}
+          destinations={sharingDestinations}
+          consents={sharingConsents.map((consent) => ({
+            id: consent.id,
+            destinationPractice: consent.destinationPractice.name,
+            scopes: parsePatientShareScopes(consent.scopes),
+            status: consent.status,
+            expiresAt: consent.expiresAt.toISOString(),
+            revokedAt: consent.revokedAt?.toISOString() || null,
+          }))}
+        />
+      )}
       <nav className="patient-tabs" aria-label="Patient record sections">
         {tabs.map((item) => (
           <Link
@@ -414,14 +419,37 @@ export default async function PatientPage({
         />
       )}
       {tab === "activity-log" && (
-        <RecordList
-          empty="No timeline events recorded."
-          items={timeline.map((x) => ({
-            title: `${x.type} · ${x.text}`,
-            meta: x.at.toLocaleString("en-NA"),
-            href: x.href || undefined,
-          }))}
-        />
+        <>
+          <RecordList
+            empty="No timeline events recorded."
+            items={timeline.events.map((event) => ({
+              title: `${event.type} · ${event.text}`,
+              meta: `${event.occurredAt.toLocaleString("en-NA")} · ${event.actorName || "System"} · ${event.practiceName}`,
+              href: event.href || undefined,
+            }))}
+          />
+          {timeline.pages > 1 && (
+            <nav className="pagination" aria-label="Patient timeline pages">
+              <Link
+                className={`btn btn-light${timeline.page <= 1 ? " is-disabled" : ""}`}
+                aria-disabled={timeline.page <= 1}
+                href={`/dashboard/patients/${patient.id}?tab=activity-log&page=${Math.max(1, timeline.page - 1)}`}
+              >
+                Previous
+              </Link>
+              <span>
+                Page {timeline.page} of {timeline.pages} · {timeline.total} events
+              </span>
+              <Link
+                className={`btn btn-light${timeline.page >= timeline.pages ? " is-disabled" : ""}`}
+                aria-disabled={timeline.page >= timeline.pages}
+                href={`/dashboard/patients/${patient.id}?tab=activity-log&page=${Math.min(timeline.pages, timeline.page + 1)}`}
+              >
+                Next
+              </Link>
+            </nav>
+          )}
+        </>
       )}
     </>
   );

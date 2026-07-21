@@ -30,7 +30,7 @@ Both `.env` and `.env.local` are ignored by Git. Keep the connection strings pri
 | `OWNER_EMAIL` | Initial owner login email used by the seed | Seed only |
 | `OWNER_PASSWORD` | Strong temporary password meeting the 12-character complexity policy | Seed only |
 
-No email-verification, SMTP, or external file-storage variable is required. Owner/admin-created accounts can sign in immediately. Small profile and patient-intake images are stored privately in PostgreSQL; protected medical images require an authorised dashboard session. The login email remains immutable while the display name and avatar can change.
+No email-verification, SMTP, or external file-storage variable is required. Owner/admin-created accounts can sign in immediately. Optional owner-invitation delivery uses `RESEND_API_KEY` and `INVITATION_EMAIL_FROM`; it runs only when a platform operator explicitly selects the email option, and the secure invitation link remains available for manual delivery. Small profile, practice-logo, and patient-intake images are stored privately in PostgreSQL; protected medical images require an authorised dashboard session. The login email remains immutable while the display name and avatar can change.
 
 AI-assisted symptom intake is disabled by default. The Owner must configure emergency contacts in **Settings → Emergency & AI**, approve the AI provider’s privacy terms, add the server-only AI variables through the deployment secret manager, and then enable the feature globally. Service and provider records may inherit, allow, or disable the global setting. Missing AI configuration never blocks manual booking.
 

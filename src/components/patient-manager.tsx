@@ -108,7 +108,12 @@ export function PatientManager({
     [editing, setEditing] = useState<Patient | null>(null),
     [open, setOpen] = useState(false),
     [sort, setSort] = useState("NAME_ASC"),
-    [filter, setFilter] = useState("ALL"),
+    [profileFilter, setProfileFilter] = useState("ALL"),
+    [statusFilter, setStatusFilter] = useState("ALL"),
+    [fundingFilter, setFundingFilter] = useState("ALL"),
+    [visitFilter, setVisitFilter] = useState("ALL"),
+    [clinicalFilter, setClinicalFilter] = useState("ALL"),
+    [regionFilter, setRegionFilter] = useState("ALL"),
     [saving, setSaving] = useState(false),
     [deleting, setDeleting] = useState(""),
     [pendingArchive, setPendingArchive] = useState<Patient | null>(null),
@@ -140,18 +145,53 @@ export function PatientManager({
             !p.dateOfBirth ||
             !p.gender ||
             (!p.identityNumber && !p.passportNumber);
-          const recent =
-            Boolean(p.lastVisit) &&
-            Date.now() - new Date(p.lastVisit!).getTime() <= 90 * 86400000;
-          const matchesFilter =
-            filter === "ALL" ||
-            (filter === "INCOMPLETE" && incomplete) ||
-            (filter === "RECENT" && recent) ||
-            (filter === "UPCOMING" && p.hasUpcoming) ||
-            (filter === "MEDICAL_AID" && Boolean(p.medicalAid)) ||
-            (filter === "CHRONIC" && Boolean(p.chronicConditions)) ||
-            (filter === "ALERT" && Boolean(p.medicalAlerts));
-          return matchesSearch && matchesFilter;
+          const lastVisitAge = p.lastVisit
+            ? Date.now() - new Date(p.lastVisit).getTime()
+            : null;
+          const matchesProfile =
+            profileFilter === "ALL" ||
+            (profileFilter === "COMPLETE" && !incomplete) ||
+            (profileFilter === "INCOMPLETE" && incomplete);
+          const matchesStatus =
+            statusFilter === "ALL" || p.status === statusFilter;
+          const matchesFunding =
+            fundingFilter === "ALL" ||
+            (fundingFilter === "PRIVATE" && !p.medicalAid) ||
+            (fundingFilter === "MEDICAL_AID" && Boolean(p.medicalAid)) ||
+            p.medicalAidId === fundingFilter;
+          const matchesVisit =
+            visitFilter === "ALL" ||
+            (visitFilter === "UPCOMING" && p.hasUpcoming) ||
+            (visitFilter === "NEVER" && !p.lastVisit) ||
+            (visitFilter === "30_DAYS" &&
+              lastVisitAge !== null &&
+              lastVisitAge <= 30 * 86400000) ||
+            (visitFilter === "90_DAYS" &&
+              lastVisitAge !== null &&
+              lastVisitAge <= 90 * 86400000) ||
+            (visitFilter === "365_DAYS" &&
+              lastVisitAge !== null &&
+              lastVisitAge <= 365 * 86400000);
+          const matchesClinical =
+            clinicalFilter === "ALL" ||
+            (clinicalFilter === "ALLERGY" && Boolean(p.knownAllergies)) ||
+            (clinicalFilter === "CHRONIC" && Boolean(p.chronicConditions)) ||
+            (clinicalFilter === "MEDICATION" &&
+              Boolean(p.currentMedication)) ||
+            (clinicalFilter === "ALERT" && Boolean(p.medicalAlerts));
+          const matchesRegion =
+            regionFilter === "ALL" ||
+            (regionFilter === "UNSPECIFIED" && !p.region) ||
+            p.region === regionFilter;
+          return (
+            matchesSearch &&
+            matchesProfile &&
+            matchesStatus &&
+            matchesFunding &&
+            matchesVisit &&
+            matchesClinical &&
+            matchesRegion
+          );
         })
         .sort((a, b) => {
           if (sort === "NAME_DESC") return b.fullName.localeCompare(a.fullName);
@@ -167,8 +207,35 @@ export function PatientManager({
             return b.visits - a.visits || a.fullName.localeCompare(b.fullName);
           return a.fullName.localeCompare(b.fullName);
         }),
-    [patients, query, sort, filter],
+    [
+      patients,
+      query,
+      sort,
+      profileFilter,
+      statusFilter,
+      fundingFilter,
+      visitFilter,
+      clinicalFilter,
+      regionFilter,
+    ],
   );
+  const regionOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(patients.map((patient) => patient.region).filter(Boolean)),
+      )
+        .sort((a, b) => String(a).localeCompare(String(b)))
+        .map((region) => ({ value: String(region), label: String(region) })),
+    [patients],
+  );
+  const hasFacetFilters = [
+    profileFilter,
+    statusFilter,
+    fundingFilter,
+    visitFilter,
+    clinicalFilter,
+    regionFilter,
+  ].some((value) => value !== "ALL");
   useEffect(() => {
     // Refresh the optimistic client list after the server component supplies updated records.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -387,21 +454,6 @@ export function PatientManager({
         </div>
         <CustomSelect
           className="patient-sort"
-          value={filter}
-          onChange={setFilter}
-          options={[
-            { value: "ALL", label: "All active patients" },
-            { value: "INCOMPLETE", label: "Incomplete profiles" },
-            { value: "RECENT", label: "Visited in 90 days" },
-            { value: "UPCOMING", label: "Upcoming appointment" },
-            { value: "MEDICAL_AID", label: "Has medical aid" },
-            { value: "CHRONIC", label: "Chronic-condition flag" },
-            { value: "ALERT", label: "Important alert" },
-          ]}
-          ariaLabel="Filter patients"
-        />
-        <CustomSelect
-          className="patient-sort"
           value={sort}
           onChange={setSort}
           options={patientSortOptions}
@@ -413,6 +465,91 @@ export function PatientManager({
         >
           <Plus size={17} /> Add patient
         </button>
+      </div>
+      <div className="patient-filter-facets" aria-label="Advanced patient filters">
+        <CustomSelect
+          value={profileFilter}
+          onChange={setProfileFilter}
+          options={[
+            { value: "ALL", label: "Any profile" },
+            { value: "COMPLETE", label: "Profile complete" },
+            { value: "INCOMPLETE", label: "Profile incomplete" },
+          ]}
+          ariaLabel="Profile completeness"
+        />
+        <CustomSelect
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={[
+            { value: "ALL", label: "Any status" },
+            { value: "ACTIVE", label: "Active" },
+            { value: "INACTIVE", label: "Inactive" },
+            { value: "DECEASED", label: "Deceased" },
+          ]}
+          ariaLabel="Patient status"
+        />
+        <CustomSelect
+          value={fundingFilter}
+          onChange={setFundingFilter}
+          options={[
+            { value: "ALL", label: "Any funding" },
+            { value: "PRIVATE", label: "Private" },
+            { value: "MEDICAL_AID", label: "Any medical aid" },
+            ...funds.map((item) => ({ value: item.id, label: item.name })),
+          ]}
+          ariaLabel="Funding type"
+        />
+        <CustomSelect
+          value={visitFilter}
+          onChange={setVisitFilter}
+          options={[
+            { value: "ALL", label: "Any visit date" },
+            { value: "UPCOMING", label: "Upcoming booking" },
+            { value: "30_DAYS", label: "Visited in 30 days" },
+            { value: "90_DAYS", label: "Visited in 90 days" },
+            { value: "365_DAYS", label: "Visited in 12 months" },
+            { value: "NEVER", label: "No recorded visit" },
+          ]}
+          ariaLabel="Visit timing"
+        />
+        <CustomSelect
+          value={clinicalFilter}
+          onChange={setClinicalFilter}
+          options={[
+            { value: "ALL", label: "Any clinical flag" },
+            { value: "ALLERGY", label: "Known allergy" },
+            { value: "CHRONIC", label: "Chronic condition" },
+            { value: "MEDICATION", label: "Current medication" },
+            { value: "ALERT", label: "Important alert" },
+          ]}
+          ariaLabel="Clinical flag"
+        />
+        <CustomSelect
+          value={regionFilter}
+          onChange={setRegionFilter}
+          options={[
+            { value: "ALL", label: "Any region" },
+            { value: "UNSPECIFIED", label: "Region missing" },
+            ...regionOptions,
+          ]}
+          ariaLabel="Patient region"
+        />
+        {hasFacetFilters && (
+          <button
+            className="btn btn-light"
+            type="button"
+            onClick={() => {
+              setProfileFilter("ALL");
+              setStatusFilter("ALL");
+              setFundingFilter("ALL");
+              setVisitFilter("ALL");
+              setClinicalFilter("ALL");
+              setRegionFilter("ALL");
+            }}
+          >
+            Clear filters
+          </button>
+        )}
       </div>
       <div className="card dashboard-card" style={{ padding: 20 }}>
         <div className="table-scroll">

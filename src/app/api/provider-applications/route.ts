@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePlatformOwner } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { sendInvitationEmail as deliverInvitationEmail } from "@/lib/invitation-email";
 import { consumeRateLimit, requestRateLimitKey } from "@/lib/rate-limit";
 import { requestAuditInfo } from "@/lib/tenant";
 
@@ -77,6 +78,8 @@ export async function PATCH(request: Request) {
       action: z.enum(["REVIEW", "APPROVE", "REJECT"]),
       reviewNotes: z.string().trim().max(1000).optional(),
       planId: z.string().optional(),
+      initialServiceIds: z.array(z.string().min(1)).max(20).default([]),
+      sendInvitationEmail: z.boolean().default(false),
     })
     .safeParse(await request.json());
   if (!parsed.success)
@@ -117,6 +120,27 @@ export async function PATCH(request: Request) {
     });
     return NextResponse.json({ ok: true, status });
   }
+  const serviceTemplates = parsed.data.initialServiceIds.length
+    ? await db.departmentService.findMany({
+        where: {
+          id: { in: parsed.data.initialServiceIds },
+          practiceId: "mondesa-health",
+          active: true,
+        },
+        select: {
+          id: true,
+          departmentId: true,
+          name: true,
+          description: true,
+          durationMinutes: true,
+        },
+      })
+    : [];
+  if (serviceTemplates.length !== new Set(parsed.data.initialServiceIds).size)
+    return NextResponse.json(
+      { error: "One or more selected initial services are unavailable." },
+      { status: 400 },
+    );
   const rawToken = randomBytes(32).toString("base64url");
   const result = await db.$transaction(async (tx) => {
     let slug = slugify(current.practiceName);
@@ -158,6 +182,19 @@ export async function PATCH(request: Request) {
             durationMinutes: 30,
           })),
         },
+        services: serviceTemplates.length
+          ? {
+              create: serviceTemplates.map((service, sortOrder) => ({
+                departmentId: service.departmentId,
+                name: service.name,
+                description: service.description,
+                durationMinutes: service.durationMinutes,
+                public: false,
+                active: true,
+                sortOrder,
+              })),
+            }
+          : undefined,
       },
     });
     await tx.userInvitation.create({
@@ -202,10 +239,41 @@ export async function PATCH(request: Request) {
     });
     return practice;
   });
+  const invitePath = `/invite/${rawToken}`;
+  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || new URL(request.url).origin}${invitePath}`;
+  const emailDelivery = parsed.data.sendInvitationEmail
+    ? await deliverInvitationEmail({
+        to: current.email,
+        name: current.ownerName,
+        practiceName: current.practiceName,
+        inviteUrl,
+      }).catch(() => ({
+        sent: false as const,
+        reason: "The invitation was created, but email delivery failed.",
+      }))
+    : null;
+  if (emailDelivery) {
+    await db.activityLog.create({
+      data: {
+        userId: session.id,
+        practiceId: result.id,
+        action: emailDelivery.sent
+          ? "OWNER_INVITATION_EMAILED"
+          : "OWNER_INVITATION_EMAIL_FAILED",
+        entityType: "Practice",
+        entityId: result.id,
+        summary: emailDelivery.sent
+          ? `Emailed the owner invitation for ${result.name}`
+          : `Owner invitation email for ${result.name} was not delivered`,
+        requestInfo: requestAuditInfo(request),
+      },
+    });
+  }
   return NextResponse.json({
     ok: true,
     status: "APPROVED",
     practiceId: result.id,
-    inviteUrl: `/invite/${rawToken}`,
+    inviteUrl: invitePath,
+    emailDelivery,
   });
 }

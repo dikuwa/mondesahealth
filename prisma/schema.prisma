@@ -52,43 +52,45 @@ model User {
 }
 
 model Practice {
-  id                 String                 @id @default(cuid())
-  slug               String                 @unique
-  name               String
-  type               String                 @default("GENERAL_PRACTICE")
-  ownerName          String?
-  registrationNumber String?
-  licenceInformation String?
-  email              String?
-  phone              String?
-  whatsapp           String?
-  address            String?
-  town               String?
-  region             String?
-  logoData           String?
-  description        String?
-  status             String                 @default("DRAFT")
-  subscriptionStatus String                 @default("ACTIVE")
-  publicVisible      Boolean                @default(false)
-  activatedAt        DateTime?
-  suspensionReason   String?
-  timezone           String                 @default("Africa/Windhoek")
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
-  users              User[]
-  memberships        PracticeUser[]
-  patients           Patient[]
-  appointments       Appointment[]
-  encounters         ClinicalEncounter[]
-  services           DepartmentService[]
-  providers          Provider[]
-  availabilityRules  AvailabilityRule[]
-  blockedTimes       BlockedTime[]
-  setting            PracticeSetting?
-  content            PracticeContent?
-  emergencyContacts  EmergencyContact[]
-  subscriptions      PracticeSubscription[]
-  invitations        UserInvitation[]
+  id                    String                 @id @default(cuid())
+  slug                  String                 @unique
+  name                  String
+  type                  String                 @default("GENERAL_PRACTICE")
+  ownerName             String?
+  registrationNumber    String?
+  licenceInformation    String?
+  email                 String?
+  phone                 String?
+  whatsapp              String?
+  address               String?
+  town                  String?
+  region                String?
+  logoData              String?
+  description           String?
+  status                String                 @default("DRAFT")
+  subscriptionStatus    String                 @default("ACTIVE")
+  publicVisible         Boolean                @default(false)
+  activatedAt           DateTime?
+  suspensionReason      String?
+  timezone              String                 @default("Africa/Windhoek")
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  users                 User[]
+  memberships           PracticeUser[]
+  patients              Patient[]
+  appointments          Appointment[]
+  encounters            ClinicalEncounter[]
+  services              DepartmentService[]
+  providers             Provider[]
+  availabilityRules     AvailabilityRule[]
+  blockedTimes          BlockedTime[]
+  setting               PracticeSetting?
+  content               PracticeContent?
+  emergencyContacts     EmergencyContact[]
+  subscriptions         PracticeSubscription[]
+  invitations           UserInvitation[]
+  patientSharesSent     PatientShareConsent[]  @relation("PatientShareSource")
+  patientSharesReceived PatientShareConsent[]  @relation("PatientShareDestination")
 
   @@index([status, publicVisible])
   @@index([type, status])
@@ -126,11 +128,11 @@ model Notification {
 }
 
 model Patient {
-  id                    String              @id @default(cuid())
+  id                    String                @id @default(cuid())
   patientNumber         String
   fullName              String
-  surname               String              @default("")
-  initials              String              @default("")
+  surname               String                @default("")
+  initials              String                @default("")
   dateOfBirth           DateTime?
   gender                String?
   identityNumber        String?
@@ -139,14 +141,14 @@ model Patient {
   whatsapp              String?
   email                 String?
   address               String?
-  preferredMethod       String              @default("WHATSAPP")
+  preferredMethod       String                @default("WHATSAPP")
   emergencyName         String?
   emergencyPhone        String?
   emergencyRelation     String?
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
   archivedAt            DateTime?
-  practiceId            String              @default("mondesa-health")
+  practiceId            String                @default("mondesa-health")
   firstName             String?
   middleName            String?
   lastName              String?
@@ -162,10 +164,10 @@ model Patient {
   previousProcedures    String?
   medicalAlerts         String?
   medicalHistorySummary String?
-  status                String              @default("ACTIVE")
+  status                String                @default("ACTIVE")
   createdById           String?
   updatedById           String?
-  practice              Practice            @relation(fields: [practiceId], references: [id])
+  practice              Practice              @relation(fields: [practiceId], references: [id])
   appointments          Appointment[]
   memberships           PatientMedicalAid[]
   claims                Claim[]
@@ -177,11 +179,40 @@ model Patient {
   allergies             PatientAllergy[]
   conditions            PatientCondition[]
   medications           PatientMedication[]
+  sharingConsents       PatientShareConsent[]
 
   @@unique([practiceId, patientNumber])
   @@index([practiceId, archivedAt, fullName])
   @@index([practiceId, normalizedPhone])
   @@index([practiceId, identityNumber])
+}
+
+model PatientShareConsent {
+  id                    String    @id @default(cuid())
+  patientId             String
+  sourcePracticeId      String
+  destinationPracticeId String
+  scopes                String
+  status                String    @default("ACTIVE")
+  patientOrGuardianName String
+  relationshipToPatient String?
+  consentMethod         String
+  consentStatement      String
+  grantedById           String
+  grantedAt             DateTime  @default(now())
+  expiresAt             DateTime
+  revokedAt             DateTime?
+  revokedById           String?
+  revocationReason      String?
+  lastViewedAt          DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  patient               Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  sourcePractice        Practice  @relation("PatientShareSource", fields: [sourcePracticeId], references: [id], onDelete: Cascade)
+  destinationPractice   Practice  @relation("PatientShareDestination", fields: [destinationPracticeId], references: [id], onDelete: Cascade)
+
+  @@index([sourcePracticeId, patientId, status, expiresAt])
+  @@index([destinationPracticeId, status, expiresAt])
 }
 
 model MedicalAid {

@@ -19,6 +19,7 @@ import {
   Menu,
   PanelLeft,
   Settings,
+  Share2,
   SlidersHorizontal,
   UserCog,
   Users,
@@ -41,6 +42,12 @@ const sections = [
         "MANAGE_APPOINTMENTS",
       ],
       ["Patients", "/dashboard/patients", Users, "MANAGE_PATIENTS"],
+      [
+        "Shared records",
+        "/dashboard/shared-records",
+        Share2,
+        "VIEW_CLINICAL_RECORDS",
+      ],
     ],
   },
   {
@@ -91,6 +98,7 @@ const pageNames: Record<string, string> = {
   "/dashboard": "Overview",
   "/dashboard/appointments": "Appointments",
   "/dashboard/patients": "Patients",
+  "/dashboard/shared-records": "Shared patient records",
   "/dashboard/claims": "Medical aid claims",
   "/dashboard/subscription": "Subscription",
   "/dashboard/claim-batches": "Claim batches",

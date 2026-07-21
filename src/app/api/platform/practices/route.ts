@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePlatformOwner } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { sendInvitationEmail as deliverInvitationEmail } from "@/lib/invitation-email";
 import { requestAuditInfo } from "@/lib/tenant";
 
 const status = z.enum([
@@ -33,12 +34,20 @@ const create = z.object({
   status: status.default("DRAFT"),
   publicVisible: z.boolean().default(false),
   planId: z.string().optional(),
+  initialServiceIds: z.array(z.string().min(1)).max(20).default([]),
+  sendInvitationEmail: z.boolean().default(false),
 });
 const update = create
   .partial()
   .extend({
     id: z.string(),
     suspensionReason: z.string().trim().max(1000).optional(),
+    logoData: z
+      .string()
+      .max(1_500_000)
+      .regex(/^data:image\/(png|jpeg|webp);base64,/)
+      .nullable()
+      .optional(),
   });
 const slugify = (value: string) =>
   value
@@ -65,6 +74,27 @@ export async function POST(request: Request) {
   if (input.publicVisible && !["APPROVED", "ACTIVE"].includes(input.status))
     return NextResponse.json(
       { error: "Only approved or active practices can be public." },
+      { status: 400 },
+    );
+  const serviceTemplates = input.initialServiceIds.length
+    ? await db.departmentService.findMany({
+        where: {
+          id: { in: input.initialServiceIds },
+          practiceId: "mondesa-health",
+          active: true,
+        },
+        select: {
+          id: true,
+          departmentId: true,
+          name: true,
+          description: true,
+          durationMinutes: true,
+        },
+      })
+    : [];
+  if (serviceTemplates.length !== new Set(input.initialServiceIds).size)
+    return NextResponse.json(
+      { error: "One or more selected initial services are unavailable." },
       { status: 400 },
     );
   const rawToken = randomBytes(32).toString("base64url");
@@ -112,6 +142,19 @@ export async function POST(request: Request) {
             durationMinutes: 30,
           })),
         },
+        services: serviceTemplates.length
+          ? {
+              create: serviceTemplates.map((service, sortOrder) => ({
+                departmentId: service.departmentId,
+                name: service.name,
+                description: service.description,
+                durationMinutes: service.durationMinutes,
+                public: false,
+                active: true,
+                sortOrder,
+              })),
+            }
+          : undefined,
       },
     });
     await tx.userInvitation.create({
@@ -147,8 +190,38 @@ export async function POST(request: Request) {
     });
     return created;
   });
+  const invitePath = `/invite/${rawToken}`;
+  const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || new URL(request.url).origin}${invitePath}`;
+  const emailDelivery = input.sendInvitationEmail
+    ? await deliverInvitationEmail({
+        to: input.ownerEmail.toLowerCase(),
+        name: input.ownerName,
+        practiceName: input.name,
+        inviteUrl,
+      }).catch(() => ({
+        sent: false as const,
+        reason: "The invitation was created, but email delivery failed.",
+      }))
+    : null;
+  if (emailDelivery) {
+    await db.activityLog.create({
+      data: {
+        userId: session.id,
+        practiceId: practice.id,
+        action: emailDelivery.sent
+          ? "OWNER_INVITATION_EMAILED"
+          : "OWNER_INVITATION_EMAIL_FAILED",
+        entityType: "Practice",
+        entityId: practice.id,
+        summary: emailDelivery.sent
+          ? `Emailed the owner invitation for ${practice.name}`
+          : `Owner invitation email for ${practice.name} was not delivered`,
+        requestInfo: requestAuditInfo(request),
+      },
+    });
+  }
   return NextResponse.json(
-    { id: practice.id, inviteUrl: `/invite/${rawToken}` },
+    { id: practice.id, inviteUrl: invitePath, emailDelivery },
     { status: 201 },
   );
 }
@@ -167,8 +240,17 @@ export async function PATCH(request: Request) {
       },
       { status: 400 },
     );
-  const { id, ownerEmail, planId: _planId, ...input } = parsed.data;
+  const {
+    id,
+    ownerEmail,
+    planId: _planId,
+    initialServiceIds: _initialServiceIds,
+    sendInvitationEmail: _sendInvitationEmail,
+    ...input
+  } = parsed.data;
   void _planId;
+  void _initialServiceIds;
+  void _sendInvitationEmail;
   const current = await db.practice.findUnique({ where: { id } });
   if (!current)
     return NextResponse.json({ error: "Practice not found." }, { status: 404 });

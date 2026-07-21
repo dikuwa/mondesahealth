@@ -32,15 +32,19 @@ const statuses = [
 export function PracticeManager({
   initial,
   plans,
+  serviceTemplates,
 }: {
   initial: Practice[];
   plans: { id: string; name: string }[];
+  serviceTemplates: { id: string; name: string; department: string }[];
 }) {
   const router = useRouter(),
     [open, setOpen] = useState(false),
     [saving, setSaving] = useState(false),
     [status, setStatus] = useState("DRAFT"),
     [planId, setPlanId] = useState(""),
+    [initialServiceIds, setInitialServiceIds] = useState<string[]>([]),
+    [sendInvitationEmail, setSendInvitationEmail] = useState(false),
     [invite, setInvite] = useState(""),
     [pending, setPending] = useState<{
       practice: Practice;
@@ -59,6 +63,8 @@ export function PracticeManager({
           ...Object.fromEntries(form),
           status,
           planId: planId || undefined,
+          initialServiceIds,
+          sendInvitationEmail,
           publicVisible: false,
         }),
       });
@@ -66,9 +72,16 @@ export function PracticeManager({
       if (!response.ok) throw new Error(data.error);
       setInvite(`${location.origin}${data.inviteUrl}`);
       setOpen(false);
-      toast.success("Practice registered and invitation created", {
-        id: toastId,
-      });
+      toast.success(
+        data.emailDelivery?.sent
+          ? "Practice registered and invitation emailed"
+          : data.emailDelivery
+            ? data.emailDelivery.reason
+            : "Practice registered and invitation created",
+        { id: toastId },
+      );
+      setInitialServiceIds([]);
+      setSendInvitationEmail(false);
       router.refresh();
     } catch (error) {
       toast.error(
@@ -235,7 +248,10 @@ export function PracticeManager({
               <div>
                 <span className="eyebrow">Platform administration</span>
                 <h2>Register practice</h2>
-                <p>The owner receives a secure, expiring account-setup link.</p>
+                <p>
+                  A secure setup link is always created. Email delivery is
+                  optional and never automatic.
+                </p>
               </div>
               <button
                 type="button"
@@ -310,6 +326,52 @@ export function PracticeManager({
                     ...plans.map((x) => ({ value: x.id, label: x.name })),
                   ]}
                 />
+              </label>
+              <fieldset className="field field-span-2 service-template-picker">
+                <legend>Initial services</legend>
+                <p>
+                  Select the service templates to copy into this practice.
+                  They start private until the practice publishes them.
+                </p>
+                <div className="checkbox-grid">
+                  {serviceTemplates.map((service) => (
+                    <label className="toggle-label" key={service.id}>
+                      <input
+                        type="checkbox"
+                        checked={initialServiceIds.includes(service.id)}
+                        onChange={(event) =>
+                          setInitialServiceIds((current) =>
+                            event.target.checked
+                              ? [...current, service.id]
+                              : current.filter((id) => id !== service.id),
+                          )
+                        }
+                      />
+                      <span>
+                        {service.name}
+                        <small>{service.department}</small>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                {!serviceTemplates.length && (
+                  <small>No active service templates are available.</small>
+                )}
+              </fieldset>
+              <label className="toggle-label field-span-2">
+                <input
+                  type="checkbox"
+                  checked={sendInvitationEmail}
+                  onChange={(event) =>
+                    setSendInvitationEmail(event.target.checked)
+                  }
+                />
+                <span>
+                  Email the invitation now
+                  <small>
+                    Optional. Leave off to copy and send the link yourself.
+                  </small>
+                </span>
               </label>
             </div>
             <div className="form-actions">
