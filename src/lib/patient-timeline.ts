@@ -145,7 +145,15 @@ export async function getPatientTimeline({
     });
   const total = rows.length ? Number(rows[0].totalCount) : 0;
   return {
-    events: rows.map(({ totalCount: _totalCount, ...row }) => row),
+    events: rows.map((row) => ({
+      id: row.id,
+      type: row.type,
+      text: row.text,
+      href: row.href,
+      occurredAt: row.occurredAt,
+      actorName: row.actorName,
+      practiceName: row.practiceName,
+    })),
     total,
     pages: Math.max(1, Math.ceil(total / PATIENT_TIMELINE_PAGE_SIZE)),
     page,

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ref } from "@/lib/utils";
+import { practiceWriteDenied } from "@/lib/practice-write-access";
 
 const schema = z.object({
   invoiceId: z.string(),
@@ -24,6 +25,8 @@ export async function POST(request: Request) {
   const session = await requirePermission("MANAGE_FINANCE");
   if (!session)
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  const restricted = await practiceWriteDenied(session.practiceId);
+  if (restricted) return restricted;
   const parsed = schema.safeParse(await request.json());
   if (!parsed.success)
     return NextResponse.json(

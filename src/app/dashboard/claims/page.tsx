@@ -1,11 +1,11 @@
 import { PageHeading, Stat } from "@/components/dashboard";
 import { ClaimsManager } from "@/components/claims-manager";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import { getPracticeSession } from "@/lib/auth";
 import { money } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 export default async function Claims() {
-  const session = await getSession();
+  const session = await getPracticeSession();
   if (!session) return null;
   const [
     claims,

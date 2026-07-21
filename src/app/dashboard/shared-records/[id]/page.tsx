@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { LockKeyhole } from "lucide-react";
 import { PageHeading } from "@/components/dashboard";
-import { getSession } from "@/lib/auth";
+import { getPracticeSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
   PATIENT_SHARE_SCOPE_LABELS,
@@ -13,7 +13,7 @@ export default async function SharedRecordPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await getSession();
+  const session = await getPracticeSession();
   if (
     !session ||
     (session.role !== "OWNER" &&

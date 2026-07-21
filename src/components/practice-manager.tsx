@@ -194,7 +194,7 @@ export function PracticeManager({
                   </td>
                   <td>
                     <div className="table-actions">
-                      <Link className="btn btn-light" href={`/dashboard/platform/practices/${item.id}`}>Open</Link>
+                      <Link className="btn btn-light" href={`/platform/practices/${item.id}`}>Open</Link>
                       {item.status !== "ACTIVE" && (
                         <button
                           className="btn btn-light"

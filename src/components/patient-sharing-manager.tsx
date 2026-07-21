@@ -44,6 +44,11 @@ export function PatientSharingManager({
     date.setMonth(date.getMonth() + 3);
     return date.toISOString().slice(0, 10);
   });
+  const [minimumExpiry] = useState(() => {
+    const date = new Date();
+    date.setDate(date.getDate() + 1);
+    return date.toISOString().slice(0, 10);
+  });
   const [confirmed, setConfirmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [revoking, setRevoking] = useState<Consent | null>(null);
@@ -258,7 +263,7 @@ export function PatientSharingManager({
                 <DatePicker
                   value={expiresAt}
                   onChange={setExpiresAt}
-                  min={new Date(Date.now() + 86400000).toISOString().slice(0, 10)}
+                  min={minimumExpiry}
                 />
               </label>
               <div className="consent-statement dashboard-span-all">

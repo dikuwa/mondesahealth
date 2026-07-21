@@ -1,10 +1,10 @@
 import { PageHeading } from "@/components/dashboard";
 import { AvailabilityManager } from "@/components/availability-manager";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import { getPracticeSession } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 export default async function Availability() {
-  const session = await getSession();
+  const session = await getPracticeSession();
   if (!session) return null;
   const [settings, rules, blocks, providers] = await Promise.all([
     db.practiceSetting.findUnique({

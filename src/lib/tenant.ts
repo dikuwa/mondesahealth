@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getPracticeSession } from "@/lib/auth";
 import { ORIGINAL_PRACTICE_ID } from "@/lib/practice-constants";
 
 export const LEGACY_PRACTICE_ID = ORIGINAL_PRACTICE_ID;
 
 export async function requirePracticeSession() {
-  return getSession();
+  return getPracticeSession();
 }
 
 export function tenantWhere<T extends object>(practiceId: string, where?: T) {

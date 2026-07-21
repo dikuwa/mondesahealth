@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { practiceWriteDenied } from "@/lib/practice-write-access";
 async function allowed() {
   return requirePermission("MANAGE_AVAILABILITY");
 }
@@ -12,6 +13,8 @@ export async function PATCH(request: Request) {
       { error: "You do not have permission to manage availability." },
       { status: 403 },
     );
+  const restricted = await practiceWriteDenied(session.practiceId);
+  if (restricted) return restricted;
   const body = await request.json();
   const providerParsed = z.object({ providerId: z.string(), rules: z.array(z.object({ weekday: z.number().int().min(0).max(6), active: z.boolean(), openTime: z.string().regex(/^\d{2}:\d{2}$/), closeTime: z.string().regex(/^\d{2}:\d{2}$/), breakStart: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(), breakEnd: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional() })).length(7) }).safeParse(body);
   if (providerParsed.success) {
@@ -86,6 +89,8 @@ export async function POST(request: Request) {
       { error: "You do not have permission to manage availability." },
       { status: 403 },
     );
+  const restricted = await practiceWriteDenied(session.practiceId);
+  if (restricted) return restricted;
   const parsed = z
     .object({
       startAt: z.string().datetime(),
@@ -129,6 +134,8 @@ export async function DELETE(request: Request) {
       { error: "You do not have permission to manage availability." },
       { status: 403 },
     );
+  const restricted = await practiceWriteDenied(session.practiceId);
+  if (restricted) return restricted;
   const id = new URL(request.url).searchParams.get("id");
   if (!id)
     return NextResponse.json(

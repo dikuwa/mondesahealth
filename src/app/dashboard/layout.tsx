@@ -1,4 +1,41 @@
 import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { getSession, hasSessionCookie } from "@/lib/auth";
-export default async function DashboardLayout({children}:{children:React.ReactNode}){const hadCookie=await hasSessionCookie();const session=await getSession();if(!session)redirect(hadCookie?"/login?reason=session-expired":"/login");return <DashboardShell name={session.name} role={session.role} permissions={session.permissions} avatarData={session.avatarData} platformRole={session.platformRole}>{children}</DashboardShell>}
+import { getPracticeSession, hasSessionCookie } from "@/lib/auth";
+import { db } from "@/lib/db";
+
+export default async function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const hadCookie = await hasSessionCookie();
+  const session = await getPracticeSession();
+  if (!session) redirect(hadCookie ? "/platform" : "/login");
+  const practice = await db.practice.findUnique({
+    where: { id: session.practiceId },
+    select: {
+      name: true,
+      type: true,
+      logoData: true,
+      slug: true,
+      setting: { select: { practiceName: true } },
+    },
+  });
+  if (!practice) redirect("/login?reason=session-expired");
+  return (
+    <DashboardShell
+      name={session.name}
+      role={session.role}
+      permissions={session.permissions}
+      avatarData={session.avatarData}
+      practice={{
+        name: practice.setting?.practiceName || practice.name,
+        type: practice.type,
+        logoData: practice.logoData,
+        slug: practice.slug,
+      }}
+    >
+      {children}
+    </DashboardShell>
+  );
+}

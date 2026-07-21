@@ -12,7 +12,7 @@ import { PageHeading } from "@/components/dashboard";
 import { PatientMergeAction } from "@/components/patient-merge-action";
 import { PatientMedicalSummaryAction } from "@/components/patient-medical-summary-action";
 import { PatientSharingManager } from "@/components/patient-sharing-manager";
-import { getSession } from "@/lib/auth";
+import { getPracticeSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { maskIdentifier, missingPatientFields } from "@/lib/patient-matching";
 import { getPatientTimeline } from "@/lib/patient-timeline";
@@ -52,7 +52,7 @@ export default async function PatientPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ tab?: string; page?: string }>;
 }) {
-  const session = await getSession();
+  const session = await getPracticeSession();
   if (
     !session?.permissions.includes("MANAGE_PATIENTS") &&
     session?.role !== "OWNER"

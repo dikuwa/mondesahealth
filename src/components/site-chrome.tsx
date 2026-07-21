@@ -1,15 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Image from "next/image";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Clock3, LogIn, Menu, Phone, Stethoscope, X } from "lucide-react";
 import type { PublicSiteConfig } from "@/lib/public-site";
 
 const MOBILE_BREAKPOINT = 800;
 
-export function SiteChrome({ children, site }: { children: React.ReactNode; site: PublicSiteConfig }) {
-  const pathname = usePathname();
+export function SiteChrome({ children, site, basePath, logoData }: { children: React.ReactNode; site: PublicSiteConfig; basePath: string; logoData: string | null }) {
   const telephoneHref = `tel:${site.phone.replace(/[^\d+]/g, "")}`;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -94,8 +93,6 @@ export function SiteChrome({ children, site }: { children: React.ReactNode; site
     return () => drawer.removeEventListener("keydown", handleTab);
   }, [mobileOpen]);
 
-  if (pathname.startsWith("/dashboard")) return <>{children}</>;
-
   return (
     <>
       <a className="skip-link" href="#main-content">Skip to main content</a>
@@ -121,9 +118,9 @@ export function SiteChrome({ children, site }: { children: React.ReactNode; site
           }}
         >
           <Link
-            href="/"
+            href={basePath}
             className="site-brand"
-            aria-label="Mondesa Health home"
+            aria-label={`${site.practiceName} home`}
             style={{
               display: "flex",
               alignItems: "center",
@@ -142,12 +139,11 @@ export function SiteChrome({ children, site }: { children: React.ReactNode; site
                 color: "white",
               }}
             >
-              <Stethoscope size={20} />
+              {logoData ? <Image src={logoData} alt="" width={29} height={29} unoptimized style={{ objectFit: "contain" }} /> : <Stethoscope size={20} />}
             </span>
             <span className="site-brand-copy">
-              <strong>MONDESA</strong>
-              <strong style={{ color: "#8c6526" }}>HEALTH</strong>
-              <small>POLYCLINIC</small>
+              <strong>{site.practiceName}</strong>
+              <small>INDEPENDENT PRACTICE</small>
             </span>
           </Link>
           <nav
@@ -161,10 +157,10 @@ export function SiteChrome({ children, site }: { children: React.ReactNode; site
               fontWeight: 700,
             }}
           >
-            <Link href="/#about">About</Link>
-            <Link href="/services">Services</Link>
-            <Link href="/#visit">Your visit</Link>
-            <Link href="/#contact">Location</Link>
+            <Link href={`${basePath}#about`}>About</Link>
+            <Link href={`${basePath}/services`}>Services</Link>
+            <Link href={`${basePath}#visit`}>Your visit</Link>
+            <Link href={`${basePath}#contact`}>Location</Link>
           </nav>
           <div style={{ display: "flex", gap: 9, alignItems: "center" }}>
             <a className="btn btn-light desktop-nav" href={telephoneHref}>
@@ -173,7 +169,7 @@ export function SiteChrome({ children, site }: { children: React.ReactNode; site
             </a>
             <Link
               className="btn btn-primary site-book-button"
-              href="/book"
+              href={`${basePath}/book`}
               aria-label="Book a GP appointment"
             >
               <Clock3 size={17} />
@@ -246,7 +242,7 @@ export function SiteChrome({ children, site }: { children: React.ReactNode; site
             }}
           >
             <Link
-              href="/#about"
+              href={`${basePath}#about`}
               onClick={closeDrawer}
               style={{
                 minHeight: 44,
@@ -261,7 +257,7 @@ export function SiteChrome({ children, site }: { children: React.ReactNode; site
               About
             </Link>
             <Link
-              href="/services"
+              href={`${basePath}/services`}
               onClick={closeDrawer}
               style={{
                 minHeight: 44,
@@ -276,7 +272,7 @@ export function SiteChrome({ children, site }: { children: React.ReactNode; site
               Services
             </Link>
             <Link
-              href="/#visit"
+              href={`${basePath}#visit`}
               onClick={closeDrawer}
               style={{
                 minHeight: 44,
@@ -291,7 +287,7 @@ export function SiteChrome({ children, site }: { children: React.ReactNode; site
               Your visit
             </Link>
             <Link
-              href="/#contact"
+              href={`${basePath}#contact`}
               onClick={closeDrawer}
               style={{
                 minHeight: 44,

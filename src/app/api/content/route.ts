@@ -3,6 +3,9 @@ import { z } from "zod";
 import { requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { DEFAULT_PRACTICE_CONTENT } from "../../../../prisma/polyclinic-data";
+import { genericPracticeContent } from "@/lib/generic-practice-content";
+import { ORIGINAL_PRACTICE_ID } from "@/lib/practice-constants";
+import { practiceWriteDenied } from "@/lib/practice-write-access";
 
 const contentSchema = z.object({
   hero: z.object({
@@ -59,13 +62,19 @@ export async function GET() {
   const record = await db.practiceContent.findUnique({
     where: { practiceId: session.practiceId },
   });
-  return NextResponse.json(record?.content || DEFAULT_PRACTICE_CONTENT);
+  if (record?.content) return NextResponse.json(record.content);
+  if (session.practiceId === ORIGINAL_PRACTICE_ID)
+    return NextResponse.json(DEFAULT_PRACTICE_CONTENT);
+  const practice = await db.practice.findUnique({ where: { id: session.practiceId }, select: { name: true, type: true } });
+  return NextResponse.json(genericPracticeContent(practice?.name || "Your practice", practice?.type));
 }
 
 export async function PATCH(request: Request) {
   const session = await requirePermission("MANAGE_PRACTICE");
   if (!session)
     return NextResponse.json({ error: "Permission denied" }, { status: 403 });
+  const restricted = await practiceWriteDenied(session.practiceId);
+  if (restricted) return restricted;
   const parsed = contentSchema.safeParse(await request.json());
   if (!parsed.success)
     return NextResponse.json(

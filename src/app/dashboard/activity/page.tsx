@@ -3,7 +3,7 @@ import Link from "next/link";
 import { PageHeading } from "@/components/dashboard";
 import { db } from "@/lib/db";
 import { activityWhere } from "@/lib/activity-query";
-import { getSession } from "@/lib/auth";
+import { getPracticeSession } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 export default async function ActivityLog({
   searchParams,
@@ -14,7 +14,7 @@ export default async function ActivityLog({
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(raw))
     if (typeof value === "string") params.set(key, value);
-  const session = await getSession();
+  const session = await getPracticeSession();
   if (!session) return null;
   const page = Math.max(1, Number(params.get("page")) || 1),
     where = activityWhere(params, session.practiceId);

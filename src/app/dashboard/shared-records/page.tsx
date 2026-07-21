@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeading } from "@/components/dashboard";
-import { getSession } from "@/lib/auth";
+import { getPracticeSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
   PATIENT_SHARE_SCOPE_LABELS,
@@ -9,7 +9,7 @@ import {
 } from "@/lib/patient-sharing";
 
 export default async function SharedRecordsPage() {
-  const session = await getSession();
+  const session = await getPracticeSession();
   if (
     !session ||
     (session.role !== "OWNER" &&

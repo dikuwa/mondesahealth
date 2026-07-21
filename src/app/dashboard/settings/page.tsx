@@ -1,16 +1,18 @@
 import { PageHeading } from "@/components/dashboard";
 import { db } from "@/lib/db";
 import { SettingsManager } from "@/components/settings-manager";
-import { getSession } from "@/lib/auth";
+import { getPracticeSession } from "@/lib/auth";
+import { PracticeBrandingManager } from "@/components/practice-branding-manager";
 export const dynamic = "force-dynamic";
 export default async function Settings() {
-  const session = await getSession();
+  const session = await getPracticeSession();
   if (!session) return null;
-  const [s, funds, claimStorage, intakeStorage, emergencyContacts] =
+  const [s, practice, funds, claimStorage, intakeStorage, emergencyContacts] =
     await Promise.all([
       db.practiceSetting.findUnique({
         where: { practiceId: session.practiceId },
       }),
+      db.practice.findUnique({ where: { id: session.practiceId }, select: { name: true, logoData: true } }),
       db.medicalAid.findMany({ orderBy: { sortOrder: "asc" } }),
       db.claimAttachment.aggregate({
         _count: { _all: true },
@@ -31,6 +33,7 @@ export default async function Settings() {
   return (
     <>
       <PageHeading eyebrow="Practice configuration" title="Settings" />
+      {practice && <PracticeBrandingManager name={practice.name} initialLogo={practice.logoData} />}
       <SettingsManager
         setting={{
           practiceName: s.practiceName,

@@ -25,7 +25,7 @@ export function LoginForm({reason}:{reason?:string}){
       const data=await response.json();
       if(!response.ok)throw new Error(data.error);
       toast.success("Welcome back",{id:toastId});
-      router.push("/dashboard");
+      router.push(data.destination || "/dashboard");
       router.refresh();
     }catch(error){
       toast.error(error instanceof Error?error.message:"Could not sign in",{id:toastId});

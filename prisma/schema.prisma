@@ -39,9 +39,9 @@ model User {
   sickNotesAsDoctor    SickNote[]                 @relation("SickNoteDoctor")
   sickNotesCreated     SickNote[]                 @relation("SickNoteCreator")
   sickNotesUpdated     SickNote[]                 @relation("SickNoteUpdater")
-  practiceId           String                     @default("mondesa-health")
+  practiceId           String?
   platformRole         String?
-  practice             Practice                   @relation(fields: [practiceId], references: [id])
+  practice             Practice?                  @relation(fields: [practiceId], references: [id])
   practiceMemberships  PracticeUser[]
   encounters           ClinicalEncounter[]        @relation("EncounterClinician")
   encountersCreated    ClinicalEncounter[]        @relation("EncounterCreator")
@@ -907,7 +907,7 @@ model ActivityLog {
   afterJson   String?
   user        User?    @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
-  practiceId  String   @default("mondesa-health")
+  practiceId  String?
   requestInfo String?
 
   @@index([createdAt])

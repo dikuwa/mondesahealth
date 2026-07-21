@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSession } from "@/lib/auth";
+import { getPracticeSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
   PATIENT_SHARE_CONSENT_STATEMENT,
@@ -25,7 +25,7 @@ const revokeConsent = z.object({
   reason: z.string().trim().min(3).max(500),
 });
 
-function canManageSharing(session: Awaited<ReturnType<typeof getSession>>) {
+function canManageSharing(session: Awaited<ReturnType<typeof getPracticeSession>>) {
   return Boolean(
     session &&
       (session.role === "OWNER" ||
@@ -35,7 +35,7 @@ function canManageSharing(session: Awaited<ReturnType<typeof getSession>>) {
 }
 
 export async function POST(request: Request) {
-  const session = await getSession();
+  const session = await getPracticeSession();
   if (!canManageSharing(session) || !session)
     return NextResponse.json(
       { error: "Consent-management and clinical-record access are required." },
@@ -138,7 +138,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const session = await getSession();
+  const session = await getPracticeSession();
   if (!canManageSharing(session) || !session)
     return NextResponse.json(
       { error: "Consent-management and clinical-record access are required." },

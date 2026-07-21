@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
 import { ReminderQueue } from "@/components/reminder-queue";
 import { getDueReminders } from "@/lib/reminders";
-import { getSession } from "@/lib/auth";
+import { getPracticeSession } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 export default async function Appointments({
   searchParams,
@@ -55,7 +55,7 @@ export default async function Appointments({
       ...(from ? { gte: new Date(`${from}T00:00:00`) } : {}),
       ...(to ? { lte: new Date(`${to}T23:59:59`) } : {}),
     };
-  const session = await getSession();
+  const session = await getPracticeSession();
   if (!session) return null;
   where.practiceId = session.practiceId;
   const canViewIntake = session?.role === "OWNER" || session?.permissions.includes("VIEW_CLINICAL_INTAKE");

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requirePermission } from "@/lib/auth";
+import { requirePermission, requirePlatformOwner } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { practiceWriteDenied } from "@/lib/practice-write-access";
 
 const nullableText = z
   .union([z.string().trim().max(2000), z.null()])
@@ -57,12 +58,6 @@ const mutationSchema = z.discriminatedUnion("entity", [
 ]);
 
 export async function PATCH(request: Request) {
-  const session = await requirePermission("MANAGE_PRACTICE");
-  if (!session)
-    return NextResponse.json(
-      { error: "You do not have permission to manage services and providers." },
-      { status: 403 },
-    );
   const parsed = mutationSchema.safeParse(await request.json());
   if (!parsed.success)
     return NextResponse.json(
@@ -73,10 +68,22 @@ export async function PATCH(request: Request) {
       { status: 400 },
     );
   const body = parsed.data;
+  const session = body.entity === "DEPARTMENT"
+    ? await requirePlatformOwner()
+    : await requirePermission("MANAGE_PRACTICE");
+  if (!session)
+    return NextResponse.json(
+      { error: "You do not have permission to manage this directory content." },
+      { status: 403 },
+    );
+  const practiceId = session.practiceId;
+  if (body.entity !== "DEPARTMENT") {
+    if (!practiceId) return NextResponse.json({ error: "Practice access is required." }, { status: 403 });
+    const restricted = await practiceWriteDenied(practiceId);
+    if (restricted) return restricted;
+  }
   try {
     if (body.entity === "DEPARTMENT") {
-      if (session.platformRole !== "PLATFORM_OWNER")
-        return NextResponse.json({ error: "Only the platform owner can change department categories." }, { status: 403 });
       const data = {
         slug: body.slug,
         name: body.name,
@@ -104,10 +111,10 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ ok: true, id: department.id });
     }
     if (body.entity === "SERVICE") {
-      if (body.id && !(await db.departmentService.findFirst({ where: { id: body.id, practiceId: session.practiceId }, select: { id: true } })))
+      if (body.id && !(await db.departmentService.findFirst({ where: { id: body.id, practiceId: practiceId! }, select: { id: true } })))
         return NextResponse.json({ error: "Service not found." }, { status: 404 });
       const data = {
-        practiceId: session.practiceId,
+        practiceId: practiceId!,
         departmentId: body.departmentId,
         name: body.name,
         description: body.description || null,
@@ -122,7 +129,7 @@ export async function PATCH(request: Request) {
         : await db.departmentService.create({ data });
       await db.activityLog.create({
         data: {
-          practiceId: session.practiceId,
+          practiceId: practiceId!,
           userId: session.id,
           action: body.id
             ? "DEPARTMENT_SERVICE_UPDATED"
@@ -134,10 +141,10 @@ export async function PATCH(request: Request) {
       });
       return NextResponse.json({ ok: true, id: service.id });
     }
-    if (body.id && !(await db.provider.findFirst({ where: { id: body.id, practiceId: session.practiceId }, select: { id: true } })))
+    if (body.id && !(await db.provider.findFirst({ where: { id: body.id, practiceId: practiceId! }, select: { id: true } })))
       return NextResponse.json({ error: "Provider not found." }, { status: 404 });
     const data = {
-      practiceId: session.practiceId,
+      practiceId: practiceId!,
       departmentId: body.departmentId,
       displayName: body.displayName,
       practiceName: body.practiceName || null,
@@ -154,7 +161,7 @@ export async function PATCH(request: Request) {
       : await db.provider.create({ data });
     await db.activityLog.create({
       data: {
-        practiceId: session.practiceId,
+        practiceId: practiceId!,
         userId: session.id,
         action: body.id ? "PROVIDER_UPDATED" : "PROVIDER_CREATED",
         entityType: "Provider",
@@ -177,12 +184,6 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const session = await requirePermission("MANAGE_PRACTICE");
-  if (!session)
-    return NextResponse.json(
-      { error: "You do not have permission to delete directory content." },
-      { status: 403 },
-    );
   const parsed = z
     .object({
       entity: z.enum(["DEPARTMENT", "SERVICE", "PROVIDER"]),
@@ -195,10 +196,19 @@ export async function DELETE(request: Request) {
       { status: 400 },
     );
   const { entity, id } = parsed.data;
+  const session = entity === "DEPARTMENT"
+    ? await requirePlatformOwner()
+    : await requirePermission("MANAGE_PRACTICE");
+  if (!session)
+    return NextResponse.json({ error: "You do not have permission to delete this directory content." }, { status: 403 });
+  const practiceId = session.practiceId;
+  if (entity !== "DEPARTMENT") {
+    if (!practiceId) return NextResponse.json({ error: "Practice access is required." }, { status: 403 });
+    const restricted = await practiceWriteDenied(practiceId);
+    if (restricted) return restricted;
+  }
   try {
     if (entity === "DEPARTMENT") {
-      if (session.platformRole !== "PLATFORM_OWNER")
-        return NextResponse.json({ error: "Only the platform owner can delete department categories." }, { status: 403 });
       const department = await db.department.findUnique({
         where: { id },
         include: { services: true, providers: true },
@@ -233,7 +243,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ ok: true });
     }
     if (entity === "SERVICE") {
-      const service = await db.departmentService.findFirst({ where: { id, practiceId: session.practiceId } });
+      const service = await db.departmentService.findFirst({ where: { id, practiceId: practiceId! } });
       if (!service)
         return NextResponse.json(
           { error: "Service not found." },
@@ -243,7 +253,7 @@ export async function DELETE(request: Request) {
         await tx.departmentService.delete({ where: { id } });
         await tx.activityLog.create({
           data: {
-            practiceId: session.practiceId,
+            practiceId: practiceId!,
             userId: session.id,
             action: "DEPARTMENT_SERVICE_DELETED",
             entityType: "DepartmentService",
@@ -255,7 +265,7 @@ export async function DELETE(request: Request) {
       });
       return NextResponse.json({ ok: true });
     }
-    const provider = await db.provider.findFirst({ where: { id, practiceId: session.practiceId } });
+    const provider = await db.provider.findFirst({ where: { id, practiceId: practiceId! } });
     if (!provider)
       return NextResponse.json(
         { error: "Provider not found." },
@@ -265,7 +275,7 @@ export async function DELETE(request: Request) {
       await tx.provider.delete({ where: { id } });
       await tx.activityLog.create({
         data: {
-          practiceId: session.practiceId,
+          practiceId: practiceId!,
           userId: session.id,
           action: "PROVIDER_DELETED",
           entityType: "Provider",

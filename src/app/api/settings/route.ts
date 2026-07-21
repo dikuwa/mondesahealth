@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { classifySettingsRequest } from "@/lib/settings-payload";
+import { practiceWriteDenied } from "@/lib/practice-write-access";
 
 const detailsSchema=z.object({
   practiceName:z.string().trim().min(2),doctorName:z.string().trim().min(2),
@@ -21,6 +22,7 @@ const detailsSchema=z.object({
 export async function PATCH(request:Request){
   const session=await requirePermission("MANAGE_PRACTICE");
   if(!session)return NextResponse.json({error:"You do not have permission to update practice settings."},{status:403});
+  const restricted=await practiceWriteDenied(session.practiceId);if(restricted)return restricted;
   const body=await request.json();
   const requestKind=classifySettingsRequest(body);
   let summary="Practice and document settings updated";

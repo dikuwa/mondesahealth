@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { sendInvitationEmail as deliverInvitationEmail } from "@/lib/invitation-email";
 import { consumeRateLimit, requestRateLimitKey } from "@/lib/rate-limit";
 import { requestAuditInfo } from "@/lib/tenant";
+import { genericPracticeContent } from "@/lib/generic-practice-content";
 
 const application = z.object({
   practiceName: z.string().trim().min(2).max(140),
@@ -170,6 +171,9 @@ export async function PATCH(request: Request) {
             whatsapp: current.phone || "Pending configuration",
             address: "Pending configuration",
           },
+        },
+        content: {
+          create: { content: genericPracticeContent(current.practiceName, current.practiceType) },
         },
         availabilityRules: {
           create: [1, 2, 3, 4, 5].map((weekday) => ({

@@ -1,58 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CalendarCheck, Clock3, Stethoscope } from "lucide-react";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { getPublicDepartments } from "@/lib/public-site";
+import { ArrowRight, Building2, CalendarCheck } from "lucide-react";
+import { db } from "@/lib/db";
 
-export const metadata: Metadata = {
-  title: "Healthcare services",
-  description: "Explore available and planned healthcare services at Mondesa Health Polyclinic.",
-};
-
-function publicServiceStatus(department: { bookingEnabled: boolean; status: string; services?:unknown[] }) {
-  if (department.bookingEnabled && department.services?.length) return { value: "ACTIVE", label: "Available now" };
-  if (department.status === "FUTURE") return { value: "FUTURE", label: "Future feature" };
-  return { value: "COMING_SOON", label: "Coming soon" };
-}
-
-export default async function ServicesPage() {
-  const departments = await getPublicDepartments();
-  return (
-    <main className="services-page">
-      <section className="services-hero">
-        <div className="container">
-          <div className="eyebrow">Healthcare directory</div>
-          <h1 className="display">Find the service that fits your needs.</h1>
-          <p>General Practice is available now. Explore the healthcare departments planned for the Polyclinic as our integrated platform grows.</p>
-        </div>
-      </section>
-      <section className="section">
-        <div className="container services-list">
-          {departments.map((department, index) => (
-            <article className={`service-listing${department.bookingEnabled&&department.services.length ? " is-active" : ""}`} key={department.id}>
-              <div className="service-listing-number">{String(index + 1).padStart(2, "0")}</div>
-              <div className="service-listing-copy">
-                <StatusBadge {...publicServiceStatus(department)} />
-                <p className="eyebrow">{department.categoryLabel}</p>
-                <h2>{department.name}</h2>
-                <p>{department.summary}</p>
-                <div className="service-listing-meta">
-                  <span><Stethoscope size={16} /> {department.services.length} planned service{department.services.length === 1 ? "" : "s"}</span>
-                  {department.providers.length > 0 && <span>{department.providers.length} provider profile{department.providers.length === 1 ? "" : "s"}</span>}
-                </div>
-              </div>
-              <div className="service-listing-actions">
-                <Link className="btn btn-light" href={`/services/${department.slug}`}>View service <ArrowRight size={16} /></Link>
-                {department.bookingEnabled&&department.services.length>0 && <Link className="btn btn-primary" href="/book"><CalendarCheck size={16} /> Book now</Link>}
-              </div>
-            </article>
-          ))}
-          <div className="services-note">
-            <Clock3 aria-hidden="true" />
-            <p><b>Opening carefully.</b> Coming-soon departments will only accept appointments after their providers, operating details and services are confirmed.</p>
-          </div>
-        </div>
-      </section>
-    </main>
-  );
+export default async function PracticeDirectory() {
+  const practices = await db.practice.findMany({
+    where: { status: "ACTIVE", publicVisible: true, subscriptionStatus: { in: ["ACTIVE", "OVERDUE"] } },
+    select: { slug: true, name: true, type: true, description: true, town: true, region: true, services: { where: { active: true, public: true }, select: { id: true, name: true }, orderBy: { sortOrder: "asc" } } },
+    orderBy: { name: "asc" },
+  });
+  return <main className="services-page"><section className="services-hero"><div className="container"><div className="eyebrow">Mondesa Health directory</div><h1 className="display">Independent practices and their services.</h1><p>Select a practice to view its independently managed content, providers and live availability.</p></div></section>
+    <section className="section"><div className="container services-list">{practices.map((practice, index) => <article className="service-listing is-active" key={practice.slug}><div className="service-listing-number">{String(index + 1).padStart(2, "0")}</div><div className="service-listing-copy"><p className="eyebrow">{practice.type.replaceAll("_", " ")}</p><h2>{practice.name}</h2><p>{practice.description || [practice.town, practice.region].filter(Boolean).join(", ") || "Independent healthcare practice"}</p><div className="service-listing-meta"><span><Building2 size={16} /> {practice.services.length} published service{practice.services.length === 1 ? "" : "s"}</span><span>{practice.services.slice(0, 3).map((service) => service.name).join(" · ")}</span></div></div><div className="service-listing-actions"><Link className="btn btn-light" href={`/practices/${practice.slug}`}>View practice <ArrowRight size={16} /></Link>{practice.services.length > 0 && <Link className="btn btn-primary" href={`/practices/${practice.slug}/book`}><CalendarCheck size={16} /> Book</Link>}</div></article>)}{!practices.length && <div className="dashboard-empty">No practices are publicly available yet.</div>}</div></section>
+  </main>;
 }

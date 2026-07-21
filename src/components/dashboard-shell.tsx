@@ -120,14 +120,19 @@ export function DashboardShell({
   role,
   permissions,
   avatarData,
-  platformRole,
+  practice,
 }: {
   children: React.ReactNode;
   name: string;
   role: string;
   permissions: string[];
   avatarData: string | null;
-  platformRole?: string | null;
+  practice: {
+    name: string;
+    type: string;
+    logoData: string | null;
+    slug: string;
+  };
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -202,15 +207,18 @@ export function DashboardShell({
           <Link
             href="/dashboard"
             className="dashboard-brand"
-            aria-label="Mondesa Health dashboard"
+            aria-label={`${practice.name} dashboard`}
           >
             <span className="dashboard-brand-mark">
-              <HeartPulse size={20} />
+              {practice.logoData ? (
+                <Image src={practice.logoData} alt="" width={28} height={28} unoptimized />
+              ) : (
+                <HeartPulse size={20} />
+              )}
             </span>
             <span className="dashboard-brand-copy">
-              <strong>MONDESA</strong>
-              <strong>HEALTH</strong>
-              <small>POLYCLINIC</small>
+              <strong>{practice.name}</strong>
+              <small>{practice.type.replaceAll("_", " ")}</small>
             </span>
           </Link>
           <button
@@ -230,65 +238,6 @@ export function DashboardShell({
           <span>{collapsed ? "Expand" : "Collapse"}</span>
         </button>
         <nav className="dashboard-nav" aria-label="Dashboard operations">
-          {platformRole === "PLATFORM_OWNER" && (
-            <div className="dashboard-nav-section">
-              <span className="dashboard-nav-label">Platform</span>
-              <Link
-                href="/dashboard/platform/practices"
-                onClick={() => setMobileOpen(false)}
-                className={`dashboard-nav-link${pathname === "/dashboard/platform/practices" ? " is-active" : ""}`}
-              >
-                <Building2 size={18} />
-                <span>Practices</span>
-              </Link>
-              <Link
-                href="/dashboard/platform/subscriptions"
-                onClick={() => setMobileOpen(false)}
-                className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/subscriptions") ? " is-active" : ""}`}
-              >
-                <Banknote size={18} />
-                <span>Plans</span>
-              </Link>
-              <Link href="/dashboard/platform/applications" onClick={() => setMobileOpen(false)} className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/applications") ? " is-active" : ""}`}>
-                <FileText size={18} /><span>Applications</span>
-              </Link>
-              <Link href="/dashboard/platform/categories" onClick={() => setMobileOpen(false)} className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/categories") ? " is-active" : ""}`}>
-                <SlidersHorizontal size={18} /><span>Service categories</span>
-              </Link>
-              <Link
-                href="/dashboard/platform/billing"
-                onClick={() => setMobileOpen(false)}
-                className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/billing") ? " is-active" : ""}`}
-              >
-                <Banknote size={18} />
-                <span>Practice billing</span>
-              </Link>
-              <Link
-                href="/dashboard/platform/analytics"
-                onClick={() => setMobileOpen(false)}
-                className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/analytics") ? " is-active" : ""}`}
-              >
-                <Gauge size={18} />
-                <span>Platform analytics</span>
-              </Link>
-              <Link
-                href="/dashboard/platform/audit"
-                onClick={() => setMobileOpen(false)}
-                className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/audit") ? " is-active" : ""}`}
-              >
-                <Activity size={18} />
-                <span>Platform audit</span>
-              </Link>
-              <Link
-                href="/dashboard/platform/support"
-                onClick={() => setMobileOpen(false)}
-                className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/support") ? " is-active" : ""}`}
-              >
-                <HeartPulse size={18} />
-                <span>Support access</span>
-              </Link>
-            </div>
-          )}
           {sections.map((section) => (
             <div className="dashboard-nav-section" key={section.label}>
               <span className="dashboard-nav-label">{section.label}</span>
@@ -392,7 +341,7 @@ export function DashboardShell({
               Secure · {role.replaceAll("_", " ")}
             </span>
             <Link
-              href="/"
+              href={`/practices/${practice.slug}`}
               target="_blank"
               rel="noopener noreferrer"
               className="dashboard-site-link"

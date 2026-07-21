@@ -5,7 +5,7 @@ import {
   Stat,
   Status,
 } from "@/components/dashboard";
-import { getSession } from "@/lib/auth";
+import { getPracticeSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { money } from "@/lib/utils";
 import { windhoekGreeting } from "@/lib/greeting";
@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Overview() {
   const today = new Date();
-  const session = await getSession();
+  const session = await getPracticeSession();
   if (!session) return null;
   const [
     appointments,

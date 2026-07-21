@@ -1,6 +1,15 @@
 # Mondesa Health
 
-A full-stack public website and medical-practice management workspace for a Namibian general practice.
+A multi-tenant healthcare platform with an owner administration surface and an independent medical-practice workspace for every subscribed practice.
+
+## Account scopes and routes
+
+- `/platform` is reserved for Mondesa platform owners. It manages practice registration, verification, subscriptions, billing, aggregate reporting, audits, templates, and time-limited support access.
+- `/dashboard` is a single-practice workspace. Every practice user session has exactly one `practiceId`; there is no workspace switcher.
+- `/` and `/services` are central platform directories. `/practices/[slug]`, `/practices/[slug]/services`, and `/practices/[slug]/book` expose only the selected active practice's published content and availability.
+- Platform sessions cannot use practice routes or APIs, and practice sessions cannot use platform routes or APIs. A temporary legacy platform-to-practice membership is supported only while transferring the original clinic to its independent owner.
+
+To transfer the original clinic, open its record under **Platform → Practices**, create the owner invitation, and deliver the generated link manually or explicitly choose email delivery. Finalize separation only after the invitee has activated an independent `OWNER` account. Finalization removes the platform owner's clinic membership and invalidates their previous sessions.
 
 ## Local setup
 

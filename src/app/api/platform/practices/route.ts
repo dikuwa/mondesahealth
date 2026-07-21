@@ -6,6 +6,7 @@ import { requirePlatformOwner } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendInvitationEmail as deliverInvitationEmail } from "@/lib/invitation-email";
 import { requestAuditInfo } from "@/lib/tenant";
+import { genericPracticeContent } from "@/lib/generic-practice-content";
 
 const status = z.enum([
   "DRAFT",
@@ -42,12 +43,6 @@ const update = create
   .extend({
     id: z.string(),
     suspensionReason: z.string().trim().max(1000).optional(),
-    logoData: z
-      .string()
-      .max(1_500_000)
-      .regex(/^data:image\/(png|jpeg|webp);base64,/)
-      .nullable()
-      .optional(),
   });
 const slugify = (value: string) =>
   value
@@ -130,6 +125,9 @@ export async function POST(request: Request) {
             whatsapp: input.whatsapp || input.phone || "Pending configuration",
             address: input.address || "Pending configuration",
           },
+        },
+        content: {
+          create: { content: genericPracticeContent(input.name, input.type) },
         },
         availabilityRules: {
           create: [1, 2, 3, 4, 5].map((weekday) => ({

@@ -8,6 +8,7 @@ import {
   validEmergencyPhone,
 } from "@/lib/emergency";
 import { ORIGINAL_PRACTICE_ID } from "@/lib/practice-constants";
+import { practiceWriteDenied } from "@/lib/practice-write-access";
 
 const contactSchema = z.object({
   id: z.string().optional(),
@@ -56,6 +57,8 @@ export async function POST(request: Request) {
       { error: "Only the Owner can manage emergency contacts." },
       { status: 403 },
     );
+  const restricted = await practiceWriteDenied(session.practiceId);
+  if (restricted) return restricted;
   const parsed = contactSchema.safeParse(await request.json());
   if (!parsed.success)
     return NextResponse.json(
@@ -119,6 +122,8 @@ export async function PATCH(request: Request) {
       { error: "Only the Owner can manage emergency contacts." },
       { status: 403 },
     );
+  const restricted = await practiceWriteDenied(session.practiceId);
+  if (restricted) return restricted;
   const parsed = contactSchema
     .required({ id: true })
     .safeParse(await request.json());
@@ -208,6 +213,8 @@ export async function DELETE(request: Request) {
       { error: "Only the Owner can manage emergency contacts." },
       { status: 403 },
     );
+  const restricted = await practiceWriteDenied(session.practiceId);
+  if (restricted) return restricted;
   const parsed = z
     .object({ id: z.string().min(1) })
     .safeParse(await request.json());

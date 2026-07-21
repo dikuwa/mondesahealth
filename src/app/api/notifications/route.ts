@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSession } from "@/lib/auth";
+import { getPracticeSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 
-async function session() { return getSession(); }
+async function session() { return getPracticeSession(); }
 export async function GET() {
   const user = await session();
   if (!user) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });

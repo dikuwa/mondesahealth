@@ -85,7 +85,8 @@ export async function POST(request: Request) {
       summary: "Signed in to dashboard",
     },
   });
+  const destination = user.platformRole === "PLATFORM_OWNER" ? "/platform" : "/dashboard";
   if (formRequest)
-    return NextResponse.redirect(new URL("/dashboard", request.url), 303);
-  return NextResponse.json({ ok: true }, { headers: noStore });
+    return NextResponse.redirect(new URL(destination, request.url), 303);
+  return NextResponse.json({ ok: true, destination }, { headers: noStore });
 }

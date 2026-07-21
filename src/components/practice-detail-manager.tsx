@@ -2,12 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
-
-const MAX_LOGO_BYTES = 1024 * 1024;
-const LOGO_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 type Practice = {
   id: string;
@@ -22,7 +18,6 @@ type Practice = {
   address: string | null;
   town: string | null;
   region: string | null;
-  logoData: string | null;
   description: string | null;
   status: string;
   publicVisible: boolean;
@@ -33,23 +28,7 @@ export function PracticeDetailManager({ practice }: { practice: Practice }) {
   const router = useRouter();
   const [status, setStatus] = useState(practice.status);
   const [publicVisible, setPublicVisible] = useState(practice.publicVisible);
-  const [logoData, setLogoData] = useState(practice.logoData);
   const [saving, setSaving] = useState(false);
-
-  function selectLogo(file?: File) {
-    if (!file) return;
-    if (!LOGO_TYPES.includes(file.type)) {
-      toast.error("Choose a PNG, JPEG or WebP logo.");
-      return;
-    }
-    if (file.size > MAX_LOGO_BYTES) {
-      toast.error("Choose a logo smaller than 1 MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setLogoData(String(reader.result));
-    reader.readAsDataURL(file);
-  }
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -65,7 +44,6 @@ export function PracticeDetailManager({ practice }: { practice: Practice }) {
           id: practice.id,
           status,
           publicVisible,
-          logoData,
         }),
       });
       const data = await response.json();
@@ -84,40 +62,6 @@ export function PracticeDetailManager({ practice }: { practice: Practice }) {
 
   return (
     <form className="card dashboard-card" onSubmit={submit}>
-      <section className="practice-logo-editor">
-        <div className="practice-logo-preview">
-          {logoData ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoData} alt={`${practice.name} logo preview`} />
-          ) : (
-            <span>{practice.name.charAt(0)}</span>
-          )}
-        </div>
-        <div>
-          <h2>Practice logo</h2>
-          <p>PNG, JPEG or WebP. Maximum 1 MB.</p>
-          <div className="table-actions">
-            <label className="btn btn-light">
-              <Camera size={16} /> Choose logo
-              <input
-                className="visually-hidden"
-                type="file"
-                accept={LOGO_TYPES.join(",")}
-                onChange={(event) => selectLogo(event.target.files?.[0])}
-              />
-            </label>
-            {logoData && (
-              <button
-                type="button"
-                className="btn btn-light"
-                onClick={() => setLogoData(null)}
-              >
-                <Trash2 size={16} /> Remove
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
       <div className="form-grid">
         <label className="field">
           <span>Practice name</span>

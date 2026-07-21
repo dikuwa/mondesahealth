@@ -6,11 +6,13 @@ import { requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { PERMISSIONS, ROLES, roleDefaults } from "@/lib/permissions";
 import { passwordSchema } from "@/lib/password";
+import { practiceWriteDenied } from "@/lib/practice-write-access";
 
 const role=z.enum(ROLES),permissions=z.array(z.enum(PERMISSIONS));
 export async function POST(request:Request){
   const session=await requirePermission("MANAGE_USERS");
   if(!session)return NextResponse.json({error:"You do not have permission to create staff accounts."},{status:403});
+  const restricted=await practiceWriteDenied(session.practiceId);if(restricted)return restricted;
   const parsed=z.object({name:z.string().trim().min(2).max(80),email:z.string().email(),password:passwordSchema,role,permissions:permissions.optional()}).safeParse(await request.json());
   if(!parsed.success)return NextResponse.json({error:parsed.error.issues[0]?.message||"Check the staff details."},{status:400});
   if(parsed.data.role==="OWNER"&&session.role!=="OWNER")return NextResponse.json({error:"Only the owner can create another owner."},{status:403});
@@ -33,6 +35,7 @@ export async function POST(request:Request){
 export async function PATCH(request:Request){
   const session=await requirePermission("MANAGE_USERS");
   if(!session)return NextResponse.json({error:"You do not have permission to manage staff accounts."},{status:403});
+  const restricted=await practiceWriteDenied(session.practiceId);if(restricted)return restricted;
   const parsed=z.object({id:z.string(),role:role.optional(),permissions:permissions.optional(),active:z.boolean().optional(),password:passwordSchema.optional()}).safeParse(await request.json());
   if(!parsed.success)return NextResponse.json({error:"Check the staff account changes."},{status:400});
   const target=await db.user.findFirst({where:{id:parsed.data.id,practiceId:session.practiceId}});
@@ -51,6 +54,7 @@ export async function PATCH(request:Request){
 export async function DELETE(request:Request){
   const session=await requirePermission("MANAGE_USERS");
   if(!session||session.role!=="OWNER")return NextResponse.json({error:"Only the owner can permanently delete staff accounts."},{status:403});
+  const restricted=await practiceWriteDenied(session.practiceId);if(restricted)return restricted;
   const parsed=z.object({id:z.string().min(1),confirmation:z.literal("DELETE STAFF USER")}).safeParse(await request.json().catch(()=>null));
   if(!parsed.success)return NextResponse.json({error:"Type DELETE STAFF USER to permanently delete this staff account."},{status:400});
   if(parsed.data.id===session.id)return NextResponse.json({error:"You cannot delete your own signed-in account."},{status:400});

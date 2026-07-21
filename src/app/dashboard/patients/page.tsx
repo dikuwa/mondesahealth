@@ -1,7 +1,7 @@
 import { PageHeading } from "@/components/dashboard";
 import { PatientManager } from "@/components/patient-manager";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import { getPracticeSession } from "@/lib/auth";
 
 export default async function Patients({
   searchParams,
@@ -9,7 +9,7 @@ export default async function Patients({
   searchParams: Promise<{ edit?: string }>;
 }) {
   const query = await searchParams;
-  const authSession = await getSession();
+  const authSession = await getPracticeSession();
   if (!authSession) return null;
   const [patients, funds, session] = await Promise.all([
     db.patient.findMany({

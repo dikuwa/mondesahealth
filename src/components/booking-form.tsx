@@ -32,6 +32,10 @@ type BookingDepartment = {
   practiceId: string;
   practiceName: string;
   name: string;
+  mode: string;
+  aiIntakeEnabled: boolean;
+  aiImageEnabled: boolean;
+  emergencyContacts: PublicEmergencyContact[];
   services: { id: string; name: string; aiIntakeEnabled: boolean | null }[];
   providers: {
     id: string;
@@ -115,8 +119,10 @@ export function BookingForm({
   const selectedProvider =
     selectedDepartment?.providers.find((item) => item.id === form.providerId) ||
     null;
+  const selectedMode = selectedDepartment?.mode || mode;
+  const selectedEmergencyContacts = selectedDepartment?.emergencyContacts || emergencyContacts;
   const intakeAvailable =
-    aiIntakeEnabled &&
+    (selectedDepartment?.aiIntakeEnabled ?? aiIntakeEnabled) &&
     selectedService?.aiIntakeEnabled !== false &&
     selectedProvider?.aiIntakeEnabled !== false;
 
@@ -142,7 +148,7 @@ export function BookingForm({
     update("time", "");
     setSlots([]);
     slotsRequest.current?.abort();
-    if (!date || mode !== "AVAILABLE_TIME") return;
+    if (!date || selectedMode !== "AVAILABLE_TIME") return;
 
     const controller = new AbortController();
     slotsRequest.current = controller;
@@ -194,7 +200,7 @@ export function BookingForm({
     }
     if (step === 2) {
       if (!form.date) return "Choose a preferred appointment date.";
-      if (mode === "AVAILABLE_TIME" && !form.time)
+      if (selectedMode === "AVAILABLE_TIME" && !form.time)
         return "Choose one of the available appointment times.";
       if (form.reason.trim().length < 3)
         return "Tell us briefly why you are visiting.";
@@ -266,7 +272,7 @@ export function BookingForm({
     setLoading(true);
     setError("");
     const toastId = toast.loading(
-      mode === "AVAILABLE_TIME"
+      selectedMode === "AVAILABLE_TIME"
         ? "Reserving your appointment…"
         : "Sending your appointment request…",
     );
@@ -291,7 +297,7 @@ export function BookingForm({
       if (!response.ok)
         throw new Error(data.error || "Booking could not be completed.");
       toast.success(
-        mode === "AVAILABLE_TIME"
+        selectedMode === "AVAILABLE_TIME"
           ? "Appointment booked"
           : "Appointment request sent",
         { id: toastId },
@@ -345,13 +351,13 @@ export function BookingForm({
         </span>
         <div className="eyebrow">Booking received</div>
         <h2 className="display">
-          {mode === "AVAILABLE_TIME"
+          {selectedMode === "AVAILABLE_TIME"
             ? "Your appointment is booked."
             : "Your request is with the practice."}
         </h2>
         <p>
           Thank you, {form.fullName.trim().split(" ")[0]}.{" "}
-          {mode === "AVAILABLE_TIME"
+          {selectedMode === "AVAILABLE_TIME"
             ? "Keep the secure link below if you need to manage your appointment."
             : "Mondesa Health will contact you before the appointment is confirmed."}
         </p>
@@ -362,7 +368,7 @@ export function BookingForm({
           </div>
           <div>
             <span>
-              {mode === "AVAILABLE_TIME" ? "Appointment" : "Preferred date"}
+              {selectedMode === "AVAILABLE_TIME" ? "Appointment" : "Preferred date"}
             </span>
             <b>
               {readableDate(form.date)}
@@ -647,7 +653,7 @@ export function BookingForm({
                 onChange={chooseDate}
               />
             </div>
-            {mode === "AVAILABLE_TIME" ? (
+            {selectedMode === "AVAILABLE_TIME" ? (
               <div className="field">
                 <span className="field-label">Available time *</span>
                 {!form.date ? (
@@ -726,8 +732,8 @@ export function BookingForm({
                 serviceId={form.serviceId}
                 providerId={form.providerId}
                 aiAvailable={intakeAvailable}
-                imagesAvailable={aiImageEnabled}
-                emergencyContacts={emergencyContacts}
+                imagesAvailable={selectedDepartment?.aiImageEnabled ?? aiImageEnabled}
+                emergencyContacts={selectedEmergencyContacts}
                 value={intake}
                 onChange={setIntake}
               />
@@ -751,7 +757,7 @@ export function BookingForm({
               <CalendarCheck2 size={20} aria-hidden="true" />
               <div>
                 <span>
-                  {mode === "AVAILABLE_TIME" ? "Appointment" : "Preferred date"}
+                  {selectedMode === "AVAILABLE_TIME" ? "Appointment" : "Preferred date"}
                 </span>
                 <b>
                   {readableDate(form.date)}
@@ -867,8 +873,8 @@ export function BookingForm({
               <span>
                 I understand online booking is not for emergencies. For urgent
                 help, I will{" "}
-                {emergencyContacts[0]
-                  ? `call ${emergencyContacts[0].label} on ${emergencyContacts[0].phone} or `
+                {selectedEmergencyContacts[0]
+                  ? `call ${selectedEmergencyContacts[0].label} on ${selectedEmergencyContacts[0].phone} or `
                   : "contact my nearest emergency service or "}
                 visit the nearest emergency facility.
               </span>
@@ -901,7 +907,7 @@ export function BookingForm({
               onClick={submit}
             >
               {loading && <Loader2 className="toast-spinner" size={18} />}
-              {mode === "AVAILABLE_TIME" ? "Book appointment" : "Send request"}
+              {selectedMode === "AVAILABLE_TIME" ? "Book appointment" : "Send request"}
             </button>
           )}
         </div>

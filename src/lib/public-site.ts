@@ -70,9 +70,19 @@ export async function getPublicSiteConfig(
   };
 }
 
-export async function getPublicDepartments(): Promise<PublicDepartment[]> {
+export async function getPublicDepartments(practiceId?: string): Promise<PublicDepartment[]> {
   return db.department.findMany({
-    where: { public: true },
+    where: {
+      public: true,
+      ...(practiceId
+        ? {
+            OR: [
+              { services: { some: { practiceId, active: true, public: true } } },
+              { providers: { some: { practiceId, public: true } } },
+            ],
+          }
+        : {}),
+    },
     select: {
       id: true,
       slug: true,
@@ -84,6 +94,7 @@ export async function getPublicDepartments(): Promise<PublicDepartment[]> {
       bookingEnabled: true,
       services: {
         where: {
+          ...(practiceId ? { practiceId } : {}),
           public: true,
           active: true,
           practice: { status: "ACTIVE", publicVisible: true },
@@ -93,6 +104,7 @@ export async function getPublicDepartments(): Promise<PublicDepartment[]> {
       },
       providers: {
         where: {
+          ...(practiceId ? { practiceId } : {}),
           public: true,
           practice: { status: "ACTIVE", publicVisible: true },
         },
@@ -112,9 +124,20 @@ export async function getPublicDepartments(): Promise<PublicDepartment[]> {
   });
 }
 
-export async function getPublicDepartment(slug: string) {
+export async function getPublicDepartment(slug: string, practiceId?: string) {
   return db.department.findFirst({
-    where: { slug, public: true },
+    where: {
+      slug,
+      public: true,
+      ...(practiceId
+        ? {
+            OR: [
+              { services: { some: { practiceId, active: true, public: true } } },
+              { providers: { some: { practiceId, public: true } } },
+            ],
+          }
+        : {}),
+    },
     select: {
       id: true,
       slug: true,
@@ -126,6 +149,7 @@ export async function getPublicDepartment(slug: string) {
       bookingEnabled: true,
       services: {
         where: {
+          ...(practiceId ? { practiceId } : {}),
           public: true,
           active: true,
           practice: { status: "ACTIVE", publicVisible: true },
@@ -135,6 +159,7 @@ export async function getPublicDepartment(slug: string) {
       },
       providers: {
         where: {
+          ...(practiceId ? { practiceId } : {}),
           public: true,
           practice: { status: "ACTIVE", publicVisible: true },
         },
