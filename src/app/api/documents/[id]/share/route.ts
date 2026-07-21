@@ -8,7 +8,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const session = await requirePermission("MANAGE_FINANCE");
   if (!session) return NextResponse.json({ error: "You do not have permission to share invoices." }, { status: 403 });
   const { id } = await params;
-  const invoice = await db.invoice.findUnique({ where: { id }, include: { patient: true } });
+  const invoice = await db.invoice.findFirst({ where: { id, practiceId:session.practiceId }, include: { patient: true } });
   if (!invoice) return NextResponse.json({ error: "Invoice not found." }, { status: 404 });
   const token = randomBytes(24).toString("base64url");
   const expiresAt = addDays(new Date(), 14);

@@ -92,12 +92,14 @@ export function DashboardShell({
   role,
   permissions,
   avatarData,
+  platformRole,
 }: {
   children: React.ReactNode;
   name: string;
   role: string;
   permissions: string[];
   avatarData: string | null;
+  platformRole?: string | null;
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -192,6 +194,7 @@ export function DashboardShell({
           <span>{collapsed ? "Expand" : "Collapse"}</span>
         </button>
         <nav className="dashboard-nav" aria-label="Dashboard operations">
+          {platformRole === "PLATFORM_OWNER" && <div className="dashboard-nav-section"><span className="dashboard-nav-label">Platform</span><Link href="/dashboard/platform/practices" onClick={()=>setMobileOpen(false)} className={`dashboard-nav-link${pathname==="/dashboard/platform/practices"?" is-active":""}`}><Building2 size={18}/><span>Practices</span></Link><Link href="/dashboard/platform/subscriptions" onClick={()=>setMobileOpen(false)} className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/subscriptions")?" is-active":""}`}><Banknote size={18}/><span>Subscriptions</span></Link><Link href="/dashboard/platform/analytics" onClick={()=>setMobileOpen(false)} className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/analytics")?" is-active":""}`}><Gauge size={18}/><span>Platform analytics</span></Link><Link href="/dashboard/platform/audit" onClick={()=>setMobileOpen(false)} className={`dashboard-nav-link${pathname.startsWith("/dashboard/platform/audit")?" is-active":""}`}><Activity size={18}/><span>Platform audit</span></Link></div>}
           {sections.map((section) => (
             <div className="dashboard-nav-section" key={section.label}>
               <span className="dashboard-nav-label">{section.label}</span>

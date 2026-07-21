@@ -1,0 +1,8 @@
+import { readFileSync } from "node:fs";import { join } from "node:path";import { describe,expect,it } from "vitest";
+const source=(path:string)=>readFileSync(join(process.cwd(),path),"utf8");
+describe("tenant isolation contracts",()=>{
+  it("scopes patient and encounter reads to the authenticated practice",()=>{expect(source("src/app/api/patients/route.ts")).toContain("practiceId: session.practiceId");expect(source("src/app/api/encounters/route.ts")).toContain("practiceId: session.practiceId");});
+  it("scopes appointments and protected downloads on the server",()=>{expect(source("src/app/api/appointments/route.ts")).toContain("practiceId: session.practiceId");expect(source("src/app/api/documents/[id]/pdf/route.tsx")).toContain("practiceId:session.practiceId");expect(source("src/app/api/intake-images/[id]/route.ts")).toContain("practiceId: session.practiceId");expect(source("src/app/api/claim-attachments/route.ts")).toContain("practiceId:session.practiceId");});
+  it("requires reasoned amendments instead of overwriting completed encounters",()=>{const route=source("src/app/api/encounters/route.ts");expect(route).toContain("Completed encounters can only be changed through a reasoned amendment");expect(route).toContain("encounterAmendment.create");expect(route).toContain("originalContent");expect(route).toContain("amendmentReason");});
+  it("routes public bookings to an active public practice",()=>{const route=source("src/app/api/bookings/route.ts");expect(route).toContain('status: "ACTIVE", publicVisible: true');expect(route).toContain("practiceId: practice.id");expect(route).toContain("patientMatchWhere(practice.id");});
+});

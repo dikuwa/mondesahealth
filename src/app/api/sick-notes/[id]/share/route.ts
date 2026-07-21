@@ -8,7 +8,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const session = await requireSickNoteManager();
   if (!session) return NextResponse.json({ error: "You do not have permission to share sick notes." }, { status: 403 });
   const { id } = await params;
-  const note = await db.sickNote.findUnique({ where: { id }, include: { patient: { select: { fullName: true, phone: true, whatsapp: true, email: true } } } });
+  const note = await db.sickNote.findFirst({ where: { id, practiceId:session.practiceId }, include: { patient: { select: { fullName: true, phone: true, whatsapp: true, email: true } } } });
   if (!note) return NextResponse.json({ error: "Sick note not found." }, { status: 404 });
   if (note.status !== "ISSUED" || !note.verificationToken) return NextResponse.json({ error: "Only a currently issued sick note can be shared." }, { status: 409 });
   const token = randomBytes(24).toString("base64url");

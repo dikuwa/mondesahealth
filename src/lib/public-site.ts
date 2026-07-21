@@ -74,12 +74,12 @@ export async function getPublicDepartments(): Promise<PublicDepartment[]> {
       status: true,
       bookingEnabled: true,
       services: {
-        where: { public: true },
+        where: { public: true, active: true, practice: { status: "ACTIVE", publicVisible: true } },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
         select: { id: true, name: true, description: true },
       },
       providers: {
-        where: { public: true },
+        where: { public: true, practice: { status: "ACTIVE", publicVisible: true } },
         orderBy: [{ sortOrder: "asc" }, { displayName: "asc" }],
         select: {
           id: true,
@@ -109,12 +109,12 @@ export async function getPublicDepartment(slug: string) {
       status: true,
       bookingEnabled: true,
       services: {
-        where: { public: true },
+        where: { public: true, active: true, practice: { status: "ACTIVE", publicVisible: true } },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
         select: { id: true, name: true, description: true },
       },
       providers: {
-        where: { public: true },
+        where: { public: true, practice: { status: "ACTIVE", publicVisible: true } },
         orderBy: [{ sortOrder: "asc" }, { displayName: "asc" }],
         select: {
           id: true,

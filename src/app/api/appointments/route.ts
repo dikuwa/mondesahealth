@@ -80,22 +80,20 @@ export async function POST(request: Request) {
         { error: "Choose an appointment date and time." },
         { status: 400 },
       );
-    const slots = await availableSlots(input.date);
+    const slots = await availableSlots(input.date, new Date(), session.practiceId, input.providerId, input.serviceId);
     if (!slots.includes(input.time))
       return NextResponse.json(
         { error: "That time is no longer available." },
         { status: 409 },
       );
-    const rule = await db.availabilityRule.findUnique({
-      where: { weekday: new Date(`${input.date}T00:00:00`).getDay() },
-    });
+    const rule = await db.availabilityRule.findUnique({ where: { practiceId_weekday: { practiceId: session.practiceId, weekday: new Date(`${input.date}T00:00:00`).getDay() } } });
     duration = rule?.durationMinutes || 30;
     startAt = new Date(`${input.date}T${input.time}:00`);
   }
   const [department, service, provider] = await Promise.all([
     input.departmentId ? db.department.findFirst({ where: { id: input.departmentId, bookingEnabled: true, status: "ACTIVE" } }) : null,
-    input.serviceId ? db.departmentService.findFirst({ where: { id: input.serviceId, departmentId: input.departmentId } }) : null,
-    input.providerId ? db.provider.findFirst({ where: { id: input.providerId, departmentId: input.departmentId } }) : null,
+    input.serviceId ? db.departmentService.findFirst({ where: { id: input.serviceId, practiceId: session.practiceId, departmentId: input.departmentId, active: true } }) : null,
+    input.providerId ? db.provider.findFirst({ where: { id: input.providerId, practiceId: session.practiceId, departmentId: input.departmentId } }) : null,
   ]);
   if (input.departmentId && !department) return NextResponse.json({ error: "The selected service area is not bookable." }, { status: 400 });
   if (input.serviceId && !service) return NextResponse.json({ error: "The selected service does not belong to that service area." }, { status: 400 });
@@ -104,13 +102,14 @@ export async function POST(request: Request) {
     const result = await db.$transaction(async (tx) => {
       let patient = input.patientId
         ? await tx.patient.findFirst({
-            where: { id: input.patientId, archivedAt: null },
+            where: { id: input.patientId, practiceId: session.practiceId, archivedAt: null },
           })
         : null;
       if (!patient && input.patientMode === "NEW")
         patient = await tx.patient.create({
           data: {
             patientNumber: ref("PAT"),
+            practiceId: session.practiceId,
             fullName: input.fullName!,
             surname: input.fullName!.split(" ").pop() || "",
             initials: input
@@ -119,6 +118,7 @@ export async function POST(request: Request) {
               .join("")
               .slice(0, 4),
             phone: normalizePhone(input.phone!),
+            normalizedPhone: normalizePhone(input.phone!),
             whatsapp: input.whatsapp
               ? normalizePhone(input.whatsapp)
               : normalizePhone(input.phone!),
@@ -130,6 +130,7 @@ export async function POST(request: Request) {
       const appointment = await tx.appointment.create({
         data: {
           reference: ref("APT"),
+          practiceId: session.practiceId,
           patientId: patient.id,
           startAt,
           endAt: addMinutes(startAt, duration),
@@ -152,6 +153,7 @@ export async function POST(request: Request) {
       await tx.activityLog.create({
         data: {
           userId: session.id,
+          practiceId: session.practiceId,
           action: "APPOINTMENT_CREATED",
           entityType: "Appointment",
           entityId: appointment.id,
@@ -211,8 +213,8 @@ export async function PATCH(request: Request) {
         { status: 403 },
       );
     const input = parsedStaff.data;
-    const appointment = await db.appointment.findUnique({
-      where: { id: input.id },
+    const appointment = await db.appointment.findFirst({
+      where: { id: input.id, practiceId: session.practiceId },
       include: { patient: true },
     });
     if (!appointment)
@@ -226,7 +228,7 @@ export async function PATCH(request: Request) {
           { error: "Choose the proposed date and time." },
           { status: 400 },
         );
-      const slots = await availableSlots(input.date);
+      const slots = await availableSlots(input.date, new Date(), session.practiceId, appointment.providerId || undefined, appointment.serviceId || undefined);
       if (!slots.includes(input.time))
         return NextResponse.json(
           { error: "That proposed time is no longer available." },

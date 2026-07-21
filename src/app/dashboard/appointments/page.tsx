@@ -56,9 +56,12 @@ export default async function Appointments({
       ...(to ? { lte: new Date(`${to}T23:59:59`) } : {}),
     };
   const session = await getSession();
+  if (!session) return null;
+  where.practiceId = session.practiceId;
   const canViewIntake = session?.role === "OWNER" || session?.permissions.includes("VIEW_CLINICAL_INTAKE");
   const canUseClinicalAi = session?.role === "OWNER" || session?.permissions.includes("USE_CLINICAL_AI");
   const canManageSickNotes = Boolean(session && (session.role === "OWNER" || (["ADMIN", "DOCTOR"].includes(session.role) && session.permissions.includes("MANAGE_SICK_NOTES"))));
+  const canManageClinical = session.role === "OWNER" || session.permissions.includes("MANAGE_CLINICAL_RECORDS");
   const [rows, patients, reminders, bookingDepartments] = await Promise.all([
     db.appointment.findMany({
       where,
@@ -84,14 +87,14 @@ export default async function Appointments({
       take: 250,
     }),
     db.patient.findMany({
-      where: { archivedAt: null },
+      where: { practiceId: session.practiceId, archivedAt: null },
       select: { id: true, fullName: true, patientNumber: true, phone: true },
       orderBy: { fullName: "asc" },
     }),
     getDueReminders(),
-    db.department.findMany({ where: { status: "ACTIVE", bookingEnabled: true }, select: { id: true, name: true, services: { where: { public: true }, select: { id: true, name: true }, orderBy: { sortOrder: "asc" } }, providers: { where: { public: true }, select: { id: true, displayName: true }, orderBy: { sortOrder: "asc" } } }, orderBy: { sortOrder: "asc" } }),
+    db.department.findMany({ where: { status: "ACTIVE", bookingEnabled: true }, select: { id: true, name: true, services: { where: { practiceId: session.practiceId, active: true, public: true }, select: { id: true, name: true }, orderBy: { sortOrder: "asc" } }, providers: { where: { practiceId: session.practiceId, public: true }, select: { id: true, displayName: true }, orderBy: { sortOrder: "asc" } } }, orderBy: { sortOrder: "asc" } }),
   ]);
-  const intakeRows = canViewIntake && rows.length ? await db.patientIntake.findMany({ where: { appointmentId: { in: rows.map((row) => row.id) } }, include: { messages: { orderBy: { createdAt: "asc" } }, images: { select: { id: true, filename: true } } } }) : [];
+  const intakeRows = canViewIntake && rows.length ? await db.patientIntake.findMany({ where: { practiceId: session.practiceId, appointmentId: { in: rows.map((row) => row.id) } }, include: { messages: { orderBy: { createdAt: "asc" } }, images: { select: { id: true, filename: true } } } }) : [];
   const intakeByAppointment = new Map(intakeRows.map((intake) => [intake.appointmentId, intake]));
   const parseArray = (value: string) => { try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; } catch { return []; } };
   const parseObject = (value: string) => { try { const parsed = JSON.parse(value); return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {}; } catch { return {}; } };
@@ -136,7 +139,7 @@ export default async function Appointments({
         action={<ManualAppointment patients={patients} departments={bookingDepartments} />}
       />
       <ReminderQueue reminders={reminders.map(item=>({...item,appointmentStartAt:item.appointmentStartAt.toISOString()}))} />
-      <AppointmentsManager rows={serialised} canUseClinicalAi={Boolean(canUseClinicalAi)} canManageSickNotes={canManageSickNotes} />
+      <AppointmentsManager rows={serialised} canUseClinicalAi={Boolean(canUseClinicalAi)} canManageSickNotes={canManageSickNotes} canManageClinical={canManageClinical} />
     </>
   );
 }

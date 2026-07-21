@@ -8,17 +8,18 @@ export const metadata: Metadata = { title: "Book an appointment" };
 export const dynamic = "force-dynamic";
 
 export default async function BookPage() {
-  const [funds, settings, emergencyRows, departments] = await Promise.all([
+  const [funds, settings, emergencyRows, departmentPractices] = await Promise.all([
     db.medicalAid.findMany({
       where: { active: true, public: true },
       orderBy: { sortOrder: "asc" },
     }),
     db.practiceSetting.findUnique({ where: { id: "practice" } }),
     db.emergencyContact.findMany({ where: { active: true }, orderBy: [{ primary: "desc" }, { sortOrder: "asc" }] }),
-    db.department.findMany({ where: { public: true, bookingEnabled: true, status: "ACTIVE" }, select: { id: true, name: true, services: { where: { public: true }, select: { id: true, name: true, aiIntakeEnabled: true }, orderBy: { sortOrder: "asc" } }, providers: { where: { public: true }, select: { id: true, displayName: true, aiIntakeEnabled: true }, orderBy: { sortOrder: "asc" } } }, orderBy: { sortOrder: "asc" } }),
+    db.practice.findMany({ where:{status:"ACTIVE",publicVisible:true},select:{id:true,name:true,services:{where:{active:true,public:true},select:{id:true,name:true,aiIntakeEnabled:true,department:{select:{id:true,name:true,public:true,bookingEnabled:true,status:true}}},orderBy:{sortOrder:"asc"}},providers:{where:{public:true},select:{id:true,displayName:true,aiIntakeEnabled:true,departmentId:true},orderBy:{sortOrder:"asc"}}},orderBy:{name:"asc"} }),
   ]);
   const bookingMode = settings?.bookingMode || "AVAILABLE_TIME";
   const emergencyContacts = orderEmergencyContacts(emergencyRows);
+  const departments=departmentPractices.flatMap(practice=>{const ids=[...new Set(practice.services.filter(x=>x.department.public&&x.department.bookingEnabled&&x.department.status==="ACTIVE").map(x=>x.department.id))];return ids.map(id=>{const serviceRows=practice.services.filter(x=>x.department.id===id);return {key:`${practice.id}:${id}`,id,practiceId:practice.id,practiceName:practice.name,name:serviceRows[0].department.name,services:serviceRows.map(({id:serviceId,name,aiIntakeEnabled})=>({id:serviceId,name,aiIntakeEnabled})),providers:practice.providers.filter(x=>x.departmentId===id).map(({id:providerId,displayName,aiIntakeEnabled})=>({id:providerId,displayName,aiIntakeEnabled}))}})});
 
   return (
     <main className="booking-page">

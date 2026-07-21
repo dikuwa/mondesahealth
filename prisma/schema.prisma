@@ -39,50 +39,147 @@ model User {
   sickNotesAsDoctor    SickNote[]                 @relation("SickNoteDoctor")
   sickNotesCreated     SickNote[]                 @relation("SickNoteCreator")
   sickNotesUpdated     SickNote[]                 @relation("SickNoteUpdater")
+  practiceId           String                     @default("mondesa-health")
+  platformRole         String?
+  practice             Practice                   @relation(fields: [practiceId], references: [id])
+  practiceMemberships  PracticeUser[]
+  encounters           ClinicalEncounter[]        @relation("EncounterClinician")
+  encountersCreated    ClinicalEncounter[]        @relation("EncounterCreator")
+  encountersUpdated    ClinicalEncounter[]        @relation("EncounterUpdater")
+  encounterAmendments  EncounterAmendment[]
+
+  @@index([practiceId, active])
+}
+
+model Practice {
+  id                 String                 @id @default(cuid())
+  slug               String                 @unique
+  name               String
+  type               String                 @default("GENERAL_PRACTICE")
+  ownerName          String?
+  registrationNumber String?
+  licenceInformation String?
+  email              String?
+  phone              String?
+  whatsapp           String?
+  address            String?
+  town               String?
+  region             String?
+  logoData           String?
+  description        String?
+  status             String                 @default("DRAFT")
+  subscriptionStatus String                 @default("ACTIVE")
+  publicVisible      Boolean                @default(false)
+  activatedAt        DateTime?
+  suspensionReason   String?
+  timezone           String                 @default("Africa/Windhoek")
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  users              User[]
+  memberships        PracticeUser[]
+  patients           Patient[]
+  appointments       Appointment[]
+  encounters         ClinicalEncounter[]
+  services           DepartmentService[]
+  providers          Provider[]
+  availabilityRules  AvailabilityRule[]
+  blockedTimes       BlockedTime[]
+  setting            PracticeSetting?
+  subscriptions      PracticeSubscription[]
+  invitations        UserInvitation[]
+
+  @@index([status, publicVisible])
+  @@index([type, status])
+}
+
+model PracticeUser {
+  id          String   @id @default(cuid())
+  practiceId  String
+  userId      String
+  role        String
+  permissions String   @default("[]")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  practice    Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([practiceId, userId])
+  @@index([userId, active])
 }
 
 model Notification {
-  id        String    @id @default(cuid())
-  userId    String
-  type      String
-  title     String
-  message   String
-  href      String
-  readAt    DateTime?
-  createdAt DateTime  @default(now())
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String    @id @default(cuid())
+  userId     String
+  type       String
+  title      String
+  message    String
+  href       String
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+  practiceId String    @default("mondesa-health")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, readAt, createdAt])
 }
 
 model Patient {
-  id                String              @id @default(cuid())
-  patientNumber     String              @unique
-  fullName          String
-  surname           String              @default("")
-  initials          String              @default("")
-  dateOfBirth       DateTime?
-  gender            String?
-  identityNumber    String?
-  nationality       String?
-  phone             String
-  whatsapp          String?
-  email             String?
-  address           String?
-  preferredMethod   String              @default("WHATSAPP")
-  emergencyName     String?
-  emergencyPhone    String?
-  emergencyRelation String?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  archivedAt        DateTime?
-  appointments      Appointment[]
-  memberships       PatientMedicalAid[]
-  claims            Claim[]
-  invoices          Invoice[]
-  payments          Payment[]
-  consents          MedicalAidConsent[]
-  sickNotes         SickNote[]
+  id                    String              @id @default(cuid())
+  patientNumber         String              @unique
+  fullName              String
+  surname               String              @default("")
+  initials              String              @default("")
+  dateOfBirth           DateTime?
+  gender                String?
+  identityNumber        String?
+  nationality           String?
+  phone                 String
+  whatsapp              String?
+  email                 String?
+  address               String?
+  preferredMethod       String              @default("WHATSAPP")
+  emergencyName         String?
+  emergencyPhone        String?
+  emergencyRelation     String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  archivedAt            DateTime?
+  practiceId            String              @default("mondesa-health")
+  firstName             String?
+  middleName            String?
+  lastName              String?
+  sex                   String?
+  identificationType    String?
+  passportNumber        String?
+  normalizedPhone       String?
+  town                  String?
+  region                String?
+  knownAllergies        String?
+  chronicConditions     String?
+  currentMedication     String?
+  previousProcedures    String?
+  medicalAlerts         String?
+  medicalHistorySummary String?
+  status                String              @default("ACTIVE")
+  createdById           String?
+  updatedById           String?
+  practice              Practice            @relation(fields: [practiceId], references: [id])
+  appointments          Appointment[]
+  memberships           PatientMedicalAid[]
+  claims                Claim[]
+  invoices              Invoice[]
+  payments              Payment[]
+  consents              MedicalAidConsent[]
+  sickNotes             SickNote[]
+  encounters            ClinicalEncounter[]
+  allergies             PatientAllergy[]
+  conditions            PatientCondition[]
+  medications           PatientMedication[]
+
+  @@unique([practiceId, patientNumber])
+  @@index([practiceId, archivedAt, fullName])
+  @@index([practiceId, normalizedPhone])
+  @@index([practiceId, identityNumber])
 }
 
 model MedicalAid {
@@ -138,6 +235,7 @@ model PatientMedicalAid {
   attachments            ClaimAttachment[]
   createdAt              DateTime            @default(now())
   updatedAt              DateTime            @default(now()) @updatedAt
+  practiceId             String              @default("mondesa-health")
 
   @@index([patientId, current])
 }
@@ -178,67 +276,83 @@ model Appointment {
   sickNotes        SickNote[]
   createdAt        DateTime                   @default(now())
   updatedAt        DateTime                   @updatedAt
+  practiceId       String                     @default("mondesa-health")
+  practice         Practice                   @relation(fields: [practiceId], references: [id])
+  encounters       ClinicalEncounter[]
 
   @@unique([startAt])
   @@index([status, startAt])
+  @@index([practiceId, startAt])
+  @@index([practiceId, status, startAt])
 }
 
 model AvailabilityRule {
-  id              String  @id @default(cuid())
-  weekday         Int     @unique
-  active          Boolean @default(true)
+  id              String   @id @default(cuid())
+  weekday         Int
+  practiceId      String   @default("mondesa-health")
+  active          Boolean  @default(true)
   openTime        String
   closeTime       String
   lunchStart      String?
   lunchEnd        String?
-  durationMinutes Int     @default(30)
-  bufferMinutes   Int     @default(0)
-  maximumPerDay   Int     @default(16)
+  durationMinutes Int      @default(30)
+  bufferMinutes   Int      @default(0)
+  maximumPerDay   Int      @default(16)
+  practice        Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@unique([practiceId, weekday])
 }
 
 model BlockedTime {
-  id      String   @id @default(cuid())
-  startAt DateTime
-  endAt   DateTime
-  reason  String?
+  id         String   @id @default(cuid())
+  startAt    DateTime
+  endAt      DateTime
+  reason     String?
+  practiceId String   @default("mondesa-health")
+  providerId String?
+  practice   Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, startAt, endAt])
 }
 
 model PracticeSetting {
-  id                 String  @id @default("practice")
-  practiceName       String  @default("Mondesa Health")
-  doctorName         String  @default("Dr Helena Ndeitunga")
-  practiceNumber     String  @default("Pending configuration")
-  registrationNumber String  @default("Pending configuration")
-  phone              String  @default("+264 81 000 0000")
-  whatsapp           String  @default("+264 81 000 0000")
-  email              String  @default("hello@mondesahealth.na")
-  address            String  @default("Mondesa, Swakopmund, Namibia")
-  bookingMode        String  @default("AVAILABLE_TIME")
-  minNoticeHours     Int     @default(2)
-  maxAdvanceDays     Int     @default(60)
-  cancellationPolicy String  @default("Please give at least 4 hours' notice when possible.")
-  currency           String  @default("NAD")
-  signatureName      String  @default("Dr Helena Ndeitunga")
-  signatureTitle     String  @default("Medical Practitioner")
-  vatEnabled         Boolean @default(false)
-  tagline            String  @default("Your Health. Your Choice. Your Community.")
-  publicDescription  String  @default("Mondesa Health Polyclinic brings multiple healthcare disciplines together in one trusted community healthcare destination.")
-  locationNote       String  @default("")
-  mapsUrl            String  @default("")
+  id                 String   @id @default("practice")
+  practiceName       String   @default("Mondesa Health")
+  doctorName         String   @default("Dr Helena Ndeitunga")
+  practiceNumber     String   @default("Pending configuration")
+  registrationNumber String   @default("Pending configuration")
+  phone              String   @default("+264 81 000 0000")
+  whatsapp           String   @default("+264 81 000 0000")
+  email              String   @default("hello@mondesahealth.na")
+  address            String   @default("Mondesa, Swakopmund, Namibia")
+  bookingMode        String   @default("AVAILABLE_TIME")
+  minNoticeHours     Int      @default(2)
+  maxAdvanceDays     Int      @default(60)
+  cancellationPolicy String   @default("Please give at least 4 hours' notice when possible.")
+  currency           String   @default("NAD")
+  signatureName      String   @default("Dr Helena Ndeitunga")
+  signatureTitle     String   @default("Medical Practitioner")
+  vatEnabled         Boolean  @default(false)
+  tagline            String   @default("Your Health. Your Choice. Your Community.")
+  publicDescription  String   @default("Mondesa Health Polyclinic brings multiple healthcare disciplines together in one trusted community healthcare destination.")
+  locationNote       String   @default("")
+  mapsUrl            String   @default("")
   mapLatitude        Float?
   mapLongitude       Float?
   publicHours        String?
-  showEmail          Boolean @default(false)
-  showWhatsapp       Boolean @default(false)
-  claimContactName   String  @default("")
-  claimPhone         String  @default("")
-  claimEmail         String  @default("")
-  claimPostalAddress String  @default("")
-  consentWording     String  @default("I understand that diagnosis information may be represented using ICD-10 codes and disclosed to the selected medical-aid fund or its administrator for the purpose of processing and assessing my medical-aid claim.")
-  reminderEnabled    Boolean @default(true)
-  reminderLeadHours  Int     @default(24)
-  aiIntakeEnabled    Boolean @default(false)
-  aiImageEnabled     Boolean @default(false)
+  showEmail          Boolean  @default(false)
+  showWhatsapp       Boolean  @default(false)
+  claimContactName   String   @default("")
+  claimPhone         String   @default("")
+  claimEmail         String   @default("")
+  claimPostalAddress String   @default("")
+  consentWording     String   @default("I understand that diagnosis information may be represented using ICD-10 codes and disclosed to the selected medical-aid fund or its administrator for the purpose of processing and assessing my medical-aid claim.")
+  reminderEnabled    Boolean  @default(true)
+  reminderLeadHours  Int      @default(24)
+  aiIntakeEnabled    Boolean  @default(false)
+  aiImageEnabled     Boolean  @default(false)
+  practiceId         String   @unique @default("mondesa-health")
+  practice           Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
 }
 
 model EmergencyContact {
@@ -292,17 +406,22 @@ model DepartmentService {
   public          Boolean       @default(true)
   sortOrder       Int           @default(0)
   aiIntakeEnabled Boolean?
+  practiceId      String        @default("mondesa-health")
+  durationMinutes Int           @default(30)
+  active          Boolean       @default(true)
+  practice        Practice      @relation(fields: [practiceId], references: [id])
   department      Department    @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   appointments    Appointment[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  @@unique([departmentId, name])
+  @@unique([practiceId, departmentId, name])
   @@index([departmentId, public, sortOrder])
+  @@index([practiceId, active, public])
 }
 
 model Provider {
-  id              String        @id @default(cuid())
+  id              String                 @id @default(cuid())
   departmentId    String
   displayName     String
   practiceName    String?
@@ -310,15 +429,20 @@ model Provider {
   phone           String?
   email           String?
   operatingHours  String?
-  public          Boolean       @default(false)
-  sortOrder       Int           @default(0)
+  public          Boolean                @default(false)
+  sortOrder       Int                    @default(0)
   aiIntakeEnabled Boolean?
-  department      Department    @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  practiceId      String                 @default("mondesa-health")
+  userId          String?
+  practice        Practice               @relation(fields: [practiceId], references: [id])
+  department      Department             @relation(fields: [departmentId], references: [id], onDelete: Cascade)
   appointments    Appointment[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  availability    ProviderAvailability[]
 
   @@index([departmentId, public, sortOrder])
+  @@index([practiceId, public])
 }
 
 model Claim {
@@ -373,10 +497,12 @@ model Claim {
   attachments              ClaimAttachment[]
   createdAt                DateTime           @default(now())
   updatedAt                DateTime           @updatedAt
+  practiceId               String             @default("mondesa-health")
 
   @@index([status, updatedAt])
   @@index([patientId, serviceDateFrom])
   @@index([medicalAidFundId, status])
+  @@index([practiceId, status, updatedAt])
 }
 
 model ClaimLine {
@@ -435,8 +561,10 @@ model ClaimBatch {
   attachments         ClaimAttachment[]
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @default(now()) @updatedAt
+  practiceId          String            @default("mondesa-health")
 
   @@index([medicalAidFundId, status])
+  @@index([practiceId, status])
 }
 
 model ClaimBatchItem {
@@ -584,9 +712,11 @@ model ClaimAttachment {
   patientMedicalAid   PatientMedicalAid? @relation(fields: [patientMedicalAidId], references: [id], onDelete: Cascade)
   uploadedBy          User               @relation(fields: [uploadedByUserId], references: [id])
   createdAt           DateTime           @default(now())
+  practiceId          String             @default("mondesa-health")
 
   @@index([claimId, createdAt])
   @@index([batchId, createdAt])
+  @@index([practiceId, createdAt])
 }
 
 model Invoice {
@@ -615,6 +745,9 @@ model Invoice {
   documents                GeneratedDocument[]
   voidedBy                 User?               @relation("InvoiceVoider", fields: [voidedByUserId], references: [id])
   createdAt                DateTime            @default(now())
+  practiceId               String              @default("mondesa-health")
+
+  @@index([practiceId, status, issueDate])
 }
 
 model InvoiceLine {
@@ -631,22 +764,25 @@ model InvoiceLine {
 }
 
 model Payment {
-  id        String   @id @default(cuid())
-  reference String   @unique
-  patientId String
-  invoiceId String?
-  claimId   String?
-  userId    String
-  amount    Float
-  method    String
-  payer     String
-  paidAt    DateTime @default(now())
-  notes     String?
-  patient   Patient  @relation(fields: [patientId], references: [id])
-  invoice   Invoice? @relation(fields: [invoiceId], references: [id])
-  claim     Claim?   @relation(fields: [claimId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
-  receipt   Receipt?
+  id         String   @id @default(cuid())
+  reference  String   @unique
+  patientId  String
+  invoiceId  String?
+  claimId    String?
+  userId     String
+  amount     Float
+  method     String
+  payer      String
+  paidAt     DateTime @default(now())
+  notes      String?
+  patient    Patient  @relation(fields: [patientId], references: [id])
+  invoice    Invoice? @relation(fields: [invoiceId], references: [id])
+  claim      Claim?   @relation(fields: [claimId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+  receipt    Receipt?
+  practiceId String   @default("mondesa-health")
+
+  @@index([practiceId, paidAt])
 }
 
 model Receipt {
@@ -672,6 +808,7 @@ model GeneratedDocument {
   receipt     Receipt?  @relation(fields: [receiptId], references: [id])
   sickNote    SickNote? @relation(fields: [sickNoteId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
+  practiceId  String    @default("mondesa-health")
 
   @@index([sickNoteId, type, status])
 }
@@ -722,20 +859,23 @@ model AppointmentReminder {
 }
 
 model ActivityLog {
-  id         String   @id @default(cuid())
-  userId     String?
-  action     String
-  entityType String
-  entityId   String
-  summary    String
-  beforeJson String?
-  afterJson  String?
-  user       User?    @relation(fields: [userId], references: [id])
-  createdAt  DateTime @default(now())
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String
+  entityType  String
+  entityId    String
+  summary     String
+  beforeJson  String?
+  afterJson   String?
+  user        User?    @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  practiceId  String   @default("mondesa-health")
+  requestInfo String?
 
   @@index([createdAt])
   @@index([action, createdAt])
   @@index([userId, createdAt])
+  @@index([practiceId, createdAt])
 }
 
 model SickNote {
@@ -772,11 +912,13 @@ model SickNote {
   generatedDocuments  GeneratedDocument[]
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
+  practiceId          String              @default("mondesa-health")
 
   @@index([status, createdAt])
   @@index([patientId, consultationDate])
   @@index([appointmentId])
   @@index([doctorUserId, issuedAt])
+  @@index([practiceId, status, createdAt])
 }
 
 model PatientIntake {
@@ -823,8 +965,10 @@ model PatientIntake {
   clinicalDrafts              ClinicalAiDraft[]
   createdAt                   DateTime               @default(now())
   updatedAt                   DateTime               @updatedAt
+  practiceId                  String                 @default("mondesa-health")
 
   @@index([reviewStatus, createdAt])
+  @@index([practiceId, createdAt])
 }
 
 model PatientIntakeMessage {
@@ -868,6 +1012,238 @@ model ClinicalAiDraft {
 
   @@index([intakeId, createdAt])
   @@index([userId, createdAt])
+}
+
+model PatientAllergy {
+  id          String   @id @default(cuid())
+  practiceId  String
+  patientId   String
+  substance   String
+  reaction    String?
+  severity    String?
+  status      String   @default("ACTIVE")
+  source      String   @default("CLINICIAN")
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, patientId, status])
+}
+
+model PatientCondition {
+  id          String    @id @default(cuid())
+  practiceId  String
+  patientId   String
+  name        String
+  icd10Code   String?
+  status      String    @default("ACTIVE")
+  onsetDate   DateTime?
+  resolvedAt  DateTime?
+  source      String    @default("CLINICIAN")
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  patient     Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, patientId, status])
+}
+
+model PatientMedication {
+  id           String    @id @default(cuid())
+  practiceId   String
+  patientId    String
+  name         String
+  dose         String?
+  frequency    String?
+  instructions String?
+  status       String    @default("ACTIVE")
+  startedAt    DateTime?
+  stoppedAt    DateTime?
+  source       String    @default("CLINICIAN")
+  createdById  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  patient      Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, patientId, status])
+}
+
+model ClinicalEncounter {
+  id                     String                @id @default(cuid())
+  practiceId             String
+  patientId              String
+  appointmentId          String?
+  clinicianId            String
+  serviceId              String?
+  startedAt              DateTime              @default(now())
+  presentingComplaint    String?
+  patientReportedHistory String?
+  aiBookingSummary       String?
+  historyPresentIllness  String?
+  relevantHistory        String?
+  allergiesReviewed      Boolean               @default(false)
+  medicationReviewed     Boolean               @default(false)
+  vitalSigns             Json?
+  examinationFindings    String?
+  clinicalObservations   String?
+  assessment             String?
+  provisionalDiagnosis   String?
+  confirmedDiagnosis     String?
+  treatmentProvided      String?
+  medicationPrescribed   String?
+  proceduresPerformed    String?
+  testsRequested         String?
+  laboratoryRequests     String?
+  imagingRequests        String?
+  referrals              String?
+  followUpInstructions   String?
+  followUpDate           DateTime?
+  patientSummary         String?
+  privateNotes           String?
+  status                 String                @default("DRAFT")
+  completedAt            DateTime?
+  createdById            String
+  updatedById            String
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  practice               Practice              @relation(fields: [practiceId], references: [id])
+  patient                Patient               @relation(fields: [patientId], references: [id])
+  appointment            Appointment?          @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  clinician              User                  @relation("EncounterClinician", fields: [clinicianId], references: [id])
+  createdBy              User                  @relation("EncounterCreator", fields: [createdById], references: [id])
+  updatedBy              User                  @relation("EncounterUpdater", fields: [updatedById], references: [id])
+  diagnoses              EncounterDiagnosis[]
+  amendments             EncounterAmendment[]
+  attachments            EncounterAttachment[]
+
+  @@unique([practiceId, appointmentId])
+  @@index([practiceId, patientId, startedAt])
+  @@index([practiceId, clinicianId, status])
+}
+
+model EncounterDiagnosis {
+  id                   String            @id @default(cuid())
+  encounterId          String
+  code                 String?
+  description          String
+  clinicianDescription String?
+  diagnosisType        String            @default("PROVISIONAL")
+  isPrimary            Boolean           @default(false)
+  summaryDisposition   String            @default("DO_NOT_ADD")
+  createdAt            DateTime          @default(now())
+  encounter            ClinicalEncounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+
+  @@index([encounterId, isPrimary])
+}
+
+model EncounterAmendment {
+  id              String            @id @default(cuid())
+  encounterId     String
+  amendedById     String
+  reason          String
+  originalContent Json
+  updatedContent  Json
+  createdAt       DateTime          @default(now())
+  encounter       ClinicalEncounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  amendedBy       User              @relation(fields: [amendedById], references: [id])
+
+  @@index([encounterId, createdAt])
+}
+
+model EncounterAttachment {
+  id           String            @id @default(cuid())
+  encounterId  String
+  filename     String
+  mimeType     String
+  fileSize     Int
+  data         Bytes
+  uploadedById String
+  createdAt    DateTime          @default(now())
+  encounter    ClinicalEncounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+
+  @@index([encounterId, createdAt])
+}
+
+model ProviderAvailability {
+  id         String   @id @default(cuid())
+  practiceId String
+  providerId String
+  weekday    Int
+  active     Boolean  @default(true)
+  openTime   String
+  closeTime  String
+  breakStart String?
+  breakEnd   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, weekday])
+  @@index([practiceId, weekday])
+}
+
+model SubscriptionPlan {
+  id               String                 @id @default(cuid())
+  name             String                 @unique
+  description      String?
+  billingFrequency String                 @default("MONTHLY")
+  fee              Float                  @default(0)
+  gracePeriodDays  Int                    @default(7)
+  features         Json?
+  active           Boolean                @default(true)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  subscriptions    PracticeSubscription[]
+}
+
+model PracticeSubscription {
+  id            String                @id @default(cuid())
+  practiceId    String
+  planId        String
+  status        String                @default("ACTIVE")
+  startDate     DateTime              @default(now())
+  renewalDate   DateTime?
+  graceUntil    DateTime?
+  cancelledAt   DateTime?
+  internalNotes String?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  practice      Practice              @relation(fields: [practiceId], references: [id])
+  plan          SubscriptionPlan      @relation(fields: [planId], references: [id])
+  payments      SubscriptionPayment[]
+
+  @@index([practiceId, status])
+}
+
+model SubscriptionPayment {
+  id             String               @id @default(cuid())
+  subscriptionId String
+  amount         Float
+  paidAt         DateTime             @default(now())
+  method         String?
+  reference      String?
+  notes          String?
+  recordedById   String?
+  subscription   PracticeSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId, paidAt])
+}
+
+model UserInvitation {
+  id          String    @id @default(cuid())
+  practiceId  String
+  email       String
+  name        String
+  role        String    @default("OWNER")
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  invitedById String
+  createdAt   DateTime  @default(now())
+  practice    Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, email, acceptedAt])
 }
 
 model LoginThrottle {

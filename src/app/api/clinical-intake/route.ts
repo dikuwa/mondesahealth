@@ -17,7 +17,7 @@ export async function PATCH(request: Request) {
   if (!session) return NextResponse.json({ error: "You do not have permission to review clinical intake." }, { status: 403 });
   const parsed = patchSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Check the intake update." }, { status: 400 });
-  const intake = await db.patientIntake.findUnique({ where: { id: parsed.data.intakeId } });
+  const intake = await db.patientIntake.findFirst({ where: { id: parsed.data.intakeId, practiceId:session.practiceId } });
   if (!intake) return NextResponse.json({ error: "Patient intake not found." }, { status: 404 });
   if (parsed.data.action === "MARK_REVIEWED") {
     await db.$transaction([
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Choose a valid clinical assistance request." }, { status: 400 });
   if (parsed.data.requestType === "ICD10_SEARCH" && (!parsed.data.workingDiagnosis || parsed.data.workingDiagnosis.length < 3))
     return NextResponse.json({ error: "Enter a clinician working or confirmed diagnosis before requesting ICD-10 search terms." }, { status: 400 });
-  const intake = await db.patientIntake.findUnique({ where: { id: parsed.data.intakeId }, include: { appointment: { include: { patient: { select: { dateOfBirth: true, gender: true } } } }, messages: { orderBy: { createdAt: "asc" } } } });
+  const intake = await db.patientIntake.findFirst({ where: { id: parsed.data.intakeId, practiceId:session.practiceId }, include: { appointment: { include: { patient: { select: { dateOfBirth: true, gender: true } } } }, messages: { orderBy: { createdAt: "asc" } } } });
   if (!intake) return NextResponse.json({ error: "Patient intake not found." }, { status: 404 });
   const source = { originalReason: intake.originalReason, approvedSummary: intake.approvedSummary, structuredAnswers: JSON.parse(intake.structuredAnswers || "{}"), redFlags: JSON.parse(intake.redFlags || "[]"), patientAgeDataAvailable: Boolean(intake.appointment.patient.dateOfBirth), gender: intake.appointment.patient.gender, workingDiagnosis: parsed.data.workingDiagnosis || null };
   try {

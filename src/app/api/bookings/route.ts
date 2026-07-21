@@ -10,6 +10,7 @@ import { Prisma } from "@prisma/client";
 import { patientSummarySchema } from "@/lib/ai-provider";
 import { aiIntakeAvailable, detectRedFlags, INTAKE_CONSENT_VERSION, INTAKE_SAFETY_POLICY_VERSION } from "@/lib/intake-safety";
 import { INTAKE_IMAGE_LIMIT, validateIntakeImage } from "@/lib/intake-files";
+import { patientMatchWhere } from "@/lib/patient-matching";
 
 const intakeMessageSchema = z.object({ role: z.enum(["PATIENT", "ASSISTANT"]), content: z.string().trim().min(1).max(1200), skipped: z.boolean().optional() });
 const intakeImageSchema = z.object({ filename: z.string().trim().min(1).max(180), mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]), fileSize: z.number().int().positive().max(4 * 1024 * 1024), data: z.string().min(4).max(6_000_000) });
@@ -66,6 +67,7 @@ const schema = z
   departmentId: z.string().optional(),
   serviceId: z.string().optional(),
   providerId: z.string().optional(),
+  practiceId: z.string().default("mondesa-health"),
   intake: intakeSchema,
   })
   .superRefine((body, context) => {
@@ -105,9 +107,9 @@ const schema = z
 export async function POST(request: Request) {
   try {
     const body = schema.parse(await request.json());
-    const settings = await db.practiceSetting.findUnique({
-      where: { id: "practice" },
-    });
+    const practice = await db.practice.findFirst({ where: { id: body.practiceId, status: "ACTIVE", publicVisible: true } });
+    if (!practice) return NextResponse.json({ error: "The selected practice is not available for public booking." }, { status: 404 });
+    const settings = await db.practiceSetting.findUnique({ where: { practiceId: practice.id } });
     if (!settings)
       return NextResponse.json(
         { error: "Booking is temporarily unavailable." },
@@ -120,8 +122,8 @@ export async function POST(request: Request) {
       );
     const [department, service, provider] = await Promise.all([
       body.departmentId ? db.department.findFirst({ where: { id: body.departmentId, public: true, bookingEnabled: true, status: "ACTIVE" } }) : null,
-      body.serviceId ? db.departmentService.findFirst({ where: { id: body.serviceId, departmentId: body.departmentId, public: true } }) : null,
-      body.providerId ? db.provider.findFirst({ where: { id: body.providerId, departmentId: body.departmentId, public: true } }) : null,
+      body.serviceId ? db.departmentService.findFirst({ where: { id: body.serviceId, practiceId: practice.id, departmentId: body.departmentId, public: true, active: true } }) : null,
+      body.providerId ? db.provider.findFirst({ where: { id: body.providerId, practiceId: practice.id, departmentId: body.departmentId, public: true } }) : null,
     ]);
     if (body.departmentId && !department) return NextResponse.json({ error: "The selected service area is not available for online booking." }, { status: 400 });
     if (body.serviceId && !service) return NextResponse.json({ error: "The selected service is not available." }, { status: 400 });
@@ -152,7 +154,7 @@ export async function POST(request: Request) {
         ? new Date(`${body.date}T${body.time}:00`)
         : null;
     if (startAt) {
-      const slots = await availableSlots(body.date);
+      const slots = await availableSlots(body.date, new Date(), practice.id, provider?.id, service?.id);
       if (!slots.includes(body.time!))
         return NextResponse.json(
           { error: "That time has just been taken. Please choose another." },
@@ -165,16 +167,12 @@ export async function POST(request: Request) {
         const [claimUsage, intakeUsage] = await Promise.all([tx.claimAttachment.aggregate({ _sum: { fileSize: true } }), tx.patientIntakeImage.aggregate({ _sum: { fileSize: true } })]);
         if ((claimUsage._sum.fileSize || 0) + (intakeUsage._sum.fileSize || 0) + preparedImages.reduce((sum, image) => sum + image.fileSize, 0) > attachmentLimitMb * 1024 * 1024) throw new Error("ATTACHMENT_QUOTA");
       }
-      let patient = await tx.patient.findFirst({
-        where: {
-          phone: normalizePhone(body.phone),
-          dateOfBirth: new Date(body.dateOfBirth),
-        },
-      });
+      let patient = await tx.patient.findFirst({ where: patientMatchWhere(practice.id, { phone: body.phone, email: body.email, fullName: body.fullName, dateOfBirth: new Date(body.dateOfBirth) }) });
       if (!patient)
         patient = await tx.patient.create({
           data: {
             patientNumber: ref("PAT"),
+            practiceId: practice.id,
             fullName: body.fullName,
             surname: body.fullName.trim().split(" ").pop() || "",
             initials: body.fullName
@@ -185,6 +183,7 @@ export async function POST(request: Request) {
             dateOfBirth: new Date(body.dateOfBirth),
             gender: body.gender || null,
             phone: normalizePhone(body.phone),
+            normalizedPhone: normalizePhone(body.phone),
             whatsapp: body.sameWhatsapp
               ? normalizePhone(body.phone)
               : normalizePhone(body.whatsapp || body.phone),
@@ -197,12 +196,13 @@ export async function POST(request: Request) {
         (body.medicalAidId || body.customFundName)
       ) {
         await tx.patientMedicalAid.updateMany({
-          where: { patientId: patient.id, current: true },
+          where: { patientId: patient.id, practiceId: practice.id, current: true },
           data: { current: false, expiryDate: new Date() },
         });
         await tx.patientMedicalAid.create({
           data: {
             patientId: patient.id,
+            practiceId: practice.id,
             medicalAidId:
               body.medicalAidId && body.medicalAidId !== "OTHER"
                 ? body.medicalAidId
@@ -218,9 +218,10 @@ export async function POST(request: Request) {
       const appointment = await tx.appointment.create({
         data: {
           reference: ref("APT"),
+          practiceId: practice.id,
           patientId: patient.id,
           startAt,
-          endAt: startAt ? addMinutes(startAt, 30) : null,
+          endAt: startAt ? addMinutes(startAt, service?.durationMinutes || 30) : null,
           preferredDate: new Date(`${body.date}T00:00:00`),
           preferredPeriod: body.period,
           status: startAt ? "CONFIRMED" : "NEW_REQUEST",
@@ -236,6 +237,7 @@ export async function POST(request: Request) {
       if (hasIntake) {
         const fields = body.intake.structured;
         const intake = await tx.patientIntake.create({ data: {
+          practiceId: practice.id,
           appointmentId: appointment.id, originalReason: body.reason, approvedSummary: body.intake.approvedSummary || null,
           symptomOnset: fields.symptomOnset || null, symptomDuration: fields.symptomDuration || null, symptomLocation: fields.symptomLocation || null,
           severity: fields.severity ?? null, symptomPattern: fields.symptomPattern || null, associatedSymptoms: fields.associatedSymptoms || null,
@@ -251,11 +253,11 @@ export async function POST(request: Request) {
           messages: { create: body.intake.messages.map((item) => ({ role: item.role, content: item.content, skipped: item.skipped || false })) },
           images: { create: preparedImages },
         } });
-        if (body.intake.aiConsent) await tx.activityLog.create({ data: { action: "AI_INTAKE_CONSENT_CAPTURED", entityType: "PatientIntake", entityId: intake.id, summary: `AI intake consent recorded for ${appointment.reference}` } });
-        if (body.intake.summaryGeneratedAt) await tx.activityLog.create({ data: { action: "AI_INTAKE_SUMMARY_GENERATED", entityType: "PatientIntake", entityId: intake.id, summary: `AI-organised intake summary generated for ${appointment.reference}` } });
-        if (body.intake.approvedSummary) await tx.activityLog.create({ data: { action: "AI_INTAKE_SUMMARY_APPROVED", entityType: "PatientIntake", entityId: intake.id, summary: `Patient-approved AI intake summary attached to ${appointment.reference}` } });
-        if (deterministicFlags.length || body.intake.redFlags.length) { await tx.activityLog.create({ data: { action: "RED_FLAG_NOTICE_DISPLAYED", entityType: "PatientIntake", entityId: intake.id, summary: `Urgent safety notice displayed for ${appointment.reference}` } }); await tx.activityLog.create({ data: { action: "RED_FLAG_NOTICE_ACKNOWLEDGED", entityType: "PatientIntake", entityId: intake.id, summary: `Urgent safety notice acknowledged for ${appointment.reference}` } }); }
-        if (preparedImages.length) await tx.activityLog.create({ data: { action: "INTAKE_IMAGES_UPLOADED", entityType: "PatientIntake", entityId: intake.id, summary: `${preparedImages.length} private intake image(s) attached to ${appointment.reference}` } });
+        if (body.intake.aiConsent) await tx.activityLog.create({ data: { practiceId: practice.id, action: "AI_INTAKE_CONSENT_CAPTURED", entityType: "PatientIntake", entityId: intake.id, summary: `AI intake consent recorded for ${appointment.reference}` } });
+        if (body.intake.summaryGeneratedAt) await tx.activityLog.create({ data: { practiceId: practice.id, action: "AI_INTAKE_SUMMARY_GENERATED", entityType: "PatientIntake", entityId: intake.id, summary: `AI-organised intake summary generated for ${appointment.reference}` } });
+        if (body.intake.approvedSummary) await tx.activityLog.create({ data: { practiceId: practice.id, action: "AI_INTAKE_SUMMARY_APPROVED", entityType: "PatientIntake", entityId: intake.id, summary: `Patient-approved AI intake summary attached to ${appointment.reference}` } });
+        if (deterministicFlags.length || body.intake.redFlags.length) { await tx.activityLog.create({ data: { practiceId: practice.id, action: "RED_FLAG_NOTICE_DISPLAYED", entityType: "PatientIntake", entityId: intake.id, summary: `Urgent safety notice displayed for ${appointment.reference}` } }); await tx.activityLog.create({ data: { practiceId: practice.id, action: "RED_FLAG_NOTICE_ACKNOWLEDGED", entityType: "PatientIntake", entityId: intake.id, summary: `Urgent safety notice acknowledged for ${appointment.reference}` } }); }
+        if (preparedImages.length) await tx.activityLog.create({ data: { practiceId: practice.id, action: "INTAKE_IMAGES_UPLOADED", entityType: "PatientIntake", entityId: intake.id, summary: `${preparedImages.length} private intake image(s) attached to ${appointment.reference}` } });
       }
       await tx.secureLink.create({
         data: {
@@ -267,6 +269,7 @@ export async function POST(request: Request) {
       });
       await tx.activityLog.create({
         data: {
+          practiceId: practice.id,
           action: "APPOINTMENT_CREATED",
           entityType: "Appointment",
           entityId: appointment.id,

@@ -183,10 +183,11 @@ export async function bootstrapPolyclinic(db: PrismaClient) {
 
     for (const [serviceOrder, name] of entry.services.entries()) {
       await db.departmentService.upsert({
-        where: { departmentId_name: { departmentId: department.id, name } },
+        where: { practiceId_departmentId_name: { practiceId: "mondesa-health", departmentId: department.id, name } },
         update: {},
         create: {
           departmentId: department.id,
+          practiceId: "mondesa-health",
           name,
           public: true,
           sortOrder: serviceOrder,

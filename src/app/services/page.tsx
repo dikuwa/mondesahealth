@@ -9,8 +9,8 @@ export const metadata: Metadata = {
   description: "Explore available and planned healthcare services at Mondesa Health Polyclinic.",
 };
 
-function publicServiceStatus(department: { bookingEnabled: boolean; status: string }) {
-  if (department.bookingEnabled) return { value: "ACTIVE", label: "Available now" };
+function publicServiceStatus(department: { bookingEnabled: boolean; status: string; services?:unknown[] }) {
+  if (department.bookingEnabled && department.services?.length) return { value: "ACTIVE", label: "Available now" };
   if (department.status === "FUTURE") return { value: "FUTURE", label: "Future feature" };
   return { value: "COMING_SOON", label: "Coming soon" };
 }
@@ -29,7 +29,7 @@ export default async function ServicesPage() {
       <section className="section">
         <div className="container services-list">
           {departments.map((department, index) => (
-            <article className={`service-listing${department.bookingEnabled ? " is-active" : ""}`} key={department.id}>
+            <article className={`service-listing${department.bookingEnabled&&department.services.length ? " is-active" : ""}`} key={department.id}>
               <div className="service-listing-number">{String(index + 1).padStart(2, "0")}</div>
               <div className="service-listing-copy">
                 <StatusBadge {...publicServiceStatus(department)} />
@@ -43,7 +43,7 @@ export default async function ServicesPage() {
               </div>
               <div className="service-listing-actions">
                 <Link className="btn btn-light" href={`/services/${department.slug}`}>View service <ArrowRight size={16} /></Link>
-                {department.bookingEnabled && <Link className="btn btn-primary" href="/book"><CalendarCheck size={16} /> Book GP</Link>}
+                {department.bookingEnabled&&department.services.length>0 && <Link className="btn btn-primary" href="/book"><CalendarCheck size={16} /> Book now</Link>}
               </div>
             </article>
           ))}

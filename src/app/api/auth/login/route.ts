@@ -26,7 +26,7 @@ export async function POST(request:Request){
   }
   await clearCredentialThrottle(keys);
   await pruneLoginThrottles();
-  await createSession({id:user.id,sessionVersion:user.sessionVersion,role:user.role,permissions:parsePermissions(user.permissions,user.role)});
+  await createSession({id:user.id,sessionVersion:user.sessionVersion,role:user.role,permissions:parsePermissions(user.permissions,user.role),practiceId:user.practiceId,platformRole:user.platformRole});
   await db.activityLog.create({data:{userId:user.id,action:"USER_LOGIN",entityType:"User",entityId:user.id,summary:"Signed in to dashboard"}});
   if(formRequest)return NextResponse.redirect(new URL("/dashboard",request.url),303);
   return NextResponse.json({ok:true},{headers:noStore});

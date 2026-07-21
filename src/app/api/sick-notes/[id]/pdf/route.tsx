@@ -13,8 +13,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const download = url.searchParams.get("download") === "1";
   const preview = url.searchParams.get("preview") === "1";
   const [note, practice] = await Promise.all([
-    db.sickNote.findUnique({ where: { id }, include: { patient: { select: { fullName: true, patientNumber: true, identityNumber: true } }, doctor: { select: { name: true } } } }),
-    db.practiceSetting.findUnique({ where: { id: "practice" } }),
+    db.sickNote.findFirst({ where: { id, practiceId: session.practiceId }, include: { patient: { select: { fullName: true, patientNumber: true, identityNumber: true } }, doctor: { select: { name: true } } } }),
+    db.practiceSetting.findUnique({ where: { practiceId: session.practiceId } }),
   ]);
   if (!note || !practice) return NextResponse.json({ error: "Sick note not found." }, { status: 404 });
   if (note.status !== "ISSUED" && !preview) return NextResponse.json({ error: note.status === "REVOKED" ? "This sick note has been revoked and cannot be downloaded." : "Only issued sick notes can be downloaded." }, { status: 409 });

@@ -82,7 +82,7 @@ const label = (value: string) =>
     .toLowerCase()
     .replace(/^./, (c) => c.toUpperCase());
 
-export function AppointmentsManager({ rows, canUseClinicalAi, canManageSickNotes = false }: { rows: Row[]; canUseClinicalAi: boolean; canManageSickNotes?: boolean }) {
+export function AppointmentsManager({ rows, canUseClinicalAi, canManageSickNotes = false, canManageClinical = false }: { rows: Row[]; canUseClinicalAi: boolean; canManageSickNotes?: boolean; canManageClinical?: boolean }) {
   const router = useRouter(),
     params = useSearchParams();
   const [query, setQuery] = useState(params.get("q") || ""),
@@ -599,6 +599,7 @@ export function AppointmentsManager({ rows, canUseClinicalAi, canManageSickNotes
             </div>
             {!share && !rescheduling && (
               <div className="appointment-panel-actions appointment-action-wrap">
+                {canManageClinical && <Link className="btn btn-primary" href={`/dashboard/encounters/new?patient=${selected.patient.id}&appointment=${selected.id}`}><Clipboard size={16} /> Start or continue consultation</Link>}
                 {canManageSickNotes && <Link className="btn btn-light" href={`/dashboard/sick-notes/new?patient=${selected.patient.id}&appointment=${selected.id}`}><Clipboard size={16} /> Create sick note from this visit</Link>}
                 {(["NEW_REQUEST", "PENDING_CONFIRMATION"].includes(selected.status) ||
                   (selected.status === "REVIEW_REQUIRED" && !!selected.startAt && parseISO(selected.startAt) > new Date())) && (

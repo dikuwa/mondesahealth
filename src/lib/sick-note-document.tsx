@@ -2,7 +2,7 @@ import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/render
 import type { PracticeSetting, SickNote, User } from "@prisma/client";
 import { DocumentBrand, DocumentSignature } from "@/lib/document-brand";
 
-type Note = SickNote & { patient: { fullName: string; patientNumber: string; identityNumber: string | null }; doctor: Pick<User, "name"> };
+type Note = Omit<SickNote, "practiceId"> & { practiceId?: string; patient: { fullName: string; patientNumber: string; identityNumber: string | null }; doctor: Pick<User, "name"> };
 
 const s = StyleSheet.create({
   page: { padding: 42, fontFamily: "Onest", fontSize: 9.5, color: "#18332d", lineHeight: 1.45 },
@@ -34,7 +34,7 @@ const displayDate = (value: Date) => new Intl.DateTimeFormat("en-NA", { day: "2-
 const label = (value: string) => value.replaceAll("_", " ").toLowerCase().replace(/^./, (letter) => letter.toUpperCase());
 const verificationHost = (value?: string) => value?.replace(/^https?:\/\//, "").split("/")[0] || "";
 
-export function SickNoteDocument({ note, practice, qrDataUrl, verificationUrl }: { note: Note; practice: PracticeSetting; qrDataUrl?: string; verificationUrl?: string }) {
+export function SickNoteDocument({ note, practice, qrDataUrl, verificationUrl }: { note: Note; practice: Omit<PracticeSetting,"practiceId"> & {practiceId?:string}; qrDataUrl?: string; verificationUrl?: string }) {
   return <Document title={`${note.certificateNumber} medical certificate`} author={practice.practiceName}>
     <Page size="A4" style={s.page}>
       <View style={s.header}>

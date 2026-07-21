@@ -7,8 +7,8 @@ import { getPublicDepartment } from "@/lib/public-site";
 
 type PageProps = { params: Promise<{ slug: string }> };
 
-function publicServiceStatus(department: { bookingEnabled: boolean; status: string }) {
-  if (department.bookingEnabled) return { value: "ACTIVE", label: "Available now" };
+function publicServiceStatus(department: { bookingEnabled: boolean; status: string; services?:unknown[] }) {
+  if (department.bookingEnabled&&department.services?.length) return { value: "ACTIVE", label: "Available now" };
   if (department.status === "FUTURE") return { value: "FUTURE", label: "Future feature" };
   return { value: "COMING_SOON", label: "Coming soon" };
 }
@@ -24,7 +24,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   const { slug } = await params;
   const department = await getPublicDepartment(slug);
   if (!department) notFound();
-  const available = department.bookingEnabled;
+  const available = department.bookingEnabled&&department.services.length>0;
   return (
     <main className="service-detail-page">
       <section className="service-detail-hero">

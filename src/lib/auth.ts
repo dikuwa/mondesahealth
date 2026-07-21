@@ -6,8 +6,8 @@ import { parsePermissions, type Permission } from "@/lib/permissions";
 
 const secret = new TextEncoder().encode(getAuthSecret());
 
-export async function createSession(user: { id: string; sessionVersion: number; role: string; permissions: Permission[] }) {
-  const token = await new SignJWT({ id: user.id, version: user.sessionVersion, role:user.role, permissions:user.permissions })
+export async function createSession(user: { id: string; sessionVersion: number; role: string; permissions: Permission[]; practiceId: string; platformRole?: string | null }) {
+  const token = await new SignJWT({ id: user.id, version: user.sessionVersion, role:user.role, permissions:user.permissions, practiceId:user.practiceId, platformRole:user.platformRole })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setIssuedAt()
     .setIssuer(SESSION_ISSUER)
@@ -32,12 +32,14 @@ export async function getSession() {
     if(typeof payload.id!=="string"||typeof payload.version!=="number")return null;
     const user=await db.user.findUnique({where:{id:payload.id}});
     if(!user?.active||user.sessionVersion!==payload.version)return null;
-    return {id:user.id,role:user.role,name:user.name,email:user.email,avatarData:user.avatarData,permissions:parsePermissions(user.permissions,user.role),mustChangePassword:user.mustChangePassword};
+    return {id:user.id,role:user.role,name:user.name,email:user.email,avatarData:user.avatarData,permissions:parsePermissions(user.permissions,user.role),mustChangePassword:user.mustChangePassword,practiceId:user.practiceId,platformRole:user.platformRole};
   }
   catch { return null; }
 }
 
 export async function requirePermission(permission:Permission){const session=await getSession();if(!session)return null;if(session.role==="OWNER"||session.permissions.includes(permission))return session;return null;}
+
+export async function requirePlatformOwner(){const session=await getSession();return session?.platformRole==="PLATFORM_OWNER"?session:null;}
 
 export async function getFinanceSession(){return requirePermission("MANAGE_FINANCE")}
 

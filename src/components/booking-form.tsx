@@ -22,7 +22,7 @@ import { PatientIntakeAssistant, emptyIntake, type IntakeDraft } from "@/compone
 import type { PublicEmergencyContact } from "@/lib/emergency";
 
 type Fund = { id: string; name: string; abbreviation: string | null };
-type BookingDepartment = { id: string; name: string; services: { id: string; name: string; aiIntakeEnabled: boolean | null }[]; providers: { id: string; displayName: string; aiIntakeEnabled: boolean | null }[] };
+type BookingDepartment = { key: string; id: string; practiceId: string; practiceName: string; name: string; services: { id: string; name: string; aiIntakeEnabled: boolean | null }[]; providers: { id: string; displayName: string; aiIntakeEnabled: boolean | null }[] };
 
 const initialForm = {
   fullName: "",
@@ -48,6 +48,7 @@ const initialForm = {
   departmentId: "",
   serviceId: "",
   providerId: "",
+  practiceId: "mondesa-health",
 };
 
 type BookingValues = typeof initialForm;
@@ -64,12 +65,12 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
   const [reference, setReference] = useState("");
   const [manageUrl, setManageUrl] = useState("");
   const [error, setError] = useState("");
-  const [form, setForm] = useState<BookingValues>(() => ({ ...initialForm, departmentId: departments[0]?.id || "" }));
+  const [form, setForm] = useState<BookingValues>(() => ({ ...initialForm, departmentId: departments[0]?.id || "", practiceId: departments[0]?.practiceId || "mondesa-health" }));
   const [intake, setIntake] = useState<IntakeDraft>(emptyIntake);
   const stepHeading = useRef<HTMLHeadingElement>(null);
   const slotsRequest = useRef<AbortController | null>(null);
   const today = format(new Date(), "yyyy-MM-dd");
-  const selectedDepartment = departments.find((item) => item.id === form.departmentId) || departments[0];
+  const selectedDepartment = departments.find((item) => item.id === form.departmentId && item.practiceId === form.practiceId) || departments[0];
   const selectedService = selectedDepartment?.services.find((item) => item.id === form.serviceId) || null;
   const selectedProvider = selectedDepartment?.providers.find((item) => item.id === form.providerId) || null;
   const intakeAvailable = aiIntakeEnabled && selectedService?.aiIntakeEnabled !== false && selectedProvider?.aiIntakeEnabled !== false;
@@ -102,7 +103,8 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
     slotsRequest.current = controller;
     setSlotsLoading(true);
     try {
-      const response = await fetch(`/api/slots?date=${date}`, {
+      const slotParams = new URLSearchParams({date,practiceId:form.practiceId});if(form.providerId)slotParams.set("providerId",form.providerId);if(form.serviceId)slotParams.set("serviceId",form.serviceId);
+      const response = await fetch(`/api/slots?${slotParams}`, {
         signal: controller.signal,
       });
       const data = await response.json();
@@ -236,7 +238,7 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
   }
 
   function restart() {
-    setForm({ ...initialForm, departmentId: departments[0]?.id || "" });
+    setForm({ ...initialForm, departmentId: departments[0]?.id || "", practiceId: departments[0]?.practiceId || "mondesa-health" });
     setSlots([]);
     setReference("");
     setManageUrl("");
@@ -456,7 +458,7 @@ export function BookingForm({ funds, mode, departments, emergencyContacts, aiInt
 
         {step === 2 && (
           <div className="booking-field-stack">
-            {departments.length > 1 && <div className="field"><label htmlFor="booking-department">Service area *</label><NativeSelect id="booking-department" value={selectedDepartment?.id || ""} onChange={(event) => setForm((current) => ({ ...current, departmentId: event.target.value, serviceId: "", providerId: "" }))}>{departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}</NativeSelect></div>}
+            {departments.length > 1 && <div className="field"><label htmlFor="booking-department">Practice and service area *</label><NativeSelect id="booking-department" value={selectedDepartment?.key || ""} onChange={(event) => {const next=departments.find(item=>item.key===event.target.value);if(next)setForm((current) => ({ ...current, departmentId: next.id, practiceId:next.practiceId, serviceId: "", providerId: "",date:"",time:"" }))}}>{departments.map((department) => <option key={department.key} value={department.key}>{department.practiceName} · {department.name}</option>)}</NativeSelect></div>}
             {!!selectedDepartment?.services.length && <div className="field"><label htmlFor="booking-service">Service (optional)</label><NativeSelect id="booking-service" value={form.serviceId} onChange={(event) => update("serviceId", event.target.value)}><option value="">General consultation</option>{selectedDepartment.services.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}</NativeSelect></div>}
             {!!selectedDepartment?.providers.length && <div className="field"><label htmlFor="booking-provider">Preferred clinician or provider (optional)</label><NativeSelect id="booking-provider" value={form.providerId} onChange={(event) => update("providerId", event.target.value)}><option value="">Any available provider</option>{selectedDepartment.providers.map((provider) => <option key={provider.id} value={provider.id}>{provider.displayName}</option>)}</NativeSelect></div>}
             <div className="field">

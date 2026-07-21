@@ -67,9 +67,9 @@ async function main() {
     { weekday: 5, openTime: "08:00", closeTime: "16:00" },
   ]) {
     await db.availabilityRule.upsert({
-      where: { weekday: rule.weekday },
+      where: { practiceId_weekday: { practiceId: "mondesa-health", weekday: rule.weekday } },
       update: {},
-      create: { ...rule, lunchStart: "13:00", lunchEnd: "14:00", durationMinutes: 30 },
+      create: { ...rule, practiceId: "mondesa-health", lunchStart: "13:00", lunchEnd: "14:00", durationMinutes: 30 },
     });
   }
 }
