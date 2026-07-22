@@ -196,7 +196,7 @@ export async function getPlatformLandingPageData() {
     }),
   ]);
   let record: Awaited<ReturnType<typeof getLandingRecord>> = null;
-  let result;
+  let result: Awaited<ReturnType<typeof runOperationalQueries>>;
   try {
     const [landingRecord, ...operational] = await db.$transaction([
       db.platformLandingPage.findUnique({ where: { id: "platform-landing-page" } }),
@@ -211,10 +211,17 @@ export async function getPlatformLandingPageData() {
       }),
     ]);
     record = landingRecord;
-    result = operational;
+    result = operational as Awaited<ReturnType<typeof runOperationalQueries>>;
   } catch (error) {
     if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2021") throw error;
-    result = await runOperationalQueries();
+    try {
+      result = await runOperationalQueries();
+    } catch (operationalError) {
+      if (!(operationalError instanceof Prisma.PrismaClientKnownRequestError) || operationalError.code !== "P2021") {
+        throw operationalError;
+      }
+      result = [0, 0, 0, []];
+    }
   }
   const [activePractices, completedBookings, generatedDocuments, practices] = result;
   return {
