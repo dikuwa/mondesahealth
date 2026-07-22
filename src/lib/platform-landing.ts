@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 
 export const landingIcons = [
@@ -160,7 +161,12 @@ export function parseLandingContent(value: unknown): PlatformLandingContent {
 }
 
 export async function getLandingRecord() {
-  return db.platformLandingPage.findUnique({ where: { id: "platform-landing-page" } });
+  try {
+    return await db.platformLandingPage.findUnique({ where: { id: "platform-landing-page" } });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021") return null;
+    throw error;
+  }
 }
 
 export async function getPublishedLandingContent() {
@@ -178,8 +184,7 @@ export async function getLandingSystemMetrics() {
 }
 
 export async function getPlatformLandingPageData() {
-  const [record, activePractices, completedBookings, generatedDocuments, practices] = await db.$transaction([
-    db.platformLandingPage.findUnique({ where: { id: "platform-landing-page" } }),
+  const operationalQueries = [
     db.practice.count({ where: { status: "ACTIVE", publicVisible: true } }),
     db.appointment.count({ where: { status: "COMPLETED" } }),
     db.sickNote.count(),
@@ -189,7 +194,21 @@ export async function getPlatformLandingPageData() {
       orderBy: { name: "asc" },
       take: 6,
     }),
-  ]);
+  ] as const;
+  let record: Awaited<ReturnType<typeof getLandingRecord>> = null;
+  let result;
+  try {
+    const [landingRecord, ...operational] = await db.$transaction([
+      db.platformLandingPage.findUnique({ where: { id: "platform-landing-page" } }),
+      ...operationalQueries,
+    ]);
+    record = landingRecord;
+    result = operational;
+  } catch (error) {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2021") throw error;
+    result = await db.$transaction(operationalQueries);
+  }
+  const [activePractices, completedBookings, generatedDocuments, practices] = result;
   return {
     content: parseLandingContent(record?.publishedContent || defaultPlatformLandingContent),
     systemMetrics: { ACTIVE_PRACTICES: activePractices, COMPLETED_BOOKINGS: completedBookings, GENERATED_DOCUMENTS: generatedDocuments },
