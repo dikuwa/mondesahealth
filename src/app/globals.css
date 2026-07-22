@@ -8638,3 +8638,40 @@ main p {
     grid-column: 2;
   }
 }
+
+/* Keep the public footer authoritative over the legacy site-footer rules. */
+.platform-public-shell .platform-public-footer {
+  border-top: 0;
+  background: #0f352d;
+  color: #fff;
+}
+.platform-public-shell .platform-public-footer .platform-public-footer-grid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(260px, 1.35fr) minmax(220px, 1fr) auto;
+  align-items: start;
+  gap: 36px 64px;
+  padding-block: 46px 24px;
+}
+.platform-public-shell .platform-public-footer nav {
+  display: grid;
+  align-items: start;
+  gap: 3px;
+}
+
+@media (max-width: 1000px) {
+  .platform-public-shell .platform-public-footer .platform-public-footer-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .platform-public-shell .platform-public-footer .platform-public-footer-grid {
+    grid-template-columns: 1fr;
+    gap: 26px;
+    padding-block: 38px 22px;
+  }
+  .platform-public-shell .platform-public-footer nav {
+    align-items: start;
+  }
+}
