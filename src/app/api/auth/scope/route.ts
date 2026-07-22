@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   if (!user?.active) return NextResponse.json({ error: "Account access is disabled." }, { status: 403 });
 
   if (parsed.data.scope === "PLATFORM") {
-    if (!user.platformMembership?.active && user.platformRole !== "PLATFORM_OWNER") {
+    if (!user.platformMembership?.active) {
       return NextResponse.json({ error: "Platform access is not assigned to this account." }, { status: 403 });
     }
     await createSession({ id: user.id, sessionVersion: user.sessionVersion }, { scope: "PLATFORM" });

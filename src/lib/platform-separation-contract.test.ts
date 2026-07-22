@@ -8,7 +8,10 @@ describe("platform and practice separation contracts", () => {
   it("uses distinct route guards and scope-aware login destinations", () => {
     expect(source("src/app/dashboard/layout.tsx")).toContain("getPracticeSession");
     expect(source("src/app/platform/layout.tsx")).toContain("requirePlatformOwner");
-    expect(source("src/app/api/auth/login/route.ts")).toContain('hasPlatformAccess ? "/platform" : "/dashboard"');
+    const login=source("src/app/api/auth/login/route.ts");
+    expect(login).toContain('portal: z.enum(["PLATFORM", "PRACTICE"])');
+    expect(login).toContain('parsed.data.portal === "PLATFORM"');
+    expect(login).toContain("practiceMemberships.find");
     expect(source("src/app/api/auth/scope/route.ts")).toContain("practiceId_userId");
   });
 
@@ -27,6 +30,8 @@ describe("platform and practice separation contracts", () => {
     expect(transfer).toContain("legacyUser");
     expect(transfer).toContain("SEPARATE PLATFORM AND PRACTICE");
     expect(transfer).toContain("sessionVersion: { increment: 1 }");
+    expect(transfer).toContain('status: "READY"');
+    expect(transfer).toContain('status: "COMPLETED"');
   });
 
   it("uses independent platform memberships and protects the primary owner", () => {
@@ -41,6 +46,14 @@ describe("platform and practice separation contracts", () => {
     const migration = source("prisma/migrations/20260722010000_platform_practice_separation/migration.sql");
     expect(migration).toContain('ALTER TABLE "User"');
     expect(migration).toContain('ALTER COLUMN "practiceId" DROP NOT NULL');
+    expect(migration).not.toMatch(/DROP TABLE|DELETE FROM|TRUNCATE/i);
+  });
+
+  it("adds handover, scoped support and custom-domain records without destructive SQL",()=>{
+    const migration=source("prisma/migrations/20260722210000_guided_handover_support_domains/migration.sql");
+    expect(migration).toContain('CREATE TABLE "PracticeHandover"');
+    expect(migration).toContain('CREATE TABLE "PracticeSupportRequest"');
+    expect(migration).toContain('CREATE TABLE "PracticeDomain"');
     expect(migration).not.toMatch(/DROP TABLE|DELETE FROM|TRUNCATE/i);
   });
 });

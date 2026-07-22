@@ -14,6 +14,7 @@ import {
   type PlatformPermission,
   type PlatformRole,
 } from "@/lib/platform-permissions";
+import { parsePracticeSupportScopes, supportPermissions } from "@/lib/practice-support";
 
 const secret = new TextEncoder().encode(getAuthSecret());
 
@@ -24,6 +25,7 @@ type SessionBase = {
   avatarData: string | null;
   mustChangePassword: boolean;
   hasPlatformAccess: boolean;
+  supportRequestId: string | null;
 };
 
 export type PlatformSession = SessionBase & {
@@ -50,13 +52,15 @@ export type AuthSession = PlatformSession | PracticeSession;
 
 export async function createSession(
   user: { id: string; sessionVersion: number },
-  selection: { scope: "PLATFORM" } | { scope: "PRACTICE"; practiceId: string },
+  selection: { scope: "PLATFORM" } | { scope: "PRACTICE"; practiceId: string; supportRequestId?: string; supportVersion?: number },
 ) {
   const token = await new SignJWT({
     id: user.id,
     version: user.sessionVersion,
     scope: selection.scope,
     practiceId: selection.scope === "PRACTICE" ? selection.practiceId : null,
+    supportRequestId: selection.scope === "PRACTICE" ? selection.supportRequestId || null : null,
+    supportVersion: selection.scope === "PRACTICE" ? selection.supportVersion ?? null : null,
   })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setIssuedAt()
@@ -88,6 +92,8 @@ export async function getSession(): Promise<AuthSession | null> {
       version?: unknown;
       scope?: unknown;
       practiceId?: unknown;
+      supportRequestId?: unknown;
+      supportVersion?: unknown;
     };
     if (typeof payload.id !== "string" || typeof payload.version !== "number") return null;
     const user = await db.user.findUnique({
@@ -96,7 +102,6 @@ export async function getSession(): Promise<AuthSession | null> {
     });
     if (!user?.active || user.sessionVersion !== payload.version) return null;
     const platformMembership = user.platformMembership?.active ? user.platformMembership : null;
-    const legacyPlatform = !platformMembership && user.platformRole === "PLATFORM_OWNER";
     const requestedScope = payload.scope === "PRACTICE" ? "PRACTICE" : "PLATFORM";
     const base: SessionBase = {
       id: user.id,
@@ -104,11 +109,12 @@ export async function getSession(): Promise<AuthSession | null> {
       email: user.email,
       avatarData: user.avatarData,
       mustChangePassword: user.mustChangePassword,
-      hasPlatformAccess: Boolean(platformMembership || legacyPlatform),
+      hasPlatformAccess: Boolean(platformMembership),
+      supportRequestId: null,
     };
 
-    if (requestedScope === "PLATFORM" && (platformMembership || legacyPlatform)) {
-      const role = (platformMembership?.role || "PRIMARY_OWNER") as PlatformRole;
+    if (requestedScope === "PLATFORM" && platformMembership) {
+      const role = platformMembership.role as PlatformRole;
       return {
         ...base,
         scope: "PLATFORM",
@@ -116,10 +122,32 @@ export async function getSession(): Promise<AuthSession | null> {
         role,
         permissions: [],
         platformRole: role,
-        platformPermissions: platformMembership
-          ? parsePlatformPermissions(platformMembership.permissions, role)
-          : parsePlatformPermissions("[]", "PRIMARY_OWNER"),
-        isPrimaryPlatformOwner: platformMembership?.isPrimary ?? true,
+        platformPermissions: parsePlatformPermissions(platformMembership.permissions, role),
+        isPrimaryPlatformOwner: platformMembership.isPrimary,
+      };
+    }
+
+    if (requestedScope === "PRACTICE" && typeof payload.supportRequestId === "string") {
+      const request = await db.practiceSupportRequest.findFirst({
+        where: {
+          id: payload.supportRequestId,
+          requestedById: user.id,
+          status: "APPROVED",
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
+      if (!request || payload.supportVersion !== request.sessionVersion || payload.practiceId !== request.practiceId) return null;
+      return {
+        ...base,
+        scope: "PRACTICE",
+        practiceId: request.practiceId,
+        role: "PLATFORM_SUPPORT",
+        permissions: supportPermissions(parsePracticeSupportScopes(request.scopes)),
+        platformRole: null,
+        platformPermissions: [],
+        isPrimaryPlatformOwner: false,
+        supportRequestId: request.id,
       };
     }
 
@@ -141,6 +169,7 @@ export async function getSession(): Promise<AuthSession | null> {
       platformRole: null,
       platformPermissions: [],
       isPrimaryPlatformOwner: false,
+      supportRequestId: null,
     };
   } catch {
     return null;

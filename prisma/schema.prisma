@@ -94,10 +94,10 @@ model PlatformLandingPage {
 }
 
 model Practice {
-  id                    String                 @id @default(cuid())
-  slug                  String                 @unique
+  id                    String                   @id @default(cuid())
+  slug                  String                   @unique
   name                  String
-  type                  String                 @default("GENERAL_PRACTICE")
+  type                  String                   @default("GENERAL_PRACTICE")
   ownerName             String?
   registrationNumber    String?
   licenceInformation    String?
@@ -109,14 +109,14 @@ model Practice {
   region                String?
   logoData              String?
   description           String?
-  status                String                 @default("DRAFT")
-  subscriptionStatus    String                 @default("ACTIVE")
-  publicVisible         Boolean                @default(false)
+  status                String                   @default("DRAFT")
+  subscriptionStatus    String                   @default("ACTIVE")
+  publicVisible         Boolean                  @default(false)
   activatedAt           DateTime?
   suspensionReason      String?
-  timezone              String                 @default("Africa/Windhoek")
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
+  timezone              String                   @default("Africa/Windhoek")
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
   users                 User[]
   memberships           PracticeUser[]
   patients              Patient[]
@@ -131,8 +131,11 @@ model Practice {
   emergencyContacts     EmergencyContact[]
   subscriptions         PracticeSubscription[]
   invitations           UserInvitation[]
-  patientSharesSent     PatientShareConsent[]  @relation("PatientShareSource")
-  patientSharesReceived PatientShareConsent[]  @relation("PatientShareDestination")
+  handovers             PracticeHandover[]
+  domains               PracticeDomain[]
+  supportRequests       PracticeSupportRequest[]
+  patientSharesSent     PatientShareConsent[]    @relation("PatientShareSource")
+  patientSharesReceived PatientShareConsent[]    @relation("PatientShareDestination")
 
   @@index([status, publicVisible])
   @@index([type, status])
@@ -1340,6 +1343,63 @@ model SupportAccessGrant {
 
   @@index([grantedToId, expiresAt, revokedAt])
   @@index([practiceId, patientId, expiresAt])
+}
+
+model PracticeHandover {
+  id             String    @id @default(cuid())
+  practiceId     String
+  status         String    @default("DRAFT")
+  ownerEmail     String?
+  invitedAt      DateTime?
+  activatedAt    DateTime?
+  readyAt        DateTime?
+  completedAt    DateTime?
+  rolledBackAt   DateTime?
+  createdById    String
+  completedById  String?
+  rollbackReason String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  practice       Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, status, createdAt])
+}
+
+model PracticeSupportRequest {
+  id              String    @id @default(cuid())
+  practiceId      String
+  requestedById   String
+  reason          String
+  scopes          String    @default("[]")
+  durationMinutes Int       @default(60)
+  status          String    @default("PENDING")
+  decidedById     String?
+  decidedAt       DateTime?
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  sessionVersion  Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  practice        Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, status, createdAt])
+  @@index([requestedById, status, expiresAt])
+}
+
+model PracticeDomain {
+  id                String    @id @default(cuid())
+  practiceId        String
+  hostname          String    @unique
+  primary           Boolean   @default(false)
+  status            String    @default("PENDING")
+  verificationToken String?
+  dnsInstructions   String?
+  verifiedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  practice          Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, status, primary])
 }
 
 model PracticeApplication {

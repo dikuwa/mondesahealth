@@ -1,0 +1,17 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { Clipboard, ExternalLink, Globe2 } from "lucide-react";
+import { StatusBadge } from "@/components/ui/status-badge";
+
+type Domain={id:string;hostname:string;primary:boolean;status:string;dnsInstructions:string|null;verifiedAt:string|null};
+export function PracticeDomainManager({slug,domains,automationEnabled}:{slug:string;domains:Domain[];automationEnabled:boolean}){
+  const router=useRouter();const[busy,setBusy]=useState(false);
+  const fallback=`/practices/${slug}`;
+  const copy=(value:string)=>navigator.clipboard.writeText(value).then(()=>toast.success("Copied"));
+  async function add(event:React.FormEvent<HTMLFormElement>){event.preventDefault();setBusy(true);const form=new FormData(event.currentTarget);const toastId=toast.loading("Adding domain…");try{const response=await fetch("/api/practice/domains",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({hostname:form.get("hostname")})});const data=await response.json();if(!response.ok)throw new Error(data.error);toast.success("Domain added. Complete the DNS records below.",{id:toastId});router.refresh();}catch(error){toast.error(error instanceof Error?error.message:"Could not add domain",{id:toastId});}finally{setBusy(false)}}
+  async function remove(id:string){setBusy(true);const response=await fetch(`/api/practice/domains?id=${id}`,{method:"DELETE"});const data=await response.json();if(response.ok){toast.success("Domain removed");router.refresh();}else toast.error(data.error);setBusy(false)}
+  return <section className="card dashboard-card panel-card"><div className="panel-heading"><div><h2>Public URL and custom domain</h2><p>Your permanent Mondesa Health URL always remains available, even before a custom domain is verified.</p></div><Globe2/></div><div className="panel-body"><div className="handover-url"><div><small>Permanent URL</small><strong>{fallback}</strong></div><div><button className="btn btn-light" onClick={()=>copy(`${window.location.origin}${fallback}`)}><Clipboard size={15}/>Copy</button><a className="btn btn-light" href={fallback} target="_blank"><ExternalLink size={15}/>Open</a></div></div>{!automationEnabled&&<p className="notice-warning">Custom-domain activation is paused until Vercel domain credentials are configured. You can add DNS details now; the permanent URL continues to work.</p>}<form className="domain-add-form" onSubmit={add}><label className="field"><span>Domain name</span><input className="input" name="hostname" placeholder="practice.com" required/></label><button className="btn btn-primary" disabled={busy}>Add domain</button></form><div className="record-stack">{domains.map(domain=>{const instructions=domain.dnsInstructions?JSON.parse(domain.dnsInstructions) as {cname:{name:string;value:string};txt:{name:string;value:string}}:null;return <article className="record-row" key={domain.id}><div><div className="record-row-title"><b>{domain.hostname}</b><StatusBadge value={domain.status}/></div>{instructions&&<div className="domain-dns"><code>CNAME {instructions.cname.name} → {instructions.cname.value}</code><code>TXT {instructions.txt.name} → {instructions.txt.value}</code></div>}</div><button className="btn btn-light" disabled={busy} onClick={()=>remove(domain.id)}>Remove</button></article>})}</div></div></section>;
+}

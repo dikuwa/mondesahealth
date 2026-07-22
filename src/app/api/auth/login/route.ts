@@ -15,6 +15,8 @@ import {
 const input = z.object({
   email: z.string().trim().email().max(254),
   password: z.string().min(1).max(200),
+  portal: z.enum(["PLATFORM", "PRACTICE"]),
+  practiceSlug: z.string().trim().min(1).max(120).optional(),
 });
 const noStore = { "Cache-Control": "no-store" };
 const limited = (retryAfter: number) =>
@@ -44,7 +46,7 @@ export async function POST(request: Request) {
   if (!throttle.allowed) return limited(throttle.retryAfter);
   const user = await db.user.findUnique({
     where: { email },
-    include: { platformMembership: true },
+    include: { platformMembership: true, practiceMemberships: true },
   });
   if (
     !user ||
@@ -69,26 +71,73 @@ export async function POST(request: Request) {
   }
   await clearCredentialThrottle(keys);
   await pruneLoginThrottles();
-  const hasPlatformAccess = Boolean(
-    user.platformMembership?.active || user.platformRole === "PLATFORM_OWNER",
-  );
-  await createSession(
-    { id: user.id, sessionVersion: user.sessionVersion },
-    hasPlatformAccess
-      ? { scope: "PLATFORM" }
-      : { scope: "PRACTICE", practiceId: user.practiceId! },
-  );
+  const hasPlatformAccess = Boolean(user.platformMembership?.active);
+  let practiceId: string | null = null;
+  let destination: string;
+
+  if (parsed.data.portal === "PLATFORM") {
+    if (!hasPlatformAccess) {
+      const membership = user.practiceMemberships.find((item) => item.active);
+      const practice = membership
+        ? await db.practice.findUnique({ where: { id: membership.practiceId }, select: { slug: true } })
+        : null;
+      return NextResponse.json(
+        {
+          error: "This account belongs to a Practice Portal, not Platform Administration.",
+          correctPortal: practice ? `/practices/${practice.slug}/login` : null,
+        },
+        { status: 403, headers: noStore },
+      );
+    }
+    await createSession(
+      { id: user.id, sessionVersion: user.sessionVersion },
+      { scope: "PLATFORM" },
+    );
+    destination = user.mustChangePassword ? "/platform/profile?required=1" : "/platform";
+  } else {
+    if (!parsed.data.practiceSlug) {
+      return NextResponse.json(
+        { error: "Choose a practice before signing in." },
+        { status: 400, headers: noStore },
+      );
+    }
+    const practice = await db.practice.findUnique({
+      where: { slug: parsed.data.practiceSlug },
+      select: { id: true, slug: true },
+    });
+    const membership = practice
+      ? user.practiceMemberships.find(
+          (item) => item.practiceId === practice.id && item.active,
+        )
+      : null;
+    if (!practice || !membership) {
+      return NextResponse.json(
+        {
+          error: hasPlatformAccess
+            ? "This is a Platform Administration account. It has no permanent access to this practice."
+            : "This account is not active for the selected practice.",
+          correctPortal: hasPlatformAccess ? "/platform/login" : null,
+        },
+        { status: 403, headers: noStore },
+      );
+    }
+    practiceId = practice.id;
+    await createSession(
+      { id: user.id, sessionVersion: user.sessionVersion },
+      { scope: "PRACTICE", practiceId },
+    );
+    destination = user.mustChangePassword ? "/dashboard/profile?required=1" : "/dashboard";
+  }
   await db.activityLog.create({
     data: {
       userId: user.id,
-      practiceId: user.practiceId,
+      practiceId,
       action: "USER_LOGIN",
       entityType: "User",
       entityId: user.id,
-      summary: "Signed in to dashboard",
+      summary: `Signed in to ${parsed.data.portal.toLowerCase()} portal`,
     },
   });
-  const destination = hasPlatformAccess ? "/platform" : "/dashboard";
   if (formRequest)
     return NextResponse.redirect(new URL(destination, request.url), 303);
   return NextResponse.json({ ok: true, destination }, { headers: noStore });

@@ -19,6 +19,7 @@ import {
   Menu,
   PanelLeft,
   Settings,
+  ShieldCheck,
   Share2,
   SlidersHorizontal,
   UserCog,
@@ -88,6 +89,7 @@ const sections = [
         "MANAGE_MEDICAL_AID_SETTINGS",
       ],
       ["Settings", "/dashboard/settings", Settings, "MANAGE_PRACTICE"],
+      ["Platform support", "/dashboard/support", ShieldCheck, "MANAGE_PRACTICE"],
       ["Staff users", "/dashboard/users", UserCog, "MANAGE_USERS"],
       ["Subscription", "/dashboard/subscription", Banknote, "MANAGE_PRACTICE"],
       ["Activity log", "/dashboard/activity", Activity, "VIEW_ACTIVITY"],
@@ -112,6 +114,7 @@ const pageNames: Record<string, string> = {
   "/dashboard/content": "Website content",
   "/dashboard/activity": "Activity log",
   "/dashboard/users": "Staff users",
+  "/dashboard/support": "Platform support requests",
   "/dashboard/profile": "Profile & security",
 };
 
@@ -255,8 +258,9 @@ export function DashboardShell({
               <span className="dashboard-nav-label">{section.label}</span>
               {section.items
                 .filter(
-                  ([, , , permission]) =>
-                    role === "OWNER" || permissions.includes(permission),
+                  ([, href, , permission]) =>
+                    (role === "OWNER" || permissions.includes(permission)) &&
+                    (href !== "/dashboard/support" || role === "OWNER"),
                 )
                 .map(([label, href, Icon]) => {
                   const active =

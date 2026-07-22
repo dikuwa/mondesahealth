@@ -3,16 +3,17 @@ import { db } from "@/lib/db";
 import { SettingsManager } from "@/components/settings-manager";
 import { getPracticeSession } from "@/lib/auth";
 import { PracticeBrandingManager } from "@/components/practice-branding-manager";
+import { PracticeDomainManager } from "@/components/practice-domain-manager";
 export const dynamic = "force-dynamic";
 export default async function Settings() {
   const session = await getPracticeSession();
   if (!session) return null;
-  const [s, practice, funds, claimStorage, intakeStorage, emergencyContacts] =
+  const [s, practice, funds, claimStorage, intakeStorage, emergencyContacts, domains] =
     await Promise.all([
       db.practiceSetting.findUnique({
         where: { practiceId: session.practiceId },
       }),
-      db.practice.findUnique({ where: { id: session.practiceId }, select: { name: true, logoData: true } }),
+      db.practice.findUnique({ where: { id: session.practiceId }, select: { name: true, logoData: true, slug: true } }),
       db.medicalAid.findMany({ orderBy: { sortOrder: "asc" } }),
       db.claimAttachment.aggregate({
         _count: { _all: true },
@@ -28,12 +29,14 @@ export default async function Settings() {
         where: { practiceId: session.practiceId },
         orderBy: [{ primary: "desc" }, { sortOrder: "asc" }, { label: "asc" }],
       }),
+      db.practiceDomain.findMany({where:{practiceId:session.practiceId},orderBy:[{primary:"desc"},{createdAt:"desc"}]}),
     ]);
   if (!s) return null;
   return (
     <>
       <PageHeading eyebrow="Practice configuration" title="Settings" />
       {practice && <PracticeBrandingManager name={practice.name} initialLogo={practice.logoData} />}
+      {practice && session.role==="OWNER" && !session.supportRequestId && <PracticeDomainManager slug={practice.slug} domains={domains.map(domain=>({id:domain.id,hostname:domain.hostname,primary:domain.primary,status:domain.status,dnsInstructions:domain.dnsInstructions,verifiedAt:domain.verifiedAt?.toISOString()||null}))} automationEnabled={Boolean(process.env.VERCEL_TOKEN&&process.env.VERCEL_PROJECT_ID)}/>}
       <SettingsManager
         setting={{
           practiceName: s.practiceName,

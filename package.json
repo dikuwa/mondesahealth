@@ -22,6 +22,7 @@
     "db:import:icd10": "tsx --env-file=.env scripts/import-icd10.ts",
     "db:setup": "prisma db push && tsx prisma/seed.ts",
     "auth:reset-owner": "tsx --env-file=.env scripts/reset-owner-password.ts",
+    "handover:reset": "tsx --env-file=.env scripts/reset-practice-handover.ts",
     "db:backup": "tsx --env-file=.env scripts/db-backup.ts",
     "db:snapshot": "tsx --env-file=.env scripts/db-snapshot.ts",
     "db:restore:test": "tsx --env-file=.env scripts/db-restore-test.ts"
