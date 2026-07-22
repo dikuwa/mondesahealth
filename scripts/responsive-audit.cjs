@@ -5,6 +5,7 @@ const required = (key) => { if (!process.env[key]) throw new Error(`${key} is re
 
 const base = process.env.E2E_BASE_URL || "http://localhost:3000";
 const quick = process.env.E2E_QUICK === "1";
+const publicOnly = process.env.E2E_PUBLIC_ONLY === "1";
 const publicRoutes = quick ? ["/"] : ["/", "/services", "/services/general-practice", "/services/dental-practice", "/book", "/apply", "/login", "/policies"];
 const dashboardRoutes = quick ? [] : [
   "/dashboard",
@@ -112,7 +113,7 @@ async function measure(page) {
     }
   }
 
-  if (!quick) {
+  if (!quick && !publicOnly) {
     await page.setViewportSize(viewports[1]);
     await page.goto(`${base}/login`, { waitUntil: "domcontentloaded" });
     await page.locator('input[name="email"]').fill(required("E2E_OWNER_EMAIL"));
@@ -121,7 +122,7 @@ async function measure(page) {
     await page.waitForURL("**/dashboard", { timeout: 15_000 });
   }
 
-  for (const route of dashboardRoutes) {
+  for (const route of publicOnly ? [] : dashboardRoutes) {
     report.dashboard[route] = {};
     for (const viewport of viewports) {
       await page.setViewportSize(viewport);

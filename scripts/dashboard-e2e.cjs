@@ -12,8 +12,10 @@ const routes = process.env.E2E_ROUTE
       "/dashboard",
       "/dashboard/appointments",
       "/dashboard/patients",
+      "/dashboard/shared-records",
       "/dashboard/claims",
       "/dashboard/claim-batches",
+      "/dashboard/sick-notes",
       "/dashboard/finance",
       "/dashboard/availability",
       "/dashboard/services",
@@ -23,6 +25,7 @@ const routes = process.env.E2E_ROUTE
       "/dashboard/users",
       "/dashboard/profile",
       "/dashboard/activity",
+      "/dashboard/subscription",
     ];
 const widths = process.env.E2E_WIDTH
   ? [Number(process.env.E2E_WIDTH)]
@@ -56,9 +59,15 @@ const widths = process.env.E2E_WIDTH
     .locator('input[name="password"]')
     .fill(required("E2E_OWNER_PASSWORD"));
   await page.getByRole("button", { name: "Sign in" }).click();
-  await page.waitForURL("**/dashboard");
+  await page.waitForURL(/\/(dashboard|platform\/practices)$/);
+  if (new URL(page.url()).pathname.startsWith("/platform")) {
+    await page.locator(".workspace-switcher-trigger").click();
+    await page.getByRole("menuitem").filter({ hasText: "Practice workspace" }).first().click();
+    await page.waitForURL("**/dashboard");
+  }
 
   for (const route of routes) {
+    console.log(`Checking ${route}`);
     report.routes[route] = {};
     for (const width of widths) {
       await page.setViewportSize({ width, height: width <= 768 ? 844 : 900 });
@@ -95,6 +104,20 @@ const widths = process.env.E2E_WIDTH
         })(),
       }));
     }
+  }
+
+  if (process.env.E2E_ROUTES_ONLY === "1") {
+    const failures = [];
+    for (const [route, viewports] of Object.entries(report.routes))
+      for (const [width, result] of Object.entries(viewports))
+        if (!result.noPageOverflow || result.publicHeaderCount || result.publicFooterCount || !result.dashboardVisible || !result.mainVisible)
+          failures.push(`${route}@${width}`);
+    if (report.runtimeErrors.length) failures.push("runtimeErrors");
+    report.failures = failures;
+    fs.writeFileSync("e2e-artifacts/dashboard/routes-report.json", `${JSON.stringify(report, null, 2)}\n`);
+    console.log(JSON.stringify(report, null, 2));
+    await browser.close();
+    process.exit(failures.length ? 1 : 0);
   }
 
   await page.setViewportSize({ width: 375, height: 812 });

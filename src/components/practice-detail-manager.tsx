@@ -61,7 +61,7 @@ export function PracticeDetailManager({ practice }: { practice: Practice }) {
   }
 
   return (
-    <form className="card dashboard-card" onSubmit={submit}>
+    <form className="card dashboard-card content-card" onSubmit={submit}>
       <div className="form-grid">
         <label className="field">
           <span>Practice name</span>
@@ -147,9 +147,9 @@ export function PracticeDetailManager({ practice }: { practice: Practice }) {
           <span>Visible in public marketplace</span>
         </label>
       </div>
-      <button className="btn btn-primary" disabled={saving}>
+      <div className="form-actions"><button className="btn btn-primary" disabled={saving}>
         {saving ? "Saving…" : "Save practice"}
-      </button>
+      </button></div>
     </form>
   );
 }

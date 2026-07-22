@@ -3,8 +3,8 @@ const { chromium } = require("/Users/stunna/.cache/codex-runtimes/codex-primary-
 const fs = require("node:fs");
 const required = (key) => { if (!process.env[key]) throw new Error(`${key} is required.`); return process.env[key]; };
 const base = process.env.E2E_BASE_URL || "http://localhost:3001";
-const routes = ["/platform/practices", "/platform/subscriptions", "/platform/applications", "/platform/categories", "/platform/billing", "/platform/analytics", "/platform/audit", "/platform/support", "/platform/users", "/platform/profile"];
-const widths = [375, 768, 1440, 2560];
+const routes = process.env.E2E_ROUTES ? process.env.E2E_ROUTES.split(",") : ["/platform/practices", "/platform/subscriptions", "/platform/applications", "/platform/categories", "/platform/billing", "/platform/analytics", "/platform/audit", "/platform/support", "/platform/users", "/platform/profile"];
+const widths = process.env.E2E_WIDTHS ? process.env.E2E_WIDTHS.split(",").map(Number) : [375, 768, 1440, 2560];
 
 (async () => {
   fs.mkdirSync("e2e-artifacts/platform", { recursive: true });
@@ -48,7 +48,22 @@ const widths = [375, 768, 1440, 2560];
         heading: document.querySelector(".dashboard-page-title")?.textContent?.trim() || "",
         smallTargets: [...document.querySelectorAll("button,a,input,textarea")].filter((element) => { const box = element.getBoundingClientRect(); return box.width > 0 && box.height > 0 && (box.width < 40 || box.height < 40); }).length,
       }));
+      if (process.env.E2E_CAPTURE === "1" && width === 1440) {
+        await page.screenshot({ path: `e2e-artifacts/platform/${route.split("/").pop()}-1440.png`, fullPage: true });
+      }
     }
+  }
+
+  if (process.env.E2E_ROUTES_ONLY === "1") {
+    report.failures = [];
+    for (const [route, sizes] of Object.entries(report.routes))
+      for (const [width, result] of Object.entries(sizes))
+        if (!result.noPageOverflow || !result.platformShell || !result.heading) report.failures.push(`${route}@${width}`);
+    if (report.runtimeErrors.length) report.failures.push("runtime errors");
+    fs.writeFileSync("e2e-artifacts/platform/routes-report.json", `${JSON.stringify(report, null, 2)}\n`);
+    console.log(JSON.stringify(report, null, 2));
+    await browser.close();
+    process.exit(report.failures.length ? 1 : 0);
   }
 
   await page.setViewportSize({ width: 375, height: 900 });

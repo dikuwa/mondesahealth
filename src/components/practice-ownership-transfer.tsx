@@ -63,7 +63,7 @@ export function PracticeOwnershipTransfer({
   }
 
   return (
-    <section className="card dashboard-card">
+    <section className="card dashboard-card content-card">
       <div className="manager-toolbar">
         <div><h2>Independent practice ownership</h2><p>Transfer {practiceName} to its registered owner before removing the platform account&apos;s temporary practice access.</p></div>
         <ShieldCheck size={24} />

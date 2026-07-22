@@ -115,6 +115,12 @@ const pageNames: Record<string, string> = {
   "/dashboard/profile": "Profile & security",
 };
 
+function resolvePageName(pathname: string) {
+  return Object.entries(pageNames)
+    .sort(([left], [right]) => right.length - left.length)
+    .find(([path]) => pathname === path || pathname.startsWith(`${path}/`))?.[1] || "Dashboard";
+}
+
 export function DashboardShell({
   children,
   name,
@@ -334,7 +340,7 @@ export function DashboardShell({
             </span>
             <div>
               <small>Practice management</small>
-              <strong>{pageNames[pathname] || "Dashboard"}</strong>
+              <strong>{resolvePageName(pathname)}</strong>
             </div>
           </div>
           <div className="dashboard-topbar-actions">
