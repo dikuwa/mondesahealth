@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { GripVertical, Loader2, Plus, Save, Trash2, X } from "lucide-react";
+import { Loader2, Plus, Save, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { CustomSelect } from "@/components/ui/custom-select";
@@ -123,7 +123,7 @@ export function DirectoryManager({ departments, canManageCategories = false, cat
   return (
     <div className="directory-manager approved-directory">
       <div className="directory-admin-intro">
-        <p>Publish only confirmed information. Order values control how departments, services and providers appear publicly.</p>
+        <p>Publish only confirmed information. Use the numbered order field to control how items appear publicly.</p>
         <div className="manager-actions">
           <b>{departments.length} departments</b>
           {canManageCategories && <button className="btn btn-primary" type="button" onClick={() => setAdding(true)}><Plus size={17} /> Add department</button>}
@@ -141,7 +141,6 @@ export function DirectoryManager({ departments, canManageCategories = false, cat
           <table className="data-table directory-table">
             <thead>
               <tr>
-                <th aria-label="Reorder" />
                 <th>Department</th>
                 <th>Public status</th>
                 <th>Order</th>
@@ -151,7 +150,6 @@ export function DirectoryManager({ departments, canManageCategories = false, cat
             <tbody>
               {departments.map((department) => (
                 <tr key={department.id}>
-                  <td><GripVertical className="muted-icon" size={18} aria-hidden="true" /></td>
                   <td><b>{department.name}</b></td>
                   <td>
                     <div className="status-cluster">

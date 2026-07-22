@@ -42,7 +42,7 @@ export default async function Policies() {
     ? `For an emergency, call ${primary.label} on ${primary.phone} or attend the nearest emergency facility.`
     : neutralEmergencyMessage;
   return (
-    <main>
+    <main id="main-content">
       <section style={{ background: "#f7f4ed", padding: "80px 0" }}>
         <div className="container" style={{ maxWidth: 850 }}>
           <div className="eyebrow">Privacy & policies</div>

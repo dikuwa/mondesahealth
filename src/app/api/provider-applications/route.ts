@@ -8,6 +8,7 @@ import { sendInvitationEmail as deliverInvitationEmail } from "@/lib/invitation-
 import { consumeRateLimit, requestRateLimitKey } from "@/lib/rate-limit";
 import { requestAuditInfo } from "@/lib/tenant";
 import { genericPracticeContent } from "@/lib/generic-practice-content";
+import { notifyPlatformAdmins } from "@/lib/notifications";
 
 const application = z.object({
   practiceName: z.string().trim().min(2).max(140),
@@ -62,6 +63,12 @@ export async function POST(request: Request) {
     );
   const created = await db.practiceApplication.create({
     data: { ...parsed.data, email: parsed.data.email.toLowerCase() },
+  });
+  await notifyPlatformAdmins({
+    type: "PRACTICE_APPLICATION",
+    title: "New practice application",
+    message: `${created.practiceName}${created.town ? ` · ${created.town}` : ""} is ready for review.`,
+    href: "/platform/applications",
   });
   return NextResponse.json({ id: created.id }, { status: 201 });
 }

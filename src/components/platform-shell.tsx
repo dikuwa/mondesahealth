@@ -11,6 +11,7 @@ import {
   FileText,
   Gauge,
   HeartPulse,
+  ExternalLink,
   LogOut,
   Menu,
   Settings,
@@ -21,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { WorkspaceSwitcher, type WorkspaceOption } from "@/components/workspace-switcher";
+import { DashboardNotifications, useNotifications } from "@/components/dashboard-notifications";
 import { platformRoleLabels, type PlatformPermission, type PlatformRole } from "@/lib/platform-permissions";
 
 const items = [
@@ -64,6 +66,8 @@ export function PlatformShell({
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { notifications, refresh: refreshNotifications, updateNotifications } = useNotifications();
+  const applicationNotifications = notifications.filter((item) => item.type === "PRACTICE_APPLICATION" && !item.readAt).length;
   return (
     <div className={`dashboard-shell${mobileOpen ? " mobile-open" : ""}`}>
       <a className="skip-link" href="#platform-content">Skip to platform content</a>
@@ -84,9 +88,10 @@ export function PlatformShell({
             <span className="dashboard-nav-label">Platform</span>
             {items.filter(([, , , permission]) => permissions.includes(permission)).map(([label, href, Icon]) => {
               const active = pathname === href || pathname.startsWith(`${href}/`);
+              const count = href === "/platform/applications" ? applicationNotifications : 0;
               return (
                 <Link key={href} href={href} onClick={() => setMobileOpen(false)} className={`dashboard-nav-link${active ? " is-active" : ""}`}>
-                  <Icon size={18} /><span>{label}</span>
+                  <Icon size={18} /><span className={count ? "dashboard-nav-label-with-badge" : undefined}>{label}{count > 0 && <i className="dashboard-nav-count">{count}</i>}</span>
                 </Link>
               );
             })}
@@ -119,7 +124,13 @@ export function PlatformShell({
           </div>
           <div className="dashboard-topbar-actions">
             <WorkspaceSwitcher currentScope="PLATFORM" hasPlatformAccess practices={practices} />
-            <span className="dashboard-role"><Settings size={14} /> {platformRoleLabels[role]}</span>
+            <DashboardNotifications notifications={notifications} refresh={refreshNotifications} updateNotifications={updateNotifications} />
+            <Link href="/platform/profile" className="platform-account-link" aria-label="Open profile and security settings">
+              <span className="platform-account-avatar">{user.avatarData ? <Image src={user.avatarData} alt="" width={32} height={32} unoptimized /> : user.name.trim().charAt(0).toUpperCase()}</span>
+              <span><small>{platformRoleLabels[role]}</small><strong>{user.name}</strong></span>
+              <Settings size={15} />
+            </Link>
+            <Link href="/" target="_blank" rel="noopener noreferrer" className="dashboard-site-link platform-site-link"><ExternalLink size={16}/><span>Open platform site</span></Link>
           </div>
         </header>
         <main id="platform-content" tabIndex={-1} className="dashboard-content platform-content"><div key={pathname} className="dashboard-route-content">{children}</div></main>

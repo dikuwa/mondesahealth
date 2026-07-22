@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 export function ProviderApplicationForm() {
@@ -30,23 +31,24 @@ export function ProviderApplicationForm() {
   }
 
   if (done) {
-    return <div className="card public-form-card application-success" role="status"><div className="eyebrow">Application received</div><h2>Thank you for applying</h2><p>The platform team will review the submitted registration details before any practice is activated or displayed publicly.</p></div>;
+    return <div className="card public-form-card application-success" role="status"><span className="application-success-icon"><CheckCircle2 size={28}/></span><div className="eyebrow">Application received</div><h2>Thank you for applying</h2><p>The platform team will review the submitted registration details before any practice is activated or displayed publicly.</p></div>;
   }
 
   return (
-    <form className="card public-form-card" onSubmit={submit}>
+    <form className="card public-form-card practice-application-form" onSubmit={submit}>
+      <div className="practice-application-form-heading"><div><span className="eyebrow">Practice details</span><h2>Start your application</h2></div><small><span aria-hidden="true">*</span> Required fields</small></div>
       <div className="form-grid">
-        <label className="field"><span>Practice name</span><input className="input" name="practiceName" autoComplete="organization" required /></label>
-        <label className="field"><span>Practice type</span><input className="input" name="practiceType" placeholder="e.g. Physiotherapy" required /></label>
-        <label className="field"><span>Owner name</span><input className="input" name="ownerName" autoComplete="name" required /></label>
-        <label className="field"><span>Email</span><input className="input" name="email" type="email" autoComplete="email" required /></label>
-        <label className="field"><span>Phone</span><input className="input" name="phone" type="tel" autoComplete="tel" /></label>
-        <label className="field"><span>Registration number</span><input className="input" name="registrationNumber" /></label>
-        <label className="field"><span>Town</span><input className="input" name="town" autoComplete="address-level2" /></label>
-        <label className="field"><span>Region</span><input className="input" name="region" autoComplete="address-level1" /></label>
-        <label className="field field-span-2"><span>Practice description</span><textarea className="input" name="description" rows={5} /></label>
+        <label className="field"><span>Practice name <b aria-hidden="true">*</b></span><input className="input" name="practiceName" autoComplete="organization" placeholder="e.g. Coastal Family Practice" required /></label>
+        <label className="field"><span>Practice type <b aria-hidden="true">*</b></span><input className="input" name="practiceType" placeholder="e.g. Physiotherapy" required /></label>
+        <label className="field"><span>Owner name <b aria-hidden="true">*</b></span><input className="input" name="ownerName" autoComplete="name" placeholder="Full name" required /></label>
+        <label className="field"><span>Email <b aria-hidden="true">*</b></span><input className="input" name="email" type="email" autoComplete="email" placeholder="you@practice.com" required /></label>
+        <label className="field"><span>Phone</span><input className="input" name="phone" type="tel" autoComplete="tel" placeholder="e.g. +264 81 000 0000" /></label>
+        <label className="field"><span>Registration number</span><input className="input" name="registrationNumber" placeholder="Professional or business number" /></label>
+        <label className="field"><span>Town</span><input className="input" name="town" autoComplete="address-level2" placeholder="e.g. Swakopmund" /></label>
+        <label className="field"><span>Region</span><input className="input" name="region" autoComplete="address-level1" placeholder="e.g. Erongo" /></label>
+        <label className="field field-span-2"><span>Practice description</span><textarea className="input" name="description" rows={5} placeholder="Briefly describe your practice, services and the patients you support." /></label>
       </div>
-      <div className="form-actions"><button className="btn btn-primary" disabled={saving}>{saving ? "Submitting…" : "Submit application"}</button></div>
+      <div className="form-actions"><p>By submitting, you confirm that these details are accurate.</p><button className="btn btn-primary" disabled={saving}>{saving ? "Submitting…" : <>Submit application <ArrowRight size={17}/></>}</button></div>
     </form>
   );
 }

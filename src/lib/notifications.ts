@@ -5,3 +5,20 @@ export async function notifyStaff(input: { practiceId:string; type: string; titl
   if (!users.length) return;
   await db.notification.createMany({ data: users.map((user) => ({ userId: user.id, ...input })) });
 }
+
+export async function notifyPlatformAdmins(input: { type: string; title: string; message: string; href: string }) {
+  const users = await db.user.findMany({
+    where: {
+      active: true,
+      OR: [
+        { platformMembership: { is: { active: true } } },
+        { platformRole: "PLATFORM_OWNER" },
+      ],
+    },
+    select: { id: true },
+  });
+  if (!users.length) return;
+  await db.notification.createMany({
+    data: users.map((user) => ({ userId: user.id, practiceId: "__platform__", ...input })),
+  });
+}

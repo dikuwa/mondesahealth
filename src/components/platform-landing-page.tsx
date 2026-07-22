@@ -3,7 +3,7 @@ import Link from "next/link";
 import {
   Activity, ArrowRight, BarChart3, Bell, Building2, CalendarCheck, CalendarDays,
   Check, CheckCircle2, ClipboardList, CreditCard, FileHeart, FileText, HeartPulse,
-  LockKeyhole, Menu, ReceiptText, ShieldCheck, Star, Stethoscope, UserCog, Users,
+  LockKeyhole, MapPin, Menu, ReceiptText, ShieldCheck, Star, Stethoscope, UserCog, Users,
 } from "lucide-react";
 import type { PlatformLandingContent } from "@/lib/platform-landing";
 import { LandingFooter } from "@/components/landing-footer";
@@ -86,7 +86,7 @@ export function PlatformLandingPage({ content, systemMetrics, practices, preview
         <article className="landing-security-card"><span className="landing-icon"><Icon name={content.testimonials.security.icon}/></span><h3>{content.testimonials.security.heading}</h3><p>{content.testimonials.security.description}</p>{content.testimonials.security.destination && <SmartLink href={content.testimonials.security.destination}>Learn about our approach <ArrowRight size={15}/></SmartLink>}</article>
       </div></div></section>
 
-      <section className="landing-section landing-directory-section"><div className="landing-container"><div className="landing-section-heading split"><div><span className="eyebrow">Practice directory</span><h2>Care stays connected to the practice providing it.</h2></div><Link href="/services" className="btn btn-light">Browse practices <ArrowRight size={16}/></Link></div>{practices.length > 0 && <div className="landing-practice-list">{practices.slice(0, 3).map((practice) => <Link href={`/practices/${practice.slug}`} key={practice.slug}><span>{practice.logoData ? <Image src={practice.logoData} alt="" width={36} height={36} unoptimized/> : <Building2 size={19}/>}</span><p><b>{practice.name}</b><small>{practice.type.replaceAll("_", " ")}{practice.town ? ` · ${practice.town}` : ""}</small></p><ArrowRight size={16}/></Link>)}</div>}</div></section>
+      <section className="landing-section landing-directory-section"><div className="landing-container"><div className="landing-section-heading split"><div><span className="eyebrow">Practice directory</span><h2>Care stays connected to the practice providing it.</h2></div><Link href="/services" className="btn btn-light">Browse practices <ArrowRight size={16}/></Link></div>{practices.length > 0 && <div className="landing-practice-list">{practices.slice(0, 3).map((practice) => <Link href={`/practices/${practice.slug}`} key={practice.slug}><span>{practice.logoData ? <Image src={practice.logoData} alt="" width={36} height={36} unoptimized/> : <Building2 size={19}/>}</span><p><b>{practice.name}</b><small>{practice.type.replaceAll("_", " ")}</small>{practice.town && <i className="town-tag"><MapPin size={12}/>{practice.town}</i>}</p><ArrowRight size={16}/></Link>)}</div>}</div></section>
 
       <section className="landing-section landing-faq" id="faq"><div className="landing-container landing-faq-layout"><div className="landing-section-heading"><span className="eyebrow">{content.faq.eyebrow}</span><h2>{content.faq.heading}</h2><p>Need another answer? Contact the Mondesa Health platform team.</p></div><div className="landing-faq-list">{ordered(content.faq.items).map((item, index) => <details key={item.id} open={index === 0}><summary><span>{item.question}</span><span aria-hidden="true">+</span></summary><div><p>{item.answer}</p></div></details>)}</div></div></section>
 

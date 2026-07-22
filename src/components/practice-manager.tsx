@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Building2, Clipboard, Loader2, Plus, Search, X } from "lucide-react";
+import { Building2, Clipboard, Loader2, MapPin, Plus, Search, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
@@ -49,6 +49,7 @@ export function PracticeManager({
     [sendInvitationEmail, setSendInvitationEmail] = useState(false),
     [query, setQuery] = useState(""),
     [statusFilter, setStatusFilter] = useState(""),
+    [townFilter, setTownFilter] = useState(""),
     [invite, setInvite] = useState(""),
     [pending, setPending] = useState<{
       practice: Practice;
@@ -56,8 +57,9 @@ export function PracticeManager({
     } | null>(null);
   const visible = initial.filter((practice) => {
     const text = `${practice.name} ${practice.ownerName || ""} ${practice.email || ""} ${practice.town || ""}`.toLowerCase();
-    return (!statusFilter || practice.status === statusFilter) && text.includes(query.trim().toLowerCase());
+    return (!statusFilter || practice.status === statusFilter) && (!townFilter || practice.town === townFilter) && text.includes(query.trim().toLowerCase());
   });
+  const towns = [...new Set(initial.map((practice) => practice.town).filter((town): town is string => Boolean(town)))].sort();
   async function create(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -169,6 +171,7 @@ export function PracticeManager({
       </div>
       <div className="manager-toolbar platform-filter-toolbar">
         <div className="search-box"><Search size={17}/><input className="input" aria-label="Search practices" placeholder="Search practice, owner, email or town" value={query} onChange={(event) => setQuery(event.target.value)}/></div>
+        <CustomSelect value={townFilter} onChange={setTownFilter} options={[{ value: "", label: "All towns" }, ...towns.map((town) => ({ value: town, label: town }))]}/>
         <CustomSelect value={statusFilter} onChange={setStatusFilter} options={[{ value: "", label: "All statuses" }, ...statuses]}/>
       </div>
       <div className="card dashboard-card">
@@ -194,10 +197,9 @@ export function PracticeManager({
                     </small>
                   </td>
                   <td>
-                    {item.ownerName || "Not assigned"}
-                    <small style={{ display: "block" }}>{item.email}</small>
+                    <div className="practice-owner-cell"><span className="practice-owner-avatar">{(item.ownerName || item.name).trim().charAt(0).toUpperCase()}</span><span><b>{item.ownerName || "Not assigned"}</b><small>{item.email}</small></span></div>
                   </td>
-                  <td>{item.town || "Not configured"}</td>
+                  <td>{item.town ? <span className="town-tag"><MapPin size={13}/>{item.town}</span> : <small>Not configured</small>}</td>
                   <td>
                     <StatusBadge value={item.status} />
                   </td>

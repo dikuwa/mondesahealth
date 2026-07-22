@@ -63,19 +63,19 @@ export function PracticeOwnershipTransfer({
   }
 
   return (
-    <section className="card dashboard-card content-card">
+    <section className="card dashboard-card content-card ownership-transfer-card">
       <div className="manager-toolbar">
         <div><h2>Independent practice ownership</h2><p>Transfer {practiceName} to its registered owner before removing the platform account&apos;s temporary practice access.</p></div>
         <ShieldCheck size={24} />
       </div>
       <p className="notice-info">Registered owner email: {registeredEmail || "Not configured"}</p>
       {!independentOwnerReady ? (
-        <div className="form-actions">
+        <div className="form-actions ownership-transfer-actions">
           <label className="custom-checkbox"><input type="checkbox" checked={sendEmail} onChange={(event) => setSendEmail(event.target.checked)} /><span>Email the invitation (optional)</span></label>
           <button className="btn btn-primary" type="button" disabled={busy || !registeredEmail} onClick={invite}>Create owner invitation</button>
         </div>
       ) : <p className="notice-info">An independent active practice owner is ready. Separation can now be finalized.</p>}
-      {inviteUrl && <div className="password-copy-banner" role="status"><div><b>Secure owner invitation</b><code>{inviteUrl}</code></div><button className="btn btn-light" onClick={() => navigator.clipboard.writeText(`${window.location.origin}${inviteUrl}`).then(() => toast.success("Invitation copied"))}><Clipboard size={16} /> Copy</button></div>}
+      {inviteUrl && <div className="password-copy-banner owner-invitation-banner" role="status"><div><b>Secure owner invitation</b><code>{inviteUrl}</code></div><button className="btn btn-light" onClick={() => navigator.clipboard.writeText(`${window.location.origin}${inviteUrl}`).then(() => toast.success("Invitation copied"))}><Clipboard size={16} /> Copy link</button></div>}
       {canFinalize && independentOwnerReady && <button className="btn btn-danger" type="button" disabled={busy} onClick={() => setConfirming(true)}>Finalize strict separation</button>}
       <ConfirmationDialog open={confirming} title="Finalize platform separation?" description="The platform owner will immediately lose access to this practice workspace and will be signed out. The independent practice owner will retain access." confirmLabel="Finalize separation" danger busy={busy} onCancel={() => setConfirming(false)} onConfirm={finalize} />
     </section>

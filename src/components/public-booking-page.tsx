@@ -113,7 +113,7 @@ export default async function PublicBookingPage({ practiceId }: { practiceId?: s
   });
 
   return (
-    <main className="booking-page">
+    <main id="main-content" className="booking-page">
       <div className="container booking-layout">
         <aside className="booking-intro" aria-labelledby="booking-title">
           <div className="eyebrow">Online booking</div>

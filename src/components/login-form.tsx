@@ -29,7 +29,7 @@ export function LoginForm({reason}:{reason?:string}){
     }finally{setLoading(false)}
   }
 
-  return <main style={{minHeight:"75vh",display:"grid",placeItems:"center",background:"#f7f4ed",padding:30}}>
+  return <main id="main-content" style={{minHeight:"75vh",display:"grid",placeItems:"center",background:"#f7f4ed",padding:30}}>
     <form method="post" action="/api/auth/login" onSubmit={submit} className="card login-card" style={{width:"min(440px,100%)",padding:38}}>
       <span style={{width:48,height:48,borderRadius:14,display:"grid",placeItems:"center",background:"#dcece6"}}><LockKeyhole/></span>
       <h1 className="display" style={{fontSize:42,margin:"22px 0 8px"}}>Staff sign in</h1>

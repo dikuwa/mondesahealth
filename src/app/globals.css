@@ -14,6 +14,490 @@
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
+/* Platform public pages: shared shell and application flow ---------------- */
+.platform-public-shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  color: #173a31;
+  background: #fbfcfb;
+}
+.platform-public-shell > main {
+  flex: 1;
+}
+.platform-public-header {
+  position: sticky;
+  top: 0;
+  z-index: 100 !important;
+  border-bottom: 1px solid #e3ebe7;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 1px 0 rgba(18, 63, 53, 0.02);
+  backdrop-filter: blur(16px);
+}
+.platform-public-header-inner {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 28px;
+}
+.platform-public-brand {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.platform-public-brand-mark {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #195a49;
+  color: white;
+  box-shadow: 0 7px 18px rgba(25, 90, 73, 0.16);
+}
+.platform-public-brand .site-brand-copy {
+  display: grid;
+  gap: 2px;
+}
+.platform-public-brand .site-brand-copy strong {
+  font-size: 13px;
+  line-height: 1;
+  letter-spacing: 0.035em;
+}
+.platform-public-brand .site-brand-copy small {
+  color: #768a82;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+.platform-public-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  color: #3b554c;
+  font-size: 13px;
+  font-weight: 700;
+}
+.platform-public-nav a {
+  position: relative;
+}
+.platform-public-nav a::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 4px;
+  left: 0;
+  height: 2px;
+  border-radius: 99px;
+  background: #195a49;
+  transform: scaleX(0);
+  transition: transform 180ms ease;
+}
+.platform-public-nav a:hover::after,
+.platform-public-nav a:focus-visible::after {
+  transform: scaleX(1);
+}
+.platform-public-sign-in {
+  min-height: 44px;
+  justify-self: end;
+  padding-inline: 17px;
+}
+
+.practice-application-hero {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(54px, 7vw, 92px) 0 clamp(72px, 8vw, 112px);
+  background:
+    radial-gradient(circle at 8% 10%, rgba(198, 224, 213, 0.54), transparent 27%),
+    linear-gradient(135deg, #f8f5ed 0%, #f8faf8 52%, #eaf3ef 100%);
+}
+.practice-application-hero::after {
+  content: "";
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  right: -170px;
+  bottom: -190px;
+  border: 1px solid rgba(25, 90, 73, 0.1);
+  border-radius: 50%;
+  box-shadow: 0 0 0 48px rgba(25, 90, 73, 0.025), 0 0 0 96px rgba(25, 90, 73, 0.018);
+  pointer-events: none;
+}
+.practice-application-layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(300px, 0.72fr) minmax(570px, 1.28fr);
+  align-items: start;
+  gap: clamp(42px, 6vw, 82px);
+}
+.practice-application-intro {
+  position: sticky;
+  top: 126px;
+  padding-top: 18px;
+}
+.practice-application-intro h1 {
+  max-width: 560px;
+  margin: 16px 0 22px;
+  font-size: clamp(3.35rem, 5.2vw, 5.3rem);
+  line-height: 0.94;
+  letter-spacing: -0.04em;
+}
+.practice-application-lead {
+  max-width: 540px;
+  margin: 0;
+  color: #586f67;
+  font-size: clamp(1rem, 1.3vw, 1.12rem);
+  line-height: 1.72;
+}
+.practice-application-steps {
+  display: grid;
+  gap: 0;
+  margin-top: 34px;
+  border-top: 1px solid rgba(25, 90, 73, 0.14);
+}
+.practice-application-steps > div {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 13px;
+  padding: 17px 0;
+  border-bottom: 1px solid rgba(25, 90, 73, 0.14);
+}
+.practice-application-steps > div > span {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #195a49;
+  box-shadow: 0 8px 24px rgba(22, 58, 49, 0.06);
+}
+.practice-application-steps p {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+.practice-application-steps strong {
+  font-size: 0.9rem;
+}
+.practice-application-steps small {
+  color: #687d75;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+.practice-application-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 20px 0 0;
+  color: #667b73;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+.practice-application-note svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: #195a49;
+}
+.practice-application-page .public-form-card {
+  width: 100%;
+  margin: 0;
+  padding: clamp(24px, 3vw, 38px);
+  border-color: rgba(25, 90, 73, 0.13);
+  border-radius: 24px;
+  box-shadow: 0 28px 80px rgba(22, 58, 49, 0.11);
+}
+.practice-application-form-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 28px;
+  padding-bottom: 23px;
+  border-bottom: 1px solid #e8efeb;
+}
+.practice-application-form-heading h2 {
+  margin: 8px 0 0;
+  font-size: clamp(1.75rem, 2.6vw, 2.35rem);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+}
+.practice-application-form-heading > small {
+  flex: 0 0 auto;
+  color: #71837d;
+  font-size: 0.7rem;
+}
+.practice-application-form-heading > small span,
+.practice-application-form .field > span b {
+  color: #9a681f;
+}
+.practice-application-form .form-grid {
+  gap: 19px 16px;
+}
+.practice-application-form .field > span {
+  font-size: 0.78rem;
+}
+.practice-application-form .field > span b {
+  font-weight: 850;
+}
+.practice-application-form .input {
+  min-height: 51px;
+  border-color: #d3dfda;
+  border-radius: 12px;
+  background: #fcfdfc;
+  padding-inline: 14px;
+}
+.practice-application-form .input::placeholder {
+  color: #91a099;
+  opacity: 1;
+}
+.practice-application-form .input:hover {
+  border-color: #9bb0a7;
+  background: #fff;
+}
+.practice-application-form textarea.input {
+  min-height: 138px;
+  padding-block: 13px;
+  line-height: 1.55;
+}
+.practice-application-form .form-actions {
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 26px;
+  padding-top: 22px;
+}
+.practice-application-form .form-actions p {
+  max-width: 280px;
+  margin: 0;
+  color: #778981;
+  font-size: 0.69rem;
+  line-height: 1.45;
+}
+.practice-application-form .form-actions .btn {
+  min-height: 52px;
+}
+.application-success {
+  min-height: 420px;
+  place-content: center;
+  justify-items: center;
+  padding-inline: clamp(28px, 6vw, 72px) !important;
+}
+.application-success-icon {
+  width: 60px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 22px;
+  border-radius: 18px;
+  background: #e4f1eb;
+  color: #195a49;
+}
+
+.platform-public-footer {
+  border-top: 0;
+  background: #0f352d;
+  color: white;
+}
+.platform-public-footer .platform-public-footer-grid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(260px, 1.35fr) minmax(220px, 1fr) auto;
+  align-items: start;
+  gap: 36px 64px;
+  padding-block: 46px 24px;
+}
+.platform-public-footer .platform-public-brand-mark {
+  background: white;
+  color: #195a49;
+  box-shadow: none;
+}
+.platform-public-footer .site-brand-copy small {
+  color: #9fbcb1;
+}
+.platform-public-footer-brand > p {
+  max-width: 380px;
+  margin: 15px 0 0;
+  color: #aec7be;
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+.platform-public-footer nav {
+  display: grid;
+  align-items: start;
+  gap: 3px;
+}
+.platform-public-footer nav a {
+  min-height: 36px;
+  color: #c1d5ce;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+.platform-public-footer nav a:hover {
+  color: white;
+}
+.platform-public-footer-cta {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 11px;
+  font-size: 0.78rem;
+  font-weight: 750;
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+.platform-public-footer-cta:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+}
+.platform-public-copyright {
+  grid-column: 1 / -1;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  color: #8eada2;
+  font-size: 0.7rem;
+}
+
+@media (max-width: 1000px) {
+  .practice-application-layout {
+    grid-template-columns: 1fr;
+  }
+  .practice-application-intro {
+    position: static;
+    max-width: 720px;
+    padding-top: 0;
+  }
+  .practice-application-intro h1 {
+    max-width: 720px;
+  }
+  .practice-application-steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    border-top: 0;
+  }
+  .practice-application-steps > div {
+    align-content: start;
+    grid-template-columns: 42px minmax(0, 1fr);
+    padding: 15px;
+    border: 1px solid rgba(25, 90, 73, 0.13);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.58);
+  }
+  .platform-public-footer .platform-public-footer-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .platform-public-footer-cta {
+    justify-self: end;
+  }
+}
+
+@media (max-width: 800px) {
+  .platform-public-header-inner {
+    grid-template-columns: 1fr auto;
+    gap: 14px;
+  }
+  .platform-public-sign-in {
+    min-width: 44px;
+  }
+  .practice-application-hero {
+    padding-top: 44px;
+  }
+  .practice-application-intro h1 {
+    font-size: clamp(3rem, 10.5vw, 4.7rem);
+  }
+  .practice-application-steps {
+    grid-template-columns: 1fr;
+  }
+  .practice-application-steps > div {
+    padding: 13px 14px;
+  }
+}
+
+@media (max-width: 600px) {
+  .platform-public-header-inner {
+    min-height: 68px;
+  }
+  .platform-public-brand-mark {
+    width: 37px;
+    height: 37px;
+    flex-basis: 37px;
+  }
+  .platform-public-brand .site-brand-copy strong {
+    font-size: 11px;
+  }
+  .platform-public-sign-in {
+    padding-inline: 13px;
+  }
+  .practice-application-hero {
+    padding: 36px 0 64px;
+  }
+  .practice-application-layout {
+    gap: 34px;
+  }
+  .practice-application-intro h1 {
+    margin-block: 13px 18px;
+    font-size: clamp(2.7rem, 13vw, 3.8rem);
+    line-height: 0.96;
+  }
+  .practice-application-steps {
+    margin-top: 26px;
+  }
+  .practice-application-note {
+    margin-top: 16px;
+  }
+  .practice-application-page .public-form-card {
+    padding: 22px 17px;
+    border-radius: 18px;
+  }
+  .practice-application-form-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 9px;
+    margin-bottom: 22px;
+    padding-bottom: 19px;
+  }
+  .practice-application-form .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .practice-application-form .field-span-2 {
+    grid-column: auto;
+  }
+  .practice-application-form .form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .practice-application-form .form-actions .btn {
+    width: 100%;
+  }
+  .platform-public-footer .platform-public-footer-grid {
+    grid-template-columns: 1fr;
+    gap: 26px;
+    padding-block: 38px 22px;
+  }
+  .platform-public-footer nav {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .platform-public-footer-cta {
+    width: 100%;
+    justify-content: center;
+    justify-self: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .platform-public-nav a::after,
+  .platform-public-footer-cta {
+    transition: none;
+  }
+}
 
 /* Longitudinal patient record and consultation surfaces */
 .patient-record-header {
@@ -982,6 +1466,40 @@ textarea.input {
   text-transform: capitalize;
   white-space: nowrap;
 }
+.platform-account-link {
+  min-width: 0;
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 10px 5px 6px;
+  border: 1px solid #d3dfda;
+  border-radius: 12px;
+  background: #f4f8f6;
+  color: #214b41;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+.platform-account-link:hover {
+  border-color: #8eaaa0;
+  background: #eaf3ef;
+}
+.platform-account-avatar {
+  width: 32px;
+  height: 32px;
+  overflow: hidden;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #d9ece3;
+  color: #1d5845;
+  font-size: 12px;
+  font-weight: 850;
+}
+.platform-account-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.platform-account-link > span:nth-child(2) { min-width: 0; display: grid; gap: 1px; }
+.platform-account-link small { color: #61766e; font-size: 9px; line-height: 1.2; }
+.platform-account-link strong { overflow: hidden; font-size: 11px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 .dashboard-site-link {
   min-height: 44px;
   display: inline-flex;
@@ -1056,6 +1574,10 @@ textarea.input {
   font-size: clamp(1.65rem, 2.4vw, 1.95rem);
   line-height: 1.05;
   letter-spacing: normal;
+}
+.dashboard-stat-value {
+  overflow-wrap: anywhere;
+  font-size: clamp(1.35rem, 2.1vw, 1.9rem);
 }
 .dashboard-stat-note {
   color: #768780;
@@ -4897,8 +5419,8 @@ details[open] > :not(summary) {
 .services-hero h1 {
   max-width: 900px;
   margin: 15px 0 22px;
-  font-size: clamp(3.1rem, 5.8vw, 5.75rem);
-  line-height: 0.94;
+  font-size: clamp(2.65rem, 5vw, 4.75rem);
+  line-height: 0.98;
 }
 .services-hero p {
   max-width: 680px;
@@ -6039,9 +6561,19 @@ a.landing-feature-card:hover { border-color: #aac7bb; box-shadow: 0 12px 30px #1
   line-height: 1.5;
 }
 .audit-panel .record-row {
-  min-height: 94px;
+  min-height: 62px;
   align-items: center;
 }
+.audit-panel .platform-audit-row { padding-block: 10px; }
+.audit-row-heading { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.audit-panel .audit-action {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+.audit-panel .record-row small { font-size: 10px; }
+.audit-panel .record-row p { margin: 3px 0 0; font-size: 11px; line-height: 1.35; }
 .audit-action {
   display: inline-flex;
   margin-bottom: 6px;
@@ -7336,8 +7868,8 @@ main p {
 }
 .directory-table td:first-child,
 .directory-table th:first-child {
-  width: 44px;
-  text-align: center;
+  width: auto;
+  text-align: left;
 }
 .directory-order-input {
   max-width: 70px;
@@ -7498,6 +8030,66 @@ main p {
 }
 .password-copy-banner small {
   color: #61766e;
+}
+.ownership-transfer-card { overflow: hidden; }
+.ownership-transfer-actions { align-items: center; flex-wrap: wrap; }
+.owner-invitation-banner {
+  position: static;
+  grid-template-columns: minmax(0, 1fr) auto;
+  width: 100%;
+  max-width: none;
+  margin: 16px 0 0;
+  color: var(--green);
+}
+.owner-invitation-banner code {
+  display: block;
+  max-width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.practice-owner-cell { display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center; gap: 9px; min-width: 180px; }
+.practice-owner-cell > span:last-child { min-width: 0; display: grid; gap: 2px; }
+.practice-owner-cell small { overflow-wrap: anywhere; color: #687b74; }
+.practice-owner-avatar { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: #e3f0ea; color: #205344; font-size: 12px; font-weight: 850; }
+.town-tag { width: fit-content; max-width: 100%; display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border: 1px solid #cfe1d8; border-radius: 999px; background: #edf6f2; color: #285c4a; font-size: 11px; font-style: normal; font-weight: 750; line-height: 1.2; overflow-wrap: anywhere; }
+
+.practice-directory-filters { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(180px, 0.45fr) auto auto; gap: 10px; align-items: center; margin-bottom: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: #f8faf9; }
+.practice-directory-filters .search-box { width: 100%; }
+.practice-directory-filters .btn { white-space: nowrap; }
+.directory-result-count { margin: 4px 0 0; color: #667b73; font-size: 12px; }
+.service-listing-labels { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.service-listing-copy .service-listing-labels .eyebrow { margin: 0; }
+.service-listing-copy h2,
+.service-listing-copy p,
+.service-listing-meta span,
+.landing-practice-list b { overflow-wrap: anywhere; }
+.landing-practice-list p .town-tag { margin-top: 3px; }
+.sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
+
+@media (max-width: 1040px) {
+  .platform-site-link span { display: none; }
+  .platform-site-link { width: 44px; padding: 0; }
+  .practice-directory-filters { grid-template-columns: minmax(220px, 1fr) minmax(170px, 0.55fr) auto; }
+  .practice-directory-filters .btn-light { grid-column: 1 / -1; }
+}
+
+@media (max-width: 760px) {
+  .platform-account-link { width: 42px; min-height: 42px; grid-template-columns: 30px; padding: 5px; }
+  .platform-account-link > span:nth-child(2), .platform-account-link > svg { display: none; }
+  .platform-account-avatar { width: 30px; height: 30px; }
+  .platform-site-link { display: none; }
+  .practice-directory-filters { grid-template-columns: 1fr; }
+  .practice-directory-filters .btn-light { grid-column: auto; }
+  .owner-invitation-banner { grid-template-columns: 1fr; }
+  .owner-invitation-banner .btn { width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .dashboard-topbar-actions { gap: 6px; }
+  .dashboard-topbar-actions .workspace-switcher { max-width: 132px; }
+  .audit-row-heading { display: grid; gap: 3px; }
 }
 .medical-aid-editor-panel {
   width: min(980px, calc(100vw - 40px));
