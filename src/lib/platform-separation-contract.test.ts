@@ -18,7 +18,8 @@ describe("platform and practice separation contracts", () => {
       "src/app/practices/[slug]/services/page.tsx",
       "src/app/practices/[slug]/book/page.tsx",
     ]) expect(existsSync(join(process.cwd(), path))).toBe(true);
-    expect(source("src/app/page.tsx")).toContain("Independent healthcare practices");
+    expect(source("src/app/page.tsx")).toContain("PlatformLandingPage");
+    expect(source("src/lib/platform-landing.ts")).toContain("Independent healthcare practices");
   });
 
   it("requires an activated independent owner before final separation", () => {

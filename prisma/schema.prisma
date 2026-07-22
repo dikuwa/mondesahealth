@@ -82,6 +82,17 @@ model PlatformInvitation {
   @@index([email, acceptedAt, expiresAt])
 }
 
+model PlatformLandingPage {
+  id               String    @id @default("platform-landing-page")
+  draftContent     Json
+  publishedContent Json?
+  draftUpdatedAt   DateTime  @default(now())
+  publishedAt      DateTime?
+  publishedById    String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
 model Practice {
   id                    String                 @id @default(cuid())
   slug                  String                 @unique

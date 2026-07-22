@@ -14,6 +14,8 @@ export const PLATFORM_PERMISSIONS = [
   "EXPORT_PLATFORM_DATA",
   "MANAGE_SUPPORT_ACCESS",
   "MANAGE_PLATFORM_USERS",
+  "VIEW_PLATFORM_WEBSITE",
+  "MANAGE_PLATFORM_WEBSITE",
   "TRANSFER_PLATFORM_OWNERSHIP",
 ] as const;
 
@@ -54,6 +56,8 @@ export const platformRoleDefaults: Record<PlatformRole, PlatformPermission[]> = 
     "VIEW_SERVICE_TEMPLATES",
     "MANAGE_SERVICE_TEMPLATES",
     "VIEW_PLATFORM_ANALYTICS",
+    "VIEW_PLATFORM_WEBSITE",
+    "MANAGE_PLATFORM_WEBSITE",
   ],
   FINANCE: [
     "VIEW_PLATFORM_OVERVIEW",
@@ -71,6 +75,7 @@ export const platformRoleDefaults: Record<PlatformRole, PlatformPermission[]> = 
     "VIEW_PLATFORM_FINANCE",
     "VIEW_PLATFORM_ANALYTICS",
     "VIEW_PLATFORM_AUDIT",
+    "VIEW_PLATFORM_WEBSITE",
     "EXPORT_PLATFORM_DATA",
   ],
   SUPPORT: [
@@ -96,6 +101,8 @@ export const platformPermissionLabels: Record<PlatformPermission, string> = {
   EXPORT_PLATFORM_DATA: "Export platform reports",
   MANAGE_SUPPORT_ACCESS: "Manage exceptional support grants",
   MANAGE_PLATFORM_USERS: "Manage platform team access",
+  VIEW_PLATFORM_WEBSITE: "View platform website content",
+  MANAGE_PLATFORM_WEBSITE: "Edit and publish platform website content",
   TRANSFER_PLATFORM_OWNERSHIP: "Transfer primary ownership",
 };
 

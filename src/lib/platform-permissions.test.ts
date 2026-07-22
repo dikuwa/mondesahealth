@@ -22,4 +22,10 @@ describe("platform permissions", () => {
     expect(canGrantPlatformPermissions(platformRoleDefaults.OPERATIONS, ["MANAGE_PRACTICES"])).toBe(true);
     expect(canGrantPlatformPermissions(platformRoleDefaults.OPERATIONS, ["MANAGE_PLATFORM_USERS"])).toBe(false);
   });
+
+  it("separates website publishing from practice workspaces", () => {
+    expect(platformRoleDefaults.OPERATIONS).toContain("MANAGE_PLATFORM_WEBSITE");
+    expect(platformRoleDefaults.COMPLIANCE).toContain("VIEW_PLATFORM_WEBSITE");
+    expect(platformRoleDefaults.SUPPORT).not.toContain("MANAGE_PLATFORM_WEBSITE");
+  });
 });

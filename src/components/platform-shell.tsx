@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   UserCog,
+  PanelsTopLeft,
   X,
 } from "lucide-react";
 import { WorkspaceSwitcher, type WorkspaceOption } from "@/components/workspace-switcher";
@@ -32,6 +33,7 @@ const items = [
   ["Platform audit", "/platform/audit", Activity, "VIEW_PLATFORM_AUDIT"],
   ["Controlled support", "/platform/support", ShieldCheck, "MANAGE_SUPPORT_ACCESS"],
   ["Platform team", "/platform/users", UserCog, "MANAGE_PLATFORM_USERS"],
+  ["Website", "/platform/website", PanelsTopLeft, "VIEW_PLATFORM_WEBSITE"],
 ] as const;
 const pageNames: Record<string, string> = {
   "/platform/practices": "Practices",
@@ -43,6 +45,7 @@ const pageNames: Record<string, string> = {
   "/platform/audit": "Platform audit",
   "/platform/support": "Controlled support",
   "/platform/users": "Platform team",
+  "/platform/website": "Landing page",
   "/platform/profile": "Profile & security",
 };
 
