@@ -129,7 +129,7 @@ export async function POST(request: Request) {
           requestInfo: requestAuditInfo(request),
         },
       });
-    });
+    }, { maxWait: 15_000, timeout: 60_000 });
     return NextResponse.json({
       ok: true,
       credentials: {

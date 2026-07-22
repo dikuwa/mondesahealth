@@ -56,7 +56,7 @@ async function main(){
     await tx.userInvitation.create({data:{practiceId:practice.id,email:practiceOwner.email,name:practiceOwner.name,role:"OWNER",tokenHash:createHash("sha256").update(rawToken).digest("hex"),expiresAt:addDays(now,7),invitedById:platformOwner.id}});
     await tx.practiceHandover.create({data:{practiceId:practice.id,status:"OWNER_INVITED",ownerEmail:practiceOwner.email,invitedAt:now,createdById:platformOwner.id,rollbackReason:"Fresh guided handover created by safe reset"}});
     await tx.activityLog.create({data:{userId:platformOwner.id,action:"PRACTICE_HANDOVER_ROLLED_BACK",entityType:"Practice",entityId:practice.id,summary:`Safely reset ${practice.name} handover after verified encrypted backup; all practice records preserved`}});
-  });
+  },{maxWait:15_000,timeout:60_000});
   const after=await counts(practice.id);
   if(JSON.stringify(snapshot)!==JSON.stringify(after))throw new Error("Record-count invariant failed after reset. Restore from the verified backup and investigate immediately.");
   const credentialPath=resolve(process.env.HANDOVER_CREDENTIALS_FILE||`./.private/${practice.slug}-handover-credentials.json`);
