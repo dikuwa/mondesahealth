@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const { chromium } = require("/Users/stunna/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright");
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const required = (key) => { if (!process.env[key]) throw new Error(`${key} is required.`); return process.env[key]; };
 const base = process.env.E2E_BASE_URL || "http://localhost:3001";
@@ -26,11 +27,19 @@ const widths = process.env.E2E_WIDTHS ? process.env.E2E_WIDTHS.split(",").map(Nu
   });
   page.on("response", (response) => { if (response.status() >= 500) report.runtimeErrors.push(`http ${response.status()}: ${response.url()}`); });
 
-  await page.goto(`${base}/login`, { waitUntil: "networkidle" });
-  await page.locator('input[name="email"]').fill(required("E2E_OWNER_EMAIL"));
-  await page.locator('input[name="password"]').fill(required("E2E_OWNER_PASSWORD"));
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await page.waitForURL("**/platform/practices");
+  if (process.env.E2E_SESSION_USER_ID) {
+    const { SignJWT } = await import("jose");
+    const token = await new SignJWT({ id: process.env.E2E_SESSION_USER_ID, version: Number(process.env.E2E_SESSION_VERSION), scope: "PLATFORM", practiceId: null })
+      .setProtectedHeader({ alg: "HS256", typ: "JWT" }).setIssuedAt().setIssuer("mondesahealth").setAudience("mondesahealth-staff").setJti(crypto.randomUUID()).setExpirationTime("8h")
+      .sign(new TextEncoder().encode(required("AUTH_SECRET")));
+    await page.context().addCookies([{ name: "mondesa_session", value: token, url: base, httpOnly: true, sameSite: "Lax" }]);
+  } else {
+    await page.goto(`${base}/login`, { waitUntil: "networkidle" });
+    await page.locator('input[name="email"]').fill(required("E2E_OWNER_EMAIL"));
+    await page.locator('input[name="password"]').fill(required("E2E_OWNER_PASSWORD"));
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await page.waitForURL("**/platform/practices");
+  }
 
   for (const route of routes) {
     report.routes[route] = {};
@@ -50,6 +59,11 @@ const widths = process.env.E2E_WIDTHS ? process.env.E2E_WIDTHS.split(",").map(Nu
       }));
       if (process.env.E2E_CAPTURE === "1" && width === 1440) {
         await page.screenshot({ path: `e2e-artifacts/platform/${route.split("/").pop()}-1440.png`, fullPage: true });
+        const ownershipTransfer = page.locator(".ownership-transfer-card");
+        if (await ownershipTransfer.count()) {
+          await ownershipTransfer.scrollIntoViewIfNeeded();
+          await ownershipTransfer.screenshot({ path: "e2e-artifacts/platform/ownership-transfer-1440.png" });
+        }
       }
     }
   }

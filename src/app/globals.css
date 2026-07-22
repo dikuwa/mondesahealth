@@ -8031,14 +8031,191 @@ main p {
 .password-copy-banner small {
   color: #61766e;
 }
-.ownership-transfer-card { overflow: hidden; }
-.ownership-transfer-actions { align-items: center; flex-wrap: wrap; }
+.ownership-transfer-card {
+  overflow: hidden;
+  padding: 0 !important;
+  border-color: #cfddd7;
+  box-shadow: 0 16px 42px rgba(20, 55, 44, 0.07);
+}
+.ownership-transfer-header {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+  padding: 24px 26px;
+  border-bottom: 1px solid #dce7e2;
+  background: linear-gradient(135deg, #f4faf7 0%, #fff 72%);
+}
+.ownership-transfer-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid #c7ddd3;
+  border-radius: 14px;
+  background: #e5f2ec;
+  color: #1d604d;
+}
+.ownership-transfer-heading { min-width: 0; }
+.ownership-transfer-heading .eyebrow { margin: 0 0 6px; }
+.ownership-transfer-heading h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(1.2rem, 2vw, 1.45rem);
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+}
+.ownership-transfer-heading p {
+  max-width: 720px;
+  margin: 7px 0 0;
+  color: #63776f;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.ownership-transfer-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 7px 11px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.ownership-transfer-status.is-ready {
+  border-color: #b8dacb;
+  background: #e6f4ed;
+  color: #1c654f;
+}
+.ownership-transfer-status.is-pending {
+  border-color: #ead8ad;
+  background: #fff7df;
+  color: #805d19;
+}
+.ownership-transfer-body {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 18px;
+  padding: 22px 26px;
+}
+.ownership-owner-summary,
+.ownership-transfer-outcomes {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #e0e9e5;
+  border-radius: 14px;
+  background: #fbfdfc;
+}
+.ownership-transfer-label {
+  display: block;
+  margin-bottom: 10px;
+  color: #697c74;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+.ownership-owner-detail {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+}
+.ownership-owner-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: #e9f3ef;
+  color: #28624f;
+}
+.ownership-owner-detail div { min-width: 0; }
+.ownership-owner-detail strong,
+.ownership-owner-detail small { display: block; overflow-wrap: anywhere; }
+.ownership-owner-detail strong { color: var(--ink); font-size: 14px; line-height: 1.4; }
+.ownership-owner-detail small { margin-top: 3px; color: #71827c; font-size: 11px; line-height: 1.45; }
+.ownership-transfer-outcomes ul {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ownership-transfer-outcomes li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  gap: 7px;
+  color: #405c52;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.ownership-transfer-outcomes li svg { margin-top: 1px; color: #2b705a; }
+.ownership-invitation-panel,
+.ownership-finalize-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 26px;
+  border-top: 1px solid #e2ebe7;
+}
+.ownership-invitation-panel { background: #f7faf8; }
+.ownership-invitation-panel h3,
+.ownership-finalize-panel h3 { margin: 0; color: var(--ink); font-size: 14px; line-height: 1.35; }
+.ownership-invitation-panel p,
+.ownership-finalize-panel p { margin: 4px 0 0; color: #6a7d75; font-size: 12px; line-height: 1.5; }
+.ownership-transfer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.ownership-transfer-actions .custom-checkbox { white-space: nowrap; }
+.ownership-ready-banner {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  margin: 0 26px 22px;
+  padding: 14px 16px;
+  border: 1px solid #bcdccc;
+  border-radius: 13px;
+  background: #eaf6f0;
+  color: #205c49;
+}
+.ownership-ready-banner > span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #d2ebdf;
+}
+.ownership-ready-banner strong { display: block; font-size: 13px; line-height: 1.35; }
+.ownership-ready-banner p { margin: 3px 0 0; color: #4f7165; font-size: 12px; line-height: 1.5; }
+.ownership-finalize-panel {
+  align-items: flex-end;
+  border-top-color: #ead8d4;
+  background: #fff9f8;
+}
+.ownership-finalize-panel .ownership-transfer-label { margin-bottom: 5px; color: #945249; }
+.ownership-finalize-panel .btn { flex: 0 0 auto; }
 .owner-invitation-banner {
   position: static;
   grid-template-columns: minmax(0, 1fr) auto;
   width: 100%;
   max-width: none;
-  margin: 16px 0 0;
+  margin: 0;
+  border-width: 1px 0 0;
+  border-radius: 0;
+  box-shadow: none;
   color: var(--green);
 }
 .owner-invitation-banner code {
@@ -8047,6 +8224,38 @@ main p {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .ownership-transfer-header {
+    grid-template-columns: 42px minmax(0, 1fr);
+    padding: 20px;
+  }
+  .ownership-transfer-icon { width: 42px; height: 42px; border-radius: 12px; }
+  .ownership-transfer-status { grid-column: 1 / -1; width: fit-content; margin-left: 58px; }
+  .ownership-transfer-body { grid-template-columns: 1fr; padding: 18px 20px; }
+  .ownership-invitation-panel,
+  .ownership-finalize-panel { align-items: stretch; flex-direction: column; padding: 18px 20px; }
+  .ownership-transfer-actions { align-items: stretch; justify-content: flex-start; }
+  .ownership-ready-banner { margin: 0 20px 18px; }
+  .ownership-finalize-panel .btn { align-self: flex-start; }
+}
+
+@media (max-width: 480px) {
+  .ownership-transfer-header { grid-template-columns: 1fr; gap: 12px; padding: 18px 16px; }
+  .ownership-transfer-status { grid-column: auto; margin-left: 0; }
+  .ownership-transfer-body { padding: 16px; }
+  .ownership-owner-summary,
+  .ownership-transfer-outcomes { padding: 15px; }
+  .ownership-ready-banner { margin: 0 16px 16px; }
+  .ownership-invitation-panel,
+  .ownership-finalize-panel { padding: 17px 16px; }
+  .ownership-transfer-actions,
+  .ownership-transfer-actions .btn,
+  .ownership-finalize-panel .btn { width: 100%; }
+  .ownership-transfer-actions .btn { justify-content: center; }
+  .owner-invitation-banner { grid-template-columns: 1fr; padding-inline: 16px; }
+  .owner-invitation-banner .btn { width: 100%; justify-content: center; }
 }
 
 .practice-owner-cell { display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center; gap: 9px; min-width: 180px; }
