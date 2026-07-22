@@ -3,7 +3,9 @@ import { chmod, mkdir, stat, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { hash } from "bcryptjs";
 import { addDays } from "date-fns";
-import { db } from "../src/lib/db";
+import { PrismaClient } from "@prisma/client";
+
+const db=new PrismaClient({datasources:{db:{url:process.env.DIRECT_URL||process.env.DATABASE_URL}}});
 
 const args=new Map(process.argv.slice(2).map(value=>{const [key,...rest]=value.split("=");return [key,rest.join("=")||"true"];}));
 const practiceSlug=args.get("--practice")||"mondesa-health";
