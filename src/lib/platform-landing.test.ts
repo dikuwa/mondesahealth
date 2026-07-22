@@ -17,6 +17,7 @@ describe("platform landing page content", () => {
   it("accepts real internal section destinations and rejects unsafe protocols", () => {
     const safe = structuredClone(defaultPlatformLandingContent);
     safe.hero.secondaryCtaDestination = "#how-it-works";
+    safe.footer.attribution.url = "http://localhost:3000/";
     expect(platformLandingSchema.safeParse(safe).success).toBe(true);
 
     const unsafe = structuredClone(defaultPlatformLandingContent);
@@ -26,6 +27,22 @@ describe("platform landing page content", () => {
 
   it("falls back safely when stored content is malformed", () => {
     expect(parseLandingContent({ version: 1, hero: { headingLines: [] } })).toEqual(defaultPlatformLandingContent);
+  });
+
+  it("upgrades saved landing snapshots with safe footer defaults", () => {
+    const legacy = structuredClone(defaultPlatformLandingContent);
+    const parsed = parseLandingContent({ ...legacy, footer: { groups: legacy.footer.groups } });
+    expect(parsed.footer.contact).toEqual(defaultPlatformLandingContent.footer.contact);
+    expect(parsed.footer.attribution.url).toBe("https://flextech-media.com/");
+    expect(parsed.footer.copyright).toContain("All rights reserved");
+  });
+
+  it("ships the corrected footer contact details", () => {
+    expect(defaultPlatformLandingContent.footer.contact).toMatchObject({
+      email: "info@flextechmedia.com",
+      phone: "+264 81 85 63 005",
+      location: "Namibia",
+    });
   });
 
   it("reorders repeatable content with persisted sequential ordering", () => {
@@ -67,5 +84,16 @@ describe("platform landing page implementation contract", () => {
     expect(renderer).toContain('href="/services"');
     expect(renderer).toContain("/practices/${practice.slug}");
     expect(defaultPlatformLandingContent.general.primaryCtaDestination).toBe("/apply");
+  });
+
+  it("keeps the footer compact, editable and safely attributed", () => {
+    const footer = source("src/components/landing-footer.tsx");
+    const editor = source("src/components/landing-page-editor.tsx");
+    const styles = source("src/app/globals.css");
+    expect(footer).toContain('href={attribution.url} target="_blank" rel="noopener noreferrer"');
+    expect(footer).toContain("ExternalLink");
+    for (const label of ["Contact Information", "Footer Navigation Columns", "Attribution", "Copyright", "Live footer preview"]) expect(editor).toContain(label);
+    expect(styles).toContain("border-radius: var(--landing-hero-radius)");
+    expect(styles).not.toContain("border-radius: 28px 28px 120px 28px");
   });
 });

@@ -6,6 +6,7 @@ import {
   LockKeyhole, Menu, ReceiptText, ShieldCheck, Star, Stethoscope, UserCog, Users,
 } from "lucide-react";
 import type { PlatformLandingContent } from "@/lib/platform-landing";
+import { LandingFooter } from "@/components/landing-footer";
 
 const icons = { Activity, BarChart3, Bell, Building2, CalendarCheck, CalendarDays, CheckCircle2, ClipboardList, CreditCard, FileHeart, FileText, HeartPulse, LockKeyhole, ReceiptText, ShieldCheck, Stethoscope, UserCog, Users };
 const ordered = <T extends { order: number; enabled: boolean }>(items: T[]) => items.filter((item) => item.enabled).sort((a, b) => a.order - b.order);
@@ -92,6 +93,6 @@ export function PlatformLandingPage({ content, systemMetrics, practices, preview
       <section className="landing-final-cta"><div className="landing-container"><div className="landing-final-card"><div><span className="eyebrow">{content.finalCta.eyebrow}</span><h2>{content.finalCta.heading}</h2><p>{content.finalCta.text}</p><SmartLink href={content.finalCta.destination} className="btn landing-cta-light">{content.finalCta.label}<ArrowRight size={17}/></SmartLink><small>{content.finalCta.reassurance}</small></div><div className="landing-final-image"><MarketingImage src={content.finalCta.image} alt={content.finalCta.imageAlt}/></div></div></div></section>
     </main>
 
-    <footer className="landing-footer"><div className="landing-container"><div className="landing-footer-grid"><div><Link href="/" className="landing-brand"><span className="landing-brand-mark"><HeartPulse size={21}/></span><span><b>MONDESA HEALTH</b><small>{content.general.logoSubtitle}</small></span></Link><p>{content.general.footerDescription}</p>{content.general.supportEmail && <a href={`mailto:${content.general.supportEmail}`}>{content.general.supportEmail}</a>}{content.general.supportPhone && <a href={`tel:${content.general.supportPhone}`}>{content.general.supportPhone}</a>}</div>{ordered(content.footer.groups).map((group) => <nav key={group.id} aria-label={group.title}><b>{group.title}</b>{ordered(group.links).map((link) => <SmartLink key={link.id} href={link.url} external={link.external}>{link.label}</SmartLink>)}</nav>)}</div><div className="landing-footer-meta"><span>{content.general.copyright}</span><div>{content.general.socialLinks.filter((link) => link.enabled).map((link) => <SmartLink key={link.label} href={link.url} external>{link.label}</SmartLink>)}</div></div></div></footer>
+    <LandingFooter content={content}/>
   </div>;
 }

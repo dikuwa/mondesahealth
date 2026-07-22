@@ -12,6 +12,10 @@ const safeDestination = z.string().trim().min(1).max(500).refine(
   (value) => value.startsWith("/") || value.startsWith("#") || /^https:\/\//i.test(value) || /^mailto:/i.test(value) || /^tel:/i.test(value),
   "Use an internal path, HTTPS, email, or telephone link.",
 );
+const safeFooterDestination = z.string().trim().min(1).max(500).refine(
+  (value) => value.startsWith("/") || value.startsWith("#") || /^https?:\/\//i.test(value) || /^mailto:/i.test(value) || /^tel:/i.test(value),
+  "Use an internal path, HTTP(S), email, or telephone link.",
+);
 const imageValue = z.string().max(1_500_000).refine(
   (value) => !value || value.startsWith("/images/") || /^data:image\/(png|jpe?g|webp);base64,/i.test(value),
   "Use an uploaded PNG, JPEG, or WebP image.",
@@ -75,7 +79,23 @@ export const platformLandingSchema = z.object({
   faq: z.object({ eyebrow: z.string().max(80), heading: z.string().min(1).max(160), items: z.array(itemBase.extend({ question: z.string().min(1).max(180), answer: z.string().min(1).max(1200), category: z.string().max(60) })).max(16) }),
   finalCta: z.object({ eyebrow: z.string().max(80), heading: z.string().min(1).max(180), text: z.string().min(1).max(500), label: z.string().min(1).max(50), destination: safeDestination, reassurance: z.string().max(180), image: imageValue, imageAlt: z.string().max(180) }),
   pricing: z.object({ enabled: z.boolean(), eyebrow: z.string().max(80), heading: z.string().max(160), description: z.string().max(360), plans: z.array(itemBase.extend({ name: z.string().min(1).max(80), period: z.string().max(60), price: z.string().max(40), description: z.string().max(240), features: z.array(z.string().min(1).max(100)).max(10), ctaLabel: z.string().min(1).max(50), ctaDestination: safeDestination, highlighted: z.boolean() })).max(4) }),
-  footer: z.object({ groups: z.array(itemBase.extend({ title: z.string().min(1).max(60), links: z.array(itemBase.extend({ label: z.string().min(1).max(60), url: safeDestination, external: z.boolean() })).max(10) })).max(6) }),
+  footer: z.object({
+    contact: z.object({
+      email: z.string().email().or(z.literal("")),
+      phone: z.string().max(40),
+      location: z.string().max(80),
+      description: z.string().max(300),
+      enabled: z.boolean(),
+    }).default({ email: "info@flextechmedia.com", phone: "+264 81 85 63 005", location: "Namibia", description: "Independent digital workspaces for healthcare practices in Namibia.", enabled: true }),
+    attribution: z.object({
+      enabled: z.boolean(),
+      prefix: z.string().max(60),
+      name: z.string().min(1).max(80),
+      url: safeFooterDestination,
+    }).default({ enabled: true, prefix: "Designed by", name: "FlexTech Media", url: "https://flextech-media.com/" }),
+    copyright: z.string().min(1).max(160).default("© 2026 Mondesa Health Platform. All rights reserved."),
+    groups: z.array(itemBase.extend({ title: z.string().min(1).max(60), links: z.array(itemBase.extend({ label: z.string().min(1).max(60), url: safeFooterDestination, external: z.boolean() })).max(10) })).max(4),
+  }),
   seo: z.object({ title: z.string().min(1).max(70), description: z.string().min(1).max(180), canonicalUrl: z.union([z.string().url(), z.literal("")]), socialTitle: z.string().max(80), socialDescription: z.string().max(200), socialImage: imageValue, socialImageAlt: z.string().max(180), indexable: z.boolean() }),
 });
 
@@ -143,13 +163,17 @@ export const defaultPlatformLandingContent: PlatformLandingContent = {
   ].map(([id, question, answer], order) => ({ ...base(`faq-${id}`, order), question, answer, category: "Getting started" })) },
   finalCta: { eyebrow: "Ready when you are", heading: "Give your practice a workspace built around how you work.", text: "Register your practice, configure your services and start building a clearer patient experience with Mondesa Health.", label: "Register your practice", destination: "/apply", reassurance: "No public listing is published before practice verification.", image: "/images/mondesa-hero.webp", imageAlt: "Mondesa Health practice team" },
   pricing: { enabled: false, eyebrow: "Simple plans", heading: "Choose the right plan for your practice", description: "Published plans and pricing appear here when configured.", plans: [] },
-  footer: { groups: [
+  footer: {
+    contact: { email: "info@flextechmedia.com", phone: "+264 81 85 63 005", location: "Namibia", description: "Independent digital workspaces for healthcare practices in Namibia.", enabled: true },
+    attribution: { enabled: true, prefix: "Designed by", name: "FlexTech Media", url: "https://flextech-media.com/" },
+    copyright: "© 2026 Mondesa Health Platform. All rights reserved.",
+    groups: [
     { ...base("footer-platform", 0), title: "Platform", links: [
       { ...base("footer-for-practices", 0), label: "For practices", url: "#benefits", external: false }, { ...base("footer-features", 1), label: "Features", url: "#features", external: false },
       { ...base("footer-directory", 2), label: "Practice directory", url: "/services", external: false }, { ...base("footer-register", 3), label: "Register a practice", url: "/apply", external: false },
     ] },
     { ...base("footer-resources", 1), title: "Resources", links: [{ ...base("footer-faq", 0), label: "FAQ", url: "#faq", external: false }, { ...base("footer-policies", 1), label: "Policies", url: "/policies", external: false }] },
-    { ...base("footer-company", 2), title: "Company", links: [{ ...base("footer-contact", 0), label: "Contact", url: "mailto:hello@mondesahealth.na", external: true }] },
+    { ...base("footer-company", 2), title: "Company", links: [{ ...base("footer-contact", 0), label: "Contact", url: "mailto:info@flextechmedia.com", external: false }] },
     { ...base("footer-legal", 3), title: "Legal", links: [{ ...base("footer-privacy", 0), label: "Privacy and terms", url: "/policies", external: false }, { ...base("footer-security", 1), label: "Security", url: "/policies", external: false }] },
   ] },
   seo: { title: "Mondesa Health — Independent Practice Platform", description: "Give your healthcare practice a branded public page, online booking and an independent workspace for patients, records, claims and payments.", canonicalUrl: "https://mondesahealth.vercel.app/", socialTitle: "Mondesa Health Practice Platform", socialDescription: "Public pages, online booking and independent practice management in one secure workspace.", socialImage: "/images/mondesa-doctor-hero.jpg", socialImageAlt: "Mondesa Health practice platform", indexable: true },
