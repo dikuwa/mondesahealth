@@ -184,7 +184,7 @@ export async function getLandingSystemMetrics() {
 }
 
 export async function getPlatformLandingPageData() {
-  const operationalQueries = [
+  const runOperationalQueries = () => db.$transaction([
     db.practice.count({ where: { status: "ACTIVE", publicVisible: true } }),
     db.appointment.count({ where: { status: "COMPLETED" } }),
     db.sickNote.count(),
@@ -194,19 +194,27 @@ export async function getPlatformLandingPageData() {
       orderBy: { name: "asc" },
       take: 6,
     }),
-  ] as const;
+  ]);
   let record: Awaited<ReturnType<typeof getLandingRecord>> = null;
   let result;
   try {
     const [landingRecord, ...operational] = await db.$transaction([
       db.platformLandingPage.findUnique({ where: { id: "platform-landing-page" } }),
-      ...operationalQueries,
+      db.practice.count({ where: { status: "ACTIVE", publicVisible: true } }),
+      db.appointment.count({ where: { status: "COMPLETED" } }),
+      db.sickNote.count(),
+      db.practice.findMany({
+        where: { status: "ACTIVE", publicVisible: true, subscriptionStatus: { in: ["ACTIVE", "OVERDUE"] } },
+        select: { slug: true, name: true, type: true, town: true, logoData: true },
+        orderBy: { name: "asc" },
+        take: 6,
+      }),
     ]);
     record = landingRecord;
     result = operational;
   } catch (error) {
     if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2021") throw error;
-    result = await db.$transaction(operationalQueries);
+    result = await runOperationalQueries();
   }
   const [activePractices, completedBookings, generatedDocuments, practices] = result;
   return {
