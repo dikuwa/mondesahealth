@@ -73,7 +73,7 @@ export function PracticeRegistrationFields({
     </label>
     <label className="field">
       <Label>Practice registration number</Label>
-      <input className="input" name={names.registrationNumber} placeholder="Optional business or practice number" />
+      <input className="input" name={names.registrationNumber} placeholder="Optional" />
     </label>
     <label className="field">
       <Label required>Town or city</Label>
