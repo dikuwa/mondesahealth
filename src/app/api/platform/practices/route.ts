@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { sendInvitationEmail as deliverInvitationEmail } from "@/lib/invitation-email";
 import { requestAuditInfo } from "@/lib/tenant";
 import { genericPracticeContent } from "@/lib/generic-practice-content";
+import { platformPracticeRegistrationCoreSchema } from "@/lib/practice-registration";
 
 const status = z.enum([
   "DRAFT",
@@ -19,18 +20,10 @@ const status = z.enum([
   "REJECTED",
   "CLOSED",
 ]);
-const create = z.object({
-  name: z.string().trim().min(2).max(140),
-  type: z.string().trim().min(2).max(80),
-  ownerName: z.string().trim().min(2).max(120),
-  ownerEmail: z.string().email(),
-  registrationNumber: z.string().trim().max(100).optional(),
+const create = platformPracticeRegistrationCoreSchema.extend({
   licenceInformation: z.string().trim().max(500).optional(),
-  phone: z.string().trim().max(30).optional(),
   whatsapp: z.string().trim().max(30).optional(),
   address: z.string().trim().max(300).optional(),
-  town: z.string().trim().max(100).optional(),
-  region: z.string().trim().max(100).optional(),
   description: z.string().trim().max(2000).optional(),
   status: status.default("DRAFT"),
   publicVisible: z.boolean().default(false),

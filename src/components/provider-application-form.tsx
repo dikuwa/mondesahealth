@@ -3,13 +3,19 @@
 import { useState } from "react";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { PracticeRegistrationFields } from "@/components/practice-registration-fields";
 
 export function ProviderApplicationForm() {
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const [practiceType, setPracticeType] = useState("");
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!practiceType) {
+      toast.error("Select the practice type.");
+      return;
+    }
     setSaving(true);
     const id = toast.loading("Submitting provider application…");
     const form = new FormData(event.currentTarget);
@@ -17,7 +23,7 @@ export function ProviderApplicationForm() {
       const response = await fetch("/api/provider-applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(Object.fromEntries(form)),
+        body: JSON.stringify({ ...Object.fromEntries(form), practiceType }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
@@ -37,16 +43,9 @@ export function ProviderApplicationForm() {
   return (
     <form className="card public-form-card practice-application-form" onSubmit={submit}>
       <div className="practice-application-form-heading"><div><span className="eyebrow">Practice details</span><h2>Start your application</h2></div><small><span aria-hidden="true">*</span> Required fields</small></div>
+      <p className="practice-application-form-intro">Share only the core identity, owner contact and location details needed for verification. Workspace configuration happens after approval.</p>
       <div className="form-grid">
-        <label className="field"><span>Practice name <b aria-hidden="true">*</b></span><input className="input" name="practiceName" autoComplete="organization" placeholder="e.g. Coastal Family Practice" required /></label>
-        <label className="field"><span>Practice type <b aria-hidden="true">*</b></span><input className="input" name="practiceType" placeholder="e.g. Physiotherapy" required /></label>
-        <label className="field"><span>Owner name <b aria-hidden="true">*</b></span><input className="input" name="ownerName" autoComplete="name" placeholder="Full name" required /></label>
-        <label className="field"><span>Email <b aria-hidden="true">*</b></span><input className="input" name="email" type="email" autoComplete="email" placeholder="you@practice.com" required /></label>
-        <label className="field"><span>Phone</span><input className="input" name="phone" type="tel" autoComplete="tel" placeholder="e.g. +264 81 000 0000" /></label>
-        <label className="field"><span>Registration number</span><input className="input" name="registrationNumber" placeholder="Professional or business number" /></label>
-        <label className="field"><span>Town</span><input className="input" name="town" autoComplete="address-level2" placeholder="e.g. Swakopmund" /></label>
-        <label className="field"><span>Region</span><input className="input" name="region" autoComplete="address-level1" placeholder="e.g. Erongo" /></label>
-        <label className="field field-span-2"><span>Practice description</span><textarea className="input" name="description" rows={5} placeholder="Briefly describe your practice, services and the patients you support." /></label>
+        <PracticeRegistrationFields context="public" practiceType={practiceType} onPracticeTypeChange={setPracticeType} />
       </div>
       <div className="form-actions"><p>By submitting, you confirm that these details are accurate.</p><button className="btn btn-primary" disabled={saving}>{saving ? "Submitting…" : <>Submit application <ArrowRight size={17}/></>}</button></div>
     </form>

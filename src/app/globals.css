@@ -237,6 +237,16 @@
 .practice-application-form .field > span b {
   color: #9a681f;
 }
+.practice-application-form-intro {
+  margin: -10px 0 24px;
+  padding: 12px 14px;
+  border-left: 3px solid #8bb9a6;
+  border-radius: 0 10px 10px 0;
+  background: #f1f7f4;
+  color: #5f756d;
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
 .practice-application-form .form-grid {
   gap: 19px 16px;
 }
@@ -261,6 +271,7 @@
   border-color: #9bb0a7;
   background: #fff;
 }
+.practice-application-form .custom-select { width: 100%; }
 .practice-application-form textarea.input {
   min-height: 138px;
   padding-block: 13px;
@@ -6786,7 +6797,97 @@ a.landing-feature-card:hover { border-color: #aac7bb; box-shadow: 0 12px 30px #1
 .approval-options {
   display: grid;
   gap: 18px;
-  margin-top: 16px;
+}
+.approval-application-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.approval-application-summary > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 14px 15px;
+  border: 1px solid #dfe9e4;
+  border-radius: 12px;
+  background: #f7faf8;
+}
+.approval-application-summary span {
+  color: #70827b;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.approval-application-summary strong,
+.approval-application-summary small { overflow-wrap: anywhere; }
+.approval-application-summary strong { color: var(--ink); font-size: 13px; }
+.approval-application-summary small { color: #6f817a; font-size: 11px; }
+.platform-registration-section-heading {
+  margin-top: 4px;
+  padding: 2px 0 13px;
+  border-bottom: 1px solid #e1eae6;
+}
+.platform-registration-section-heading:not(:first-child) {
+  margin-top: 12px;
+}
+.platform-registration-section-heading .eyebrow {
+  margin: 0 0 5px;
+  font-size: 10px;
+}
+.platform-registration-section-heading h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.35;
+}
+.platform-registration-section-heading p {
+  margin: 4px 0 0;
+  color: #687d75;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.application-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.application-detail-grid > div {
+  min-width: 0;
+  padding: 14px 15px;
+  border: 1px solid #e0e9e5;
+  border-radius: 12px;
+  background: #f9fbfa;
+}
+.application-detail-grid > div > span:first-child {
+  display: block;
+  margin-bottom: 5px;
+  color: #71837c;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.application-detail-grid strong {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.application-detail-grid .application-detail-description {
+  grid-column: 1 / -1;
+}
+.application-detail-description p {
+  margin: 0;
+  color: #526b62;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+@media (max-width: 600px) {
+  .approval-application-summary,
+  .application-detail-grid { grid-template-columns: 1fr; }
+  .application-detail-grid .application-detail-description { grid-column: auto; }
 }
 .practice-logo-editor {
   display: flex;

@@ -6,7 +6,9 @@ import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Search } from "lucide-react";
+import { PlatformDialog } from "@/components/ui/platform-dialog";
+import { practiceTypeLabel } from "@/lib/practice-registration-options";
+import { Eye, Search } from "lucide-react";
 
 type Application = {
   id: string;
@@ -14,6 +16,11 @@ type Application = {
   practiceType: string;
   ownerName: string;
   email: string;
+  phone: string | null;
+  registrationNumber: string | null;
+  town: string | null;
+  region: string | null;
+  description: string | null;
   status: string;
   createdAt: string;
 };
@@ -42,7 +49,16 @@ export function ProviderApplicationsManager({
   const [invite, setInvite] = useState("");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [selected, setSelected] = useState<Application | null>(null);
   const visible = applications.filter((item) => (!statusFilter || item.status === statusFilter) && `${item.practiceName} ${item.ownerName} ${item.email}`.toLowerCase().includes(query.trim().toLowerCase()));
+
+  function closeDecision() {
+    setPending(null);
+    setNotes("");
+    setPlanId("");
+    setInitialServiceIds([]);
+    setSendInvitationEmail(false);
+  }
 
   async function decide() {
     if (!pending) return;
@@ -74,10 +90,7 @@ export function ProviderApplicationsManager({
             : "Application updated",
         { id: toastId },
       );
-      setPending(null);
-      setNotes("");
-      setInitialServiceIds([]);
-      setSendInvitationEmail(false);
+      closeDecision();
       router.refresh();
     } catch (error) {
       toast.error(
@@ -123,7 +136,7 @@ export function ProviderApplicationsManager({
                 <tr key={item.id}>
                   <td>
                     <b>{item.practiceName}</b>
-                    <small>{item.practiceType}</small>
+                    <small>{practiceTypeLabel(item.practiceType)}</small>
                   </td>
                   <td>
                     {item.ownerName}
@@ -135,6 +148,9 @@ export function ProviderApplicationsManager({
                   </td>
                   <td>
                     <div className="table-actions">
+                      <button className="btn btn-light" onClick={() => setSelected(item)}>
+                        <Eye size={15} /> Details
+                      </button>
                       {canManage && item.status === "SUBMITTED" && (
                         <button
                           className="btn btn-light"
@@ -172,8 +188,23 @@ export function ProviderApplicationsManager({
         </div>
         {!visible.length && <div className="dashboard-empty"><h3>No matching applications</h3><p>Change the filters or wait for a new registration.</p></div>}
       </div>
-      {pending?.action === "APPROVE" && (
-        <div className="card dashboard-card approval-options">
+      <PlatformDialog
+        open={pending?.action === "APPROVE"}
+        eyebrow="Application approval"
+        title={pending ? `Approve ${pending.item.practiceName}` : "Approve practice"}
+        description="Confirm the starting subscription and services. Approval creates a private workspace and secure owner invitation."
+        onClose={closeDecision}
+        wide
+        actions={<>
+          <button className="btn btn-light" type="button" onClick={closeDecision}>Cancel</button>
+          <button className="btn btn-primary" type="button" disabled={saving} onClick={decide}>{saving ? "Approving…" : "Approve and create workspace"}</button>
+        </>}
+      >
+        <div className="approval-options">
+          {pending && <div className="approval-application-summary">
+            <div><span>Primary owner</span><strong>{pending.item.ownerName}</strong><small>{pending.item.email}</small></div>
+            <div><span>Practice location</span><strong>{[pending.item.town, pending.item.region].filter(Boolean).join(", ") || "Not provided"}</strong><small>{pending.item.phone || "No phone provided"}</small></div>
+          </div>}
           <label className="field">
             <span>Subscription plan for approval</span>
             <CustomSelect
@@ -220,10 +251,41 @@ export function ProviderApplicationsManager({
               <small>Optional and off by default.</small>
             </span>
           </label>
+          <label className="field">
+            <span>Approval notes</span>
+            <textarea className="input" rows={3} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Optional internal note for the audit trail" />
+          </label>
         </div>
-      )}
+      </PlatformDialog>
+      <PlatformDialog
+        open={Boolean(selected)}
+        eyebrow="Submitted application"
+        title={selected?.practiceName || "Practice application"}
+        description="The verified core fields below are also used when a platform administrator registers a practice manually."
+        onClose={() => setSelected(null)}
+        wide
+        actions={<>
+          <button className="btn btn-light" type="button" onClick={() => setSelected(null)}>Close</button>
+          {canManage && selected && ["SUBMITTED", "UNDER_REVIEW"].includes(selected.status) && <>
+            <button className="btn btn-light" type="button" onClick={() => { setPending({ item: selected, action: "REVIEW" }); setSelected(null); }}>Mark under review</button>
+            <button className="btn btn-primary" type="button" onClick={() => { setPending({ item: selected, action: "APPROVE" }); setSelected(null); }}>Approve application</button>
+          </>}
+        </>}
+      >
+        {selected && <div className="application-detail-grid">
+          <div><span>Practice type</span><strong>{practiceTypeLabel(selected.practiceType)}</strong></div>
+          <div><span>Status</span><StatusBadge value={selected.status} /></div>
+          <div><span>Primary owner</span><strong>{selected.ownerName}</strong></div>
+          <div><span>Owner email</span><strong>{selected.email}</strong></div>
+          <div><span>Phone number</span><strong>{selected.phone || "Not provided"}</strong></div>
+          <div><span>Registration number</span><strong>{selected.registrationNumber || "Not provided"}</strong></div>
+          <div><span>Town or city</span><strong>{selected.town || "Not provided"}</strong></div>
+          <div><span>Region</span><strong>{selected.region || "Not provided"}</strong></div>
+          {selected.description && <div className="application-detail-description"><span>Legacy application description</span><p>{selected.description}</p></div>}
+        </div>}
+      </PlatformDialog>
       <PromptDialog
-        open={Boolean(pending)}
+        open={Boolean(pending && pending.action !== "APPROVE")}
         title={`${pending?.action.toLowerCase()} provider application`}
         description={
           pending?.action === "APPROVE"
@@ -235,7 +297,7 @@ export function ProviderApplicationsManager({
         onChange={setNotes}
         confirmLabel={pending?.action || "Update"}
         busy={saving}
-        onCancel={() => setPending(null)}
+        onCancel={closeDecision}
         onConfirm={decide}
       />
     </>

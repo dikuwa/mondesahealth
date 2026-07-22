@@ -9,18 +9,9 @@ import { consumeRateLimit, requestRateLimitKey } from "@/lib/rate-limit";
 import { requestAuditInfo } from "@/lib/tenant";
 import { genericPracticeContent } from "@/lib/generic-practice-content";
 import { notifyPlatformAdmins } from "@/lib/notifications";
+import { publicPracticeApplicationSchema } from "@/lib/practice-registration";
 
-const application = z.object({
-  practiceName: z.string().trim().min(2).max(140),
-  practiceType: z.string().trim().min(2).max(80),
-  ownerName: z.string().trim().min(2).max(120),
-  email: z.string().email(),
-  phone: z.string().trim().max(30).optional(),
-  registrationNumber: z.string().trim().max(100).optional(),
-  town: z.string().trim().max(100).optional(),
-  region: z.string().trim().max(100).optional(),
-  description: z.string().trim().max(2000).optional(),
-});
+const application = publicPracticeApplicationSchema;
 const slugify = (value: string) =>
   value
     .toLowerCase()

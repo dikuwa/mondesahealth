@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { PracticeRegistrationFields } from "@/components/practice-registration-fields";
 type Practice = {
   id: string;
   name: string;
@@ -43,6 +44,7 @@ export function PracticeManager({
   const router = useRouter(),
     [open, setOpen] = useState(false),
     [saving, setSaving] = useState(false),
+    [practiceType, setPracticeType] = useState("GENERAL_PRACTICE"),
     [status, setStatus] = useState("DRAFT"),
     [planId, setPlanId] = useState(""),
     [initialServiceIds, setInitialServiceIds] = useState<string[]>([]),
@@ -71,6 +73,7 @@ export function PracticeManager({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...Object.fromEntries(form),
+          type: practiceType,
           status,
           planId: planId || undefined,
           initialServiceIds,
@@ -92,6 +95,7 @@ export function PracticeManager({
       );
       setInitialServiceIds([]);
       setSendInvitationEmail(false);
+      setPracticeType("GENERAL_PRACTICE");
       router.refresh();
     } catch (error) {
       toast.error(
@@ -277,51 +281,33 @@ export function PracticeManager({
               </button>
             </div>
             <div className="form-grid">
-              <label>
-                <span>Practice name</span>
-                <input className="input" name="name" required />
-              </label>
-              <label>
-                <span>Practice type</span>
-                <input
-                  className="input"
-                  name="type"
-                  placeholder="GENERAL_PRACTICE"
-                  required
-                />
-              </label>
-              <label>
-                <span>Owner name</span>
-                <input className="input" name="ownerName" required />
-              </label>
-              <label>
-                <span>Owner email</span>
-                <input
-                  className="input"
-                  name="ownerEmail"
-                  type="email"
-                  required
-                />
-              </label>
-              <label>
-                <span>Registration number</span>
-                <input className="input" name="registrationNumber" />
-              </label>
-              <label>
+              <div className="field-span-2 platform-registration-section-heading">
+                <span className="eyebrow">Core registration details</span>
+                <h3>Practice identity and owner contact</h3>
+                <p>These are the same verified details requested through the public application.</p>
+              </div>
+              <PracticeRegistrationFields context="platform" practiceType={practiceType} onPracticeTypeChange={setPracticeType} />
+
+              <div className="field-span-2 platform-registration-section-heading">
+                <span className="eyebrow">Operational setup</span>
+                <h3>Workspace configuration</h3>
+                <p>These details are platform-only and can be completed or changed after registration.</p>
+              </div>
+              <label className="field">
                 <span>Professional licence</span>
-                <input className="input" name="licenceInformation" />
+                <input className="input" name="licenceInformation" placeholder="Optional practitioner licence" />
               </label>
-              <label>
-                <span>Phone</span>
-                <input className="input" name="phone" />
+              <label className="field">
+                <span>WhatsApp number</span>
+                <input className="input" name="whatsapp" type="tel" placeholder="Defaults to the phone number" />
               </label>
-              <label>
-                <span>Town</span>
-                <input className="input" name="town" />
+              <label className="field field-span-2">
+                <span>Street address</span>
+                <input className="input" name="address" autoComplete="street-address" placeholder="Optional physical address" />
               </label>
-              <label>
-                <span>Region</span>
-                <input className="input" name="region" />
+              <label className="field field-span-2">
+                <span>Practice description</span>
+                <textarea className="input" name="description" rows={4} placeholder="Optional internal starting description; the practice can edit this later." />
               </label>
               <label>
                 <span>Initial status</span>
