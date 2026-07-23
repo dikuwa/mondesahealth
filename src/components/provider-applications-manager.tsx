@@ -8,6 +8,9 @@ import { PromptDialog } from "@/components/ui/prompt-dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PlatformDialog } from "@/components/ui/platform-dialog";
 import { practiceTypeLabel } from "@/lib/practice-registration-options";
+import { REJECTION_CATEGORY_OPTIONS } from "@/lib/rejection-categories";
+import { VerificationChecklist } from "@/components/verification-checklist";
+import { ApplicationDocumentReview } from "@/components/application-document-review";
 import { Eye, Search } from "lucide-react";
 
 type Application = {
@@ -42,6 +45,8 @@ export function ProviderApplicationsManager({
     action: "REVIEW" | "APPROVE" | "REJECT";
   } | null>(null);
   const [notes, setNotes] = useState("");
+  const [rejectionCategory, setRejectionCategory] = useState("");
+  const [rejectionExplanation, setRejectionExplanation] = useState("");
   const [planId, setPlanId] = useState("");
   const [initialServiceIds, setInitialServiceIds] = useState<string[]>([]);
   const [sendInvitationEmail, setSendInvitationEmail] = useState(false);
@@ -55,6 +60,8 @@ export function ProviderApplicationsManager({
   function closeDecision() {
     setPending(null);
     setNotes("");
+    setRejectionCategory("");
+    setRejectionExplanation("");
     setPlanId("");
     setInitialServiceIds([]);
     setSendInvitationEmail(false);
@@ -72,6 +79,10 @@ export function ProviderApplicationsManager({
           id: pending.item.id,
           action: pending.action,
           reviewNotes: notes,
+          rejectionCategory:
+            pending.action === "REJECT" ? rejectionCategory : undefined,
+          rejectionReason:
+            pending.action === "REJECT" ? rejectionExplanation : undefined,
           planId: planId || undefined,
           initialServiceIds:
             pending.action === "APPROVE" ? initialServiceIds : [],
@@ -80,7 +91,9 @@ export function ProviderApplicationsManager({
         }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
+      if (!response.ok) {
+        throw new Error(data.error);
+      }
       if (data.inviteUrl) setInvite(`${location.origin}${data.inviteUrl}`);
       toast.success(
         data.emailDelivery?.sent
@@ -272,30 +285,64 @@ export function ProviderApplicationsManager({
           </>}
         </>}
       >
-        {selected && <div className="application-detail-grid">
-          <div><span>Practice type</span><strong>{practiceTypeLabel(selected.practiceType)}</strong></div>
-          <div><span>Status</span><StatusBadge value={selected.status} /></div>
-          <div><span>Primary owner</span><strong>{selected.ownerName}</strong></div>
-          <div><span>Owner email</span><strong>{selected.email}</strong></div>
-          <div><span>Phone number</span><strong>{selected.phone || "Not provided"}</strong></div>
-          <div><span>Registration number</span><strong>{selected.registrationNumber || "Not provided"}</strong></div>
-          <div><span>Town or city</span><strong>{selected.town || "Not provided"}</strong></div>
-          <div><span>Region</span><strong>{selected.region || "Not provided"}</strong></div>
-          {selected.description && <div className="application-detail-description"><span>Legacy application description</span><p>{selected.description}</p></div>}
-        </div>}
+        {selected && <>
+          <div className="application-detail-grid">
+            <div><span>Practice type</span><strong>{practiceTypeLabel(selected.practiceType)}</strong></div>
+            <div><span>Status</span><StatusBadge value={selected.status} /></div>
+            <div><span>Primary owner</span><strong>{selected.ownerName}</strong></div>
+            <div><span>Owner email</span><strong>{selected.email}</strong></div>
+            <div><span>Phone number</span><strong>{selected.phone || "Not provided"}</strong></div>
+            <div><span>Registration number</span><strong>{selected.registrationNumber || "Not provided"}</strong></div>
+            <div><span>Town or city</span><strong>{selected.town || "Not provided"}</strong></div>
+            <div><span>Region</span><strong>{selected.region || "Not provided"}</strong></div>
+            {selected.description && <div className="application-detail-description"><span>Legacy application description</span><p>{selected.description}</p></div>}
+          </div>
+          {canManage && <VerificationChecklist applicationId={selected.id} />}
+          <ApplicationDocumentReview applicationId={selected.id} />
+        </>}
+      </PlatformDialog>
+      <PlatformDialog
+        open={pending?.action === "REJECT"}
+        eyebrow="Application rejection"
+        title={pending ? `Reject ${pending.item.practiceName}` : "Reject application"}
+        description="Select a rejection category and provide an explanation. The application and its documents are retained for audit purposes."
+        onClose={closeDecision}
+        wide
+        actions={<>
+          <button className="btn btn-light" type="button" onClick={closeDecision}>Cancel</button>
+          <button className="btn btn-danger" type="button" disabled={saving || !rejectionCategory} onClick={decide}>{saving ? "Rejecting…" : "Reject application"}</button>
+        </>}
+      >
+        <div className="rejection-options">
+          {pending && <div className="approval-application-summary">
+            <div><span>Practice</span><strong>{pending.item.practiceName}</strong><small>{pending.item.ownerName}</small></div>
+          </div>}
+          <label className="field">
+            <span>Rejection category *</span>
+            <CustomSelect
+              value={rejectionCategory}
+              onChange={setRejectionCategory}
+              options={REJECTION_CATEGORY_OPTIONS}
+            />
+          </label>
+          <label className="field">
+            <span>Explanation for the applicant</span>
+            <textarea className="input" rows={3} value={rejectionExplanation} onChange={(event) => setRejectionExplanation(event.target.value)} placeholder="Provide a clear reason the applicant can see…" />
+          </label>
+          <label className="field">
+            <span>Internal review notes</span>
+            <textarea className="input" rows={3} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Optional internal note for the audit trail" />
+          </label>
+        </div>
       </PlatformDialog>
       <PromptDialog
-        open={Boolean(pending && pending.action !== "APPROVE")}
-        title={`${pending?.action.toLowerCase()} provider application`}
-        description={
-          pending?.action === "APPROVE"
-            ? "Approval creates the practice and a secure owner invitation. Public visibility remains disabled."
-            : "Record a concise review note for the audit trail."
-        }
+        open={Boolean(pending && pending.action === "REVIEW")}
+        title="Mark as under review"
+        description="Record a concise review note for the audit trail."
         label="Review notes"
         value={notes}
         onChange={setNotes}
-        confirmLabel={pending?.action || "Update"}
+        confirmLabel="Mark as under review"
         busy={saving}
         onCancel={closeDecision}
         onConfirm={decide}

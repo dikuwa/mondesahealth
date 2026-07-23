@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { PageHeading, Stat } from "@/components/dashboard";
-import { PracticeDetailManager } from "@/components/practice-detail-manager";
+import { PageHeading } from "@/components/dashboard";
+import { PracticeRecordView } from "@/components/practice-record-view";
 import { PracticeOwnershipTransfer } from "@/components/practice-ownership-transfer";
 import { requirePlatformPermission } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -19,20 +19,67 @@ export default async function PracticeDetail({ params }: { params: Promise<{ id:
     },
   });
   if (!practice) notFound();
+
   const independentOwnerReady = Boolean(await db.practiceUser.findFirst({
     where: { practiceId: practice.id, role: "OWNER", active: true, userId: { not: session.id } },
     select: { id: true },
   }));
-  const legacyAccess = Boolean(await db.practiceUser.findFirst({ where: { userId: session.id, practiceId: practice.id, active: true }, select: { id: true } }));
-  const handoverStatus=practice.handovers[0]?.status||(independentOwnerReady&&!legacyAccess?"COMPLETED":"DRAFT");
-  return <>
-    <PageHeading eyebrow="Platform practice management" title={practice.name} />
-    <div className="dashboard-stats">
-      <Stat label="Staff" value={practice._count.users} /><Stat label="Patients" value={practice._count.patients} />
-      <Stat label="Appointments" value={practice._count.appointments} /><Stat label="Services" value={practice._count.services} />
-      <Stat label="Providers" value={practice._count.providers} /><Stat label="Subscription" value={practice.subscriptions[0]?.plan.name || "Unassigned"} />
-    </div>
-    {session.platformPermissions.includes("MANAGE_PRACTICES") ? <PracticeDetailManager practice={practice} /> : <p className="notice-info">This role has read-only access to verified practice details.</p>}
-    {session.platformPermissions.includes("MANAGE_PRACTICES") && <PracticeOwnershipTransfer practiceId={practice.id} practiceName={practice.name} registeredEmail={practice.email || practice.setting?.email || null} independentOwnerReady={independentOwnerReady} canFinalize={legacyAccess} handoverStatus={handoverStatus} publicUrl={`/practices/${practice.slug}`} isPrimaryPlatformOwner={session.isPrimaryPlatformOwner} />}
-  </>;
+  const legacyAccess = Boolean(await db.practiceUser.findFirst({
+    where: { userId: session.id, practiceId: practice.id, active: true },
+    select: { id: true },
+  }));
+  const handoverStatus = practice.handovers[0]?.status ||
+    (independentOwnerReady && !legacyAccess ? "COMPLETED" : "DRAFT");
+
+  return (
+    <>
+      <PageHeading
+        eyebrow="Platform practice management"
+        title={practice.name}
+      />
+      <PracticeRecordView
+        practice={{
+          id: practice.id,
+          name: practice.name,
+          type: practice.type,
+          slug: practice.slug,
+          ownerName: practice.ownerName,
+          email: practice.email,
+          phone: practice.phone,
+          whatsapp: practice.whatsapp,
+          registrationNumber: practice.registrationNumber,
+          licenceInformation: practice.licenceInformation,
+          address: practice.address,
+          town: practice.town,
+          region: practice.region,
+          description: practice.description,
+          status: practice.status,
+          publicVisible: practice.publicVisible,
+          suspensionReason: practice.suspensionReason,
+          createdAt: practice.createdAt.toISOString(),
+          activatedAt: practice.activatedAt?.toISOString() ?? null,
+          _count: practice._count,
+          subscription: practice.subscriptions[0]
+            ? {
+                planName: practice.subscriptions[0].plan.name,
+                status: practice.subscriptions[0].status,
+              }
+            : null,
+        }}
+        canManage={session.platformPermissions.includes("MANAGE_PRACTICES")}
+      />
+      {session.platformPermissions.includes("MANAGE_PRACTICES") && (
+        <PracticeOwnershipTransfer
+          practiceId={practice.id}
+          practiceName={practice.name}
+          registeredEmail={practice.email || practice.setting?.email || null}
+          independentOwnerReady={independentOwnerReady}
+          canFinalize={legacyAccess}
+          handoverStatus={handoverStatus}
+          publicUrl={`/practices/${practice.slug}`}
+          isPrimaryPlatformOwner={session.isPrimaryPlatformOwner}
+        />
+      )}
+    </>
+  );
 }

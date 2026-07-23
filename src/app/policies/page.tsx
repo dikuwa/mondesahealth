@@ -43,38 +43,25 @@ export default async function Policies() {
     : neutralEmergencyMessage;
   return (
     <main id="main-content">
-      <section style={{ background: "#f7f4ed", padding: "80px 0" }}>
-        <div className="container" style={{ maxWidth: 850 }}>
+      <section className="section policies-hero">
+        <div className="container policies-content">
           <div className="eyebrow">Privacy & policies</div>
-          <h1
-            className="display"
-            style={{ fontSize: "clamp(3.2rem,7vw,6rem)", margin: "18px 0" }}
-          >
+          <h1 className="display">
             Clear terms, in plain language.
           </h1>
-          <p style={{ fontSize: 18, lineHeight: 1.7, color: "#5e716b" }}>
+          <p>
             These policies explain how online booking and practice communication
             work. Final retention periods and practice-specific fees should be
-            reviewed by the owner’s legal and clinical advisers before launch.
+            reviewed by the owner&rsquo;s legal and clinical advisers before launch.
           </p>
         </div>
       </section>
       <section className="section">
-        <div
-          className="container"
-          style={{ maxWidth: 850, display: "grid", gap: 35 }}
-        >
+        <div className="container policies-content">
           {policies(emergencyText).map(([title, text]) => (
-            <article
-              key={title}
-              style={{ borderBottom: "1px solid #dce4df", paddingBottom: 30 }}
-            >
-              <h2
-                style={{ fontSize: 29, letterSpacing: "-.035em", marginTop: 0 }}
-              >
-                {title}
-              </h2>
-              <p style={{ lineHeight: 1.8, color: "#5f736c" }}>{text}</p>
+            <article key={title}>
+              <h2>{title}</h2>
+              <p>{text}</p>
             </article>
           ))}
         </div>

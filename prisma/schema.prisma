@@ -48,6 +48,11 @@ model User {
   encountersUpdated    ClinicalEncounter[]        @relation("EncounterUpdater")
   encounterAmendments  EncounterAmendment[]
   platformMembership   PlatformMembership?
+  reviewedApplications PracticeApplication[]      @relation("ApplicationReviewer")
+  verifiedDocuments    ApplicationDocumentVersion[] @relation("DocumentVerifier")
+  applicationReviews   ApplicationReview[]         @relation("ApplicationReviewActor")
+  assignedApplications PracticeApplication[]      @relation("ApplicationAssignee")
+  createdInformationRequests InformationRequest[]  @relation("InformationRequestCreator")
 
   @@index([practiceId, active])
 }
@@ -136,6 +141,10 @@ model Practice {
   supportRequests       PracticeSupportRequest[]
   patientSharesSent     PatientShareConsent[]    @relation("PatientShareSource")
   patientSharesReceived PatientShareConsent[]    @relation("PatientShareDestination")
+  locations             PracticeLocation[]
+  practitioners         Practitioner[]
+  onboardingProgress    OnboardingProgress?
+  application           PracticeApplication?
 
   @@index([status, publicVisible])
   @@index([type, status])
@@ -1403,25 +1412,240 @@ model PracticeDomain {
 }
 
 model PracticeApplication {
-  id                 String    @id @default(cuid())
-  practiceName       String
-  practiceType       String
-  ownerName          String
-  email              String
-  phone              String?
-  registrationNumber String?
-  town               String?
-  region             String?
-  description        String?
-  status             String    @default("SUBMITTED")
-  reviewNotes        String?
-  reviewedById       String?
-  reviewedAt         DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id                      String                    @id @default(cuid())
+  reference               String?                   @unique
+  practiceName            String
+  practiceType            String
+  ownerName               String
+  email                   String
+  phone                   String?
+  registrationNumber      String?
+  town                    String?
+  region                  String?
+  description             String?
+  isOperating             Boolean                   @default(true)
+  preferredContactMethod  String                    @default("EMAIL")
+  declarationAccepted     Boolean                   @default(false)
+  status                  String                    @default("SUBMITTED")
+  reviewNotes             String?
+  reviewedById            String?
+  reviewedAt              DateTime?
+  rejectionCategory       String?
+  rejectionReason         String?
+  submittedAt             DateTime?
+  assignedReviewerId      String?
+  secureAccessToken       String?                   @unique
+  secureAccessTokenExpiresAt DateTime?
+  practiceId              String?                   @unique
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  reviewedBy              User?                     @relation("ApplicationReviewer", fields: [reviewedById], references: [id])
+  assignedReviewer        User?                     @relation("ApplicationAssignee", fields: [assignedReviewerId], references: [id])
+  practice                Practice?                 @relation(fields: [practiceId], references: [id])
+  documents               ApplicationDocument[]
+  reviews                 ApplicationReview[]
+  checklistItems          ApplicationChecklist[]
+  informationRequests     InformationRequest[]
 
   @@index([status, createdAt])
   @@index([email, createdAt])
+  @@index([assignedReviewerId, status])
+  @@index([reference])
+}
+
+model ApplicationDocument {
+  id              String                     @id @default(cuid())
+  applicationId   String
+  category        String
+  currentVersion  Int                        @default(1)
+  reviewStatus    String                     @default("UPLOADED")
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  application     PracticeApplication        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  versions        ApplicationDocumentVersion[]
+
+  @@index([applicationId, category])
+  @@index([applicationId, reviewStatus])
+}
+
+model ApplicationDocumentVersion {
+  id                String                   @id @default(cuid())
+  documentId        String
+  version           Int
+  originalFilename  String
+  storageKey        String
+  mimeType          String
+  size              Int
+  data              Bytes?
+  checksum          String
+  documentStatus    String                   @default("UPLOADED")
+  expiryDate        DateTime?
+  replacementReason String?
+  internalNote      String?
+  uploadedAt        DateTime                 @default(now())
+  reviewedById      String?
+  reviewedAt        DateTime?
+  rejectionReason   String?
+  document          ApplicationDocument      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  reviewer          User?                    @relation("DocumentVerifier", fields: [reviewedById], references: [id])
+
+  @@index([documentId, version])
+  @@index([documentId, documentStatus])
+}
+
+model ApplicationReview {
+  id              String               @id @default(cuid())
+  applicationId   String
+  actorId         String
+  previousStatus  String
+  newStatus       String
+  internalNote    String?
+  applicantReason String?
+  createdAt       DateTime             @default(now())
+  application     PracticeApplication  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  actor           User                 @relation("ApplicationReviewActor", fields: [actorId], references: [id])
+
+  @@index([applicationId, createdAt])
+}
+
+model ApplicationChecklist {
+  id              String               @id @default(cuid())
+  applicationId   String
+  item            String
+  completed       Boolean              @default(false)
+  completedById   String?
+  completedAt     DateTime?
+  note            String?
+  application     PracticeApplication  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, item])
+}
+
+model InformationRequest {
+  id                     String               @id @default(cuid())
+  applicationId          String
+  applicantMessage       String
+  privateNote            String?
+  deadline               DateTime?
+  secureToken            String               @unique
+  tokenExpiresAt         DateTime
+  status                 String               @default("PENDING")
+  requestedCategories    String               @default("[]")
+  replacementDocumentIds String               @default("[]")
+  createdById            String
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  application            PracticeApplication  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  createdBy              User                 @relation("InformationRequestCreator", fields: [createdById], references: [id])
+  responses              ApplicantResponse[]
+
+  @@index([applicationId, status])
+  @@index([secureToken])
+}
+
+model ApplicantResponse {
+  id                   String              @id @default(cuid())
+  informationRequestId String
+  applicantMessage     String?
+  submittedAt          DateTime            @default(now())
+  informationRequest   InformationRequest  @relation(fields: [informationRequestId], references: [id], onDelete: Cascade)
+
+  @@index([informationRequestId])
+}
+
+model PracticeLocation {
+  id              String    @id @default(cuid())
+  practiceId      String
+  name            String
+  address         String?
+  postalAddress   String?
+  town            String?
+  region          String?
+  phone           String?
+  altPhone        String?
+  emergencyPhone  String?
+  whatsapp        String?
+  email           String?
+  website         String?
+  latitude        Float?
+  longitude       Float?
+  public          Boolean   @default(false)
+  active          Boolean   @default(true)
+  sortOrder       Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  practice        Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId, active, public])
+}
+
+model Practitioner {
+  id                  String               @id @default(cuid())
+  practiceId          String
+  fullName            String
+  professionalTitle   String?
+  qualifications      String?
+  registrationNumber  String?
+  professionalCouncil String?
+  registrationExpiry  DateTime?
+  email               String?
+  phone               String?
+  signatureData       String?
+  stampData           String?
+  role                String               @default("PRACTITIONER")
+  active              Boolean              @default(true)
+  public              Boolean              @default(false)
+  bookingVisible      Boolean              @default(true)
+  canSignDocuments    Boolean              @default(false)
+  sortOrder           Int                  @default(0)
+  locations           String               @default("[]")
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  practice            Practice             @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  documents           PractitionerDocument[]
+
+  @@index([practiceId, active])
+}
+
+model PractitionerDocument {
+  id              String       @id @default(cuid())
+  practitionerId  String
+  category        String
+  filename        String
+  storageKey      String
+  mimeType        String
+  size            Int
+  uploadedAt      DateTime     @default(now())
+  practitioner    Practitioner @relation(fields: [practitionerId], references: [id], onDelete: Cascade)
+
+  @@index([practitionerId, category])
+}
+
+model ServiceTemplate {
+  id               String   @id @default(cuid())
+  practiceCategory String
+  name             String
+  description      String?
+  durationMinutes  Int      @default(30)
+  active           Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([practiceCategory, active, sortOrder])
+}
+
+model OnboardingProgress {
+  id             String    @id @default(cuid())
+  practiceId     String    @unique
+  currentStep    Int       @default(0)
+  completedSteps String    @default("[]")
+  draftData      Json?
+  lastSavedAt    DateTime?
+  submittedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  practice       Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
 }
 
 model LoginThrottle {

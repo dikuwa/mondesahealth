@@ -322,6 +322,64 @@ export default async function PatientPage({
           >
             <p>{patient.medicalAlerts || "No important alerts recorded"}</p>
           </Summary>
+          {/* Medical records (clinical encounters) */}
+          <section className="card dashboard-card panel-card patient-overview-encounters">
+            <div className="panel-heading">
+              <div>
+                <h3>Recent medical records</h3>
+                <p>
+                  {canClinical
+                    ? `${patient.encounters.length} clinical encounter${patient.encounters.length === 1 ? "" : "s"} recorded`
+                    : "Your role does not include access to clinical records."}
+                </p>
+              </div>
+              {canClinical && patient.encounters.length > 0 && (
+                <Link
+                  className="btn btn-light"
+                  href={`/dashboard/patients/${patient.id}?tab=clinical-history`}
+                >
+                  View all
+                </Link>
+              )}
+            </div>
+            {canClinical ? (
+              <div className="record-stack">
+                {patient.encounters.slice(0, 5).map((encounter) => (
+                  <article key={encounter.id} className="record-row">
+                    <div>
+                      <b>
+                        {encounter.status} · {encounter.presentingComplaint || "Consultation"}
+                      </b>
+                      <small>
+                        {encounter.startedAt.toLocaleString("en-NA")} · {encounter.clinician.name}
+                      </small>
+                      {encounter.diagnoses.length > 0 && (
+                        <small>
+                          Dx: {encounter.diagnoses.map((d) => d.description).join(", ")}
+                        </small>
+                      )}
+                    </div>
+                    <Link
+                      className="btn btn-light"
+                      href={`/dashboard/encounters/${encounter.id}`}
+                    >
+                      Open
+                    </Link>
+                  </article>
+                ))}
+                {patient.encounters.length === 0 && (
+                  <div className="dashboard-empty">
+                    <h3>No medical records</h3>
+                    <p>Clinical encounters will appear here after the first consultation.</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="dashboard-empty">
+                <p>Contact an administrator to request clinical record access.</p>
+              </div>
+            )}
+          </section>
         </div>
       )}
       {tab === "appointments" && (

@@ -10,6 +10,8 @@ import { requestAuditInfo } from "@/lib/tenant";
 import { genericPracticeContent } from "@/lib/generic-practice-content";
 import { notifyPlatformAdmins } from "@/lib/notifications";
 import { publicPracticeApplicationSchema } from "@/lib/practice-registration";
+import { normaliseNamibianPhone } from "@/lib/phone-utils";
+import { rejectionCategoryLabel } from "@/lib/rejection-categories";
 
 const application = publicPracticeApplicationSchema;
 const slugify = (value: string) =>
@@ -18,6 +20,24 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 60);
+
+let referenceCounter = 0;
+let referenceCounterReset = new Date();
+
+function generateReference(): string {
+  const now = new Date();
+  if (
+    now.getFullYear() !== referenceCounterReset.getFullYear() ||
+    now.getMonth() !== referenceCounterReset.getMonth()
+  ) {
+    referenceCounter = 0;
+    referenceCounterReset = now;
+  }
+  referenceCounter++;
+  const year = now.getFullYear();
+  const padded = String(referenceCounter).padStart(6, "0");
+  return `MH-APP-${year}-${padded}`;
+}
 
 export async function POST(request: Request) {
   const limit = consumeRateLimit(
@@ -52,8 +72,29 @@ export async function POST(request: Request) {
       { error: "An active application already exists for this email address." },
       { status: 409 },
     );
+  // Normalise Namibian phone numbers
+  const normalisedPhone =
+    normaliseNamibianPhone(parsed.data.phone) || parsed.data.phone;
+
+  const reference = generateReference();
   const created = await db.practiceApplication.create({
-    data: { ...parsed.data, email: parsed.data.email.toLowerCase() },
+    data: {
+      ...parsed.data,
+      email: parsed.data.email.toLowerCase(),
+      phone: normalisedPhone,
+      reference,
+      status: "SUBMITTED",
+      submittedAt: new Date(),
+    },
+  });
+  await db.activityLog.create({
+    data: {
+      action: "PRACTICE_APPLICATION_SUBMITTED",
+      entityType: "PracticeApplication",
+      entityId: created.id,
+      summary: `New application ${reference} from ${created.practiceName}`,
+      requestInfo: requestAuditInfo(request),
+    },
   });
   await notifyPlatformAdmins({
     type: "PRACTICE_APPLICATION",
@@ -61,7 +102,7 @@ export async function POST(request: Request) {
     message: `${created.practiceName}${created.town ? ` · ${created.town}` : ""} is ready for review.`,
     href: "/platform/applications",
   });
-  return NextResponse.json({ id: created.id }, { status: 201 });
+  return NextResponse.json({ id: created.id, reference }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {
@@ -76,6 +117,8 @@ export async function PATCH(request: Request) {
       id: z.string(),
       action: z.enum(["REVIEW", "APPROVE", "REJECT"]),
       reviewNotes: z.string().trim().max(1000).optional(),
+      rejectionCategory: z.string().optional(),
+      rejectionReason: z.string().trim().max(2000).optional(),
       planId: z.string().optional(),
       initialServiceIds: z.array(z.string().min(1)).max(20).default([]),
       sendInvitationEmail: z.boolean().default(false),
@@ -97,11 +140,25 @@ export async function PATCH(request: Request) {
   if (parsed.data.action !== "APPROVE") {
     const status =
       parsed.data.action === "REVIEW" ? "UNDER_REVIEW" : "REJECTED";
+
+    if (status === "REJECTED" && !parsed.data.rejectionCategory) {
+      return NextResponse.json(
+        { error: "A rejection category is required when rejecting an application." },
+        { status: 400 },
+      );
+    }
+
+    const rejectionSummary = parsed.data.rejectionCategory
+      ? ` (${rejectionCategoryLabel(parsed.data.rejectionCategory)})`
+      : "";
+
     await db.practiceApplication.update({
       where: { id: current.id },
       data: {
         status,
         reviewNotes: parsed.data.reviewNotes,
+        rejectionCategory: parsed.data.rejectionCategory ?? null,
+        rejectionReason: parsed.data.rejectionReason ?? null,
         reviewedById: session.id,
         reviewedAt: new Date(),
       },
@@ -113,7 +170,7 @@ export async function PATCH(request: Request) {
         action: `PRACTICE_APPLICATION_${status}`,
         entityType: "PracticeApplication",
         entityId: current.id,
-        summary: `Provider application for ${current.practiceName} marked ${status.toLowerCase().replaceAll("_", " ")}`,
+        summary: `Provider application for ${current.practiceName} marked ${status.toLowerCase().replaceAll("_", " ")}${rejectionSummary}`,
         requestInfo: requestAuditInfo(request),
       },
     });
@@ -157,7 +214,7 @@ export async function PATCH(request: Request) {
         town: current.town,
         region: current.region,
         description: current.description,
-        status: "APPROVED",
+        status: "PENDING_SETUP",
         publicVisible: false,
         setting: {
           create: {

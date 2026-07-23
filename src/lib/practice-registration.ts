@@ -17,7 +17,21 @@ const coreFields = {
   region: z.string().trim().min(2, "Enter the practice region.").max(100),
 };
 
-export const publicPracticeApplicationSchema = z.object(coreFields);
+const contactMethod = z.enum(["EMAIL", "PHONE", "WHATSAPP"], {
+  message: "Select a preferred contact method.",
+});
+
+export const publicPracticeApplicationSchema = z.object({
+  ...coreFields,
+  description: z.string().trim().max(500).optional(),
+  isOperating: z.boolean({ message: "Select your operating status." }),
+  preferredContactMethod: contactMethod,
+  declarationAccepted: z
+    .boolean()
+    .refine((value) => value === true, {
+      message: "You must accept the declaration to submit.",
+    }),
+});
 
 export const platformPracticeRegistrationCoreSchema = z.object({
   name: coreFields.practiceName,

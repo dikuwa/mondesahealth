@@ -10,6 +10,9 @@ const shared = {
   registrationNumber: "REG-42",
   town: "Windhoek",
   region: "Khomas",
+  isOperating: true,
+  preferredContactMethod: "EMAIL",
+  declarationAccepted: true,
 };
 
 describe("shared practice registration details", () => {

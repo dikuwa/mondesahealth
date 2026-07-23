@@ -1,7 +1,8 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { aiCapabilities, clinicianAssistantSchema, normalizeAiRedFlagCategory, patientAssistantSchema, patientSummarySchema, requestStructuredAi } from "./ai-provider";
 
-afterEach(() => { delete process.env.OPENAI_API_KEY; delete process.env.OPENAI_MODEL; delete process.env.AI_API_KEY; delete process.env.AI_TIMEOUT_MS; vi.unstubAllGlobals(); });
+beforeEach(() => { vi.stubEnv("AI_API_KEY", ""); vi.stubEnv("OPENAI_API_KEY", ""); vi.stubEnv("OPENAI_MODEL", ""); vi.stubEnv("AI_TIMEOUT_MS", ""); });
+afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
 describe("structured AI adapter", () => {
   it("reports no capabilities and fails safely without server configuration", async () => {
@@ -9,7 +10,7 @@ describe("structured AI adapter", () => {
     await expect(requestStructuredAi({ system: "safe", payload: {}, schema: patientAssistantSchema })).rejects.toThrow("AI_NOT_CONFIGURED");
   });
   it("uses the direct OpenAI endpoint and model when only an API key is configured", async () => {
-    process.env.OPENAI_API_KEY = "private-test-key";
+    vi.stubEnv("OPENAI_API_KEY", "private-test-key");
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ nextQuestion: null, enoughInformation: true, redFlagCategory: null, missingInformation: [] }) } }] }), { status: 200, headers: { "Content-Type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
     const result = await requestStructuredAi({ system: "safe", payload: {}, schema: patientAssistantSchema });
@@ -27,7 +28,7 @@ describe("structured AI adapter", () => {
     expect(normalizeAiRedFlagCategory("sudden severe headache")).toBe("sudden severe headache");
   });
   it("does not expose configured credentials in validated output", async () => {
-    process.env.OPENAI_API_KEY = "private-test-key"; process.env.OPENAI_MODEL = "test-model";
+    vi.stubEnv("OPENAI_API_KEY", "private-test-key"); vi.stubEnv("OPENAI_MODEL", "test-model");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ nextQuestion: null, enoughInformation: true, redFlagCategory: null, missingInformation: [] }) } }] }), { status: 200, headers: { "Content-Type": "application/json" } })));
     const result = await requestStructuredAi({ system: "safe", payload: { text: "synthetic" }, schema: patientAssistantSchema });
     expect(result.data.enoughInformation).toBe(true);
@@ -37,13 +38,13 @@ describe("structured AI adapter", () => {
     ["Markdown-fenced", "```json\n{\"nextQuestion\":null,\"enoughInformation\":true,\"redFlagCategory\":null,\"missingInformation\":[]}\n```"],
     ["single-item array", "[{\"nextQuestion\":null,\"enoughInformation\":true,\"redFlagCategory\":null,\"missingInformation\":[]}]"],
   ])("accepts %s JSON while retaining schema validation", async (_label, content) => {
-    process.env.OPENAI_API_KEY = "private-test-key"; process.env.OPENAI_MODEL = "test-model";
+    vi.stubEnv("OPENAI_API_KEY", "private-test-key"); vi.stubEnv("OPENAI_MODEL", "test-model");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200, headers: { "Content-Type": "application/json" } })));
     const result = await requestStructuredAi({ system: "safe", payload: {}, schema: patientAssistantSchema });
     expect(result.data.enoughInformation).toBe(true);
   });
   it("requests strict structured output from OpenAI only", async () => {
-    process.env.OPENAI_API_KEY = "private-test-key";
+    vi.stubEnv("OPENAI_API_KEY", "private-test-key");
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ nextQuestion: null, enoughInformation: true, redFlagCategory: null, missingInformation: [] }) } }] }), { status: 200, headers: { "Content-Type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
     await requestStructuredAi({ system: "safe", payload: {}, schema: patientAssistantSchema });
