@@ -3322,6 +3322,17 @@ textarea.input {
 .activity-filter-panel .mondesa-date-picker {
   min-width: 160px;
 }
+.activity-filter-panel .custom-select-menu {
+  right: auto;
+  min-width: 100%;
+  width: max-content;
+  max-width: 320px;
+}
+.activity-filter-panel .custom-select-option span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .activity-search {
   min-width: 200px;
   flex: 1 1 240px;
