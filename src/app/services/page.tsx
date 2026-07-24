@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, Building2, CalendarCheck, MapPin, Search } from "lucide-react";
+import { ArrowRight, Building2, CalendarCheck, MapPin } from "lucide-react";
 import { db } from "@/lib/db";
+import { ServicesDirectoryFilters } from "@/components/services-directory-filters";
 
 export default async function PracticeDirectory({ searchParams }: { searchParams: Promise<{ q?: string; town?: string }> }) {
   const params = await searchParams;
@@ -17,15 +18,20 @@ export default async function PracticeDirectory({ searchParams }: { searchParams
     return (!query || searchable.includes(query)) && (!selectedTown || practice.town === selectedTown);
   });
 
+  const townOptions = [
+    { value: "", label: "All towns" },
+    ...towns.map((town) => ({ value: town, label: town })),
+  ];
+
   return <main id="main-content" className="services-page">
     <section className="services-hero"><div className="container"><div className="eyebrow">Mondesa Health directory</div><h1 className="display">Independent practices and their services.</h1><p>Search by practice, service or town to find care close to you.</p></div></section>
     <section className="section"><div className="container services-list">
-      <form className="practice-directory-filters" action="/services" method="get">
-        <label className="search-box"><Search size={17}/><span className="sr-only">Search practices and services</span><input className="input" name="q" defaultValue={params.q || ""} placeholder="Search practices or services" /></label>
-        <label><span className="sr-only">Filter by town</span><select className="input" name="town" defaultValue={selectedTown}><option value="">All towns</option>{towns.map((town) => <option value={town} key={town}>{town}</option>)}</select></label>
-        <button className="btn btn-primary">Search directory</button>
-        {(query || selectedTown) && <Link className="btn btn-light" href="/services">Clear filters</Link>}
-      </form>
+      <ServicesDirectoryFilters
+        defaultQ={params.q || ""}
+        defaultTown={selectedTown}
+        townOptions={townOptions}
+        hasFilters={!!(query || selectedTown)}
+      />
       <p className="directory-result-count">{visible.length} practice{visible.length === 1 ? "" : "s"} found</p>
       {visible.map((practice, index) => <article className="service-listing is-active" key={practice.slug}>
         <div className="service-listing-number">{String(index + 1).padStart(2, "0")}</div>

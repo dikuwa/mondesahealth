@@ -3310,26 +3310,17 @@ textarea.input {
   margin-bottom: 14px;
   flex-wrap: wrap;
 }
-.activity-filter-panel .select-wrap {
-  min-width: 160px;
+
+.activity-filter-panel .field {
+  min-width: 155px;
   flex: 0 1 auto;
-}
-.activity-filter-panel .select-wrap .field {
   gap: 5px;
-}
-.activity-filter-panel .select-wrap .field > span {
-  font-size: 11px;
-}
-.activity-filter-panel .select-wrap select.input {
-  min-height: 44px;
-  padding: 8px 36px 8px 12px;
 }
 .activity-filter-panel .field > span {
   font-size: 11px;
 }
-.activity-filter-panel .input[type="date"] {
-  min-height: 44px;
-  min-width: 140px;
+.activity-filter-panel .mondesa-date-picker {
+  min-width: 160px;
 }
 .activity-search {
   min-width: 200px;

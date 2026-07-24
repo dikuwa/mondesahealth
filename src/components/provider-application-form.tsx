@@ -8,6 +8,7 @@ import {
   ApplicationDocumentUpload,
   type ApplicationDocumentUploadRef,
 } from "@/components/application-document-upload";
+import { NativeSelect } from "@/components/ui/native-select";
 
 const CONTACT_METHODS = [
   { value: "EMAIL", label: "Email" },
@@ -155,23 +156,21 @@ export function ProviderApplicationForm() {
           <span>
             Operating status <b className="required-marker" aria-hidden="true">*</b>
           </span>
-          <select
-            className="input native-select"
+          <NativeSelect
             value={isOperating ? "ALREADY_OPERATING" : "OPENING_SOON"}
             onChange={(e) => setIsOperating(e.target.value === "ALREADY_OPERATING")}
             aria-label="Operating status"
           >
             <option value="ALREADY_OPERATING">Already operating</option>
             <option value="OPENING_SOON">Opening soon</option>
-          </select>
+          </NativeSelect>
         </label>
 
         <label className="field">
           <span>
             Preferred contact method <b className="required-marker" aria-hidden="true">*</b>
           </span>
-          <select
-            className="input native-select"
+          <NativeSelect
             value={preferredContactMethod}
             onChange={(e) => setPreferredContactMethod(e.target.value)}
             aria-label="Preferred contact method"
@@ -181,7 +180,7 @@ export function ProviderApplicationForm() {
                 {m.label}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
 
         <div className="field-span-2 registration-section-break">

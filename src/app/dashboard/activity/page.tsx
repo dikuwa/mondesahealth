@@ -1,10 +1,11 @@
 import { format } from "date-fns";
 import Link from "next/link";
-import { History, Search } from "lucide-react";
+import { History } from "lucide-react";
 import { PageHeading } from "@/components/dashboard";
 import { db } from "@/lib/db";
 import { activityWhere } from "@/lib/activity-query";
 import { getPracticeSession } from "@/lib/auth";
+import { ActivityLogFilters } from "@/components/activity-log-filters";
 export const dynamic = "force-dynamic";
 export default async function ActivityLog({
   searchParams,
@@ -51,76 +52,16 @@ export default async function ActivityLog({
   return (
     <>
       <PageHeading eyebrow="Immutable audit trail" title="Activity log" />
-      <form className="card dashboard-card activity-filter-panel" method="get">
-        <div className="search-box activity-search">
-          <Search size={17} />
-          <input
-            className="input"
-            name="q"
-            placeholder="Search actor, action or summary"
-            defaultValue={params.get("q") || ""}
-          />
-        </div>
-        <div className="select-wrap">
-          <label className="field">
-            <span>Action</span>
-            <select
-              className="input native-select"
-              name="action"
-              defaultValue={params.get("action") || ""}
-            >
-              <option value="">All actions</option>
-              {actions.map((item) => (
-                <option key={item.action}>{item.action}</option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <div className="select-wrap">
-          <label className="field">
-            <span>Staff</span>
-            <select
-              className="input native-select"
-              name="userId"
-              defaultValue={params.get("userId") || ""}
-            >
-              <option value="">All staff</option>
-              {users.map((user) => (
-                <option value={user.id} key={user.id}>
-                  {user.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <label className="field">
-          <span>From</span>
-          <input
-            className="input"
-            type="date"
-            name="from"
-            defaultValue={params.get("from") || ""}
-          />
-        </label>
-        <label className="field">
-          <span>To</span>
-          <input
-            className="input"
-            type="date"
-            name="to"
-            defaultValue={params.get("to") || ""}
-          />
-        </label>
-        <div className="activity-filter-actions">
-          <button className="btn btn-primary">Apply filters</button>
-          <a
-            className="btn btn-light"
-            href={`/api/activity/export?${exportParams}`}
-          >
-            Export CSV
-          </a>
-        </div>
-      </form>
+      <ActivityLogFilters
+        defaultQ={params.get("q") || ""}
+        defaultAction={params.get("action") || ""}
+        defaultUserId={params.get("userId") || ""}
+        defaultFrom={params.get("from") || ""}
+        defaultTo={params.get("to") || ""}
+        actions={actions}
+        users={users}
+        exportHref={`/api/activity/export?${exportParams}`}
+      />
       <div className="card dashboard-card">
         {logs.length > 0 && (
           <div className="record-stack">
