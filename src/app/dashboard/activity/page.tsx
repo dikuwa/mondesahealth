@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import Link from "next/link";
+import { History, Search } from "lucide-react";
 import { PageHeading } from "@/components/dashboard";
 import { db } from "@/lib/db";
 import { activityWhere } from "@/lib/activity-query";
@@ -50,105 +51,130 @@ export default async function ActivityLog({
   return (
     <>
       <PageHeading eyebrow="Immutable audit trail" title="Activity log" />
-      <form
-        className="card dashboard-card appointment-filter-panel"
-        method="get"
-      >
-        <div className="field">
-          <label>Search</label>
+      <form className="card dashboard-card activity-filter-panel" method="get">
+        <div className="search-box activity-search">
+          <Search size={17} />
           <input
             className="input"
             name="q"
+            placeholder="Search actor, action or summary"
             defaultValue={params.get("q") || ""}
           />
         </div>
-        <div className="field">
-          <label>Action</label>
-          <select
-            className="input"
-            name="action"
-            defaultValue={params.get("action") || ""}
-          >
-            <option value="">All actions</option>
-            {actions.map((item) => (
-              <option key={item.action}>{item.action}</option>
-            ))}
-          </select>
+        <div className="select-wrap">
+          <label className="field">
+            <span>Action</span>
+            <select
+              className="input native-select"
+              name="action"
+              defaultValue={params.get("action") || ""}
+            >
+              <option value="">All actions</option>
+              {actions.map((item) => (
+                <option key={item.action}>{item.action}</option>
+              ))}
+            </select>
+          </label>
         </div>
-        <div className="field">
-          <label>Staff member</label>
-          <select
-            className="input"
-            name="userId"
-            defaultValue={params.get("userId") || ""}
-          >
-            <option value="">All staff</option>
-            {users.map((user) => (
-              <option value={user.id} key={user.id}>
-                {user.name}
-              </option>
-            ))}
-          </select>
+        <div className="select-wrap">
+          <label className="field">
+            <span>Staff</span>
+            <select
+              className="input native-select"
+              name="userId"
+              defaultValue={params.get("userId") || ""}
+            >
+              <option value="">All staff</option>
+              {users.map((user) => (
+                <option value={user.id} key={user.id}>
+                  {user.name}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
-        <div className="field">
-          <label>From</label>
+        <label className="field">
+          <span>From</span>
           <input
             className="input"
             type="date"
             name="from"
             defaultValue={params.get("from") || ""}
           />
-        </div>
-        <div className="field">
-          <label>To</label>
+        </label>
+        <label className="field">
+          <span>To</span>
           <input
             className="input"
             type="date"
             name="to"
             defaultValue={params.get("to") || ""}
           />
+        </label>
+        <div className="activity-filter-actions">
+          <button className="btn btn-primary">Apply filters</button>
+          <a
+            className="btn btn-light"
+            href={`/api/activity/export?${exportParams}`}
+          >
+            Export CSV
+          </a>
         </div>
-        <button className="btn btn-primary">Apply filters</button>
-        <a
-          className="btn btn-light"
-          href={`/api/activity/export?${exportParams}`}
-        >
-          Export CSV
-        </a>
       </form>
-      <div className="card dashboard-card" style={{ padding: 20 }}>
-        {logs.map((log) => (
-          <div key={log.id} className="activity-row">
-            <span style={{ color: "#6e807a" }}>
-              {format(log.createdAt, "dd MMM yyyy HH:mm")}
-            </span>
-            <b>{log.action.replaceAll("_", " ")}</b>
-            <span>{log.summary}</span>
-            <span>{log.user?.name || "Patient / system"}</span>
+      <div className="card dashboard-card">
+        {logs.length > 0 && (
+          <div className="record-stack">
+            {logs.map((log) => (
+              <article key={log.id} className="record-row activity-log-row">
+                <div>
+                  <div className="activity-log-heading">
+                    <b className="activity-log-action">
+                      {log.action.replaceAll("_", " ")}
+                    </b>
+                    <small>
+                      {log.user?.name || "Patient / system"} ·{" "}
+                      {format(log.createdAt, "dd MMM yyyy HH:mm")}
+                    </small>
+                  </div>
+                  <p className="activity-log-summary">{log.summary}</p>
+                </div>
+              </article>
+            ))}
           </div>
-        ))}
-        {!logs.length && (
-          <p className="muted">No activity matches these filters.</p>
         )}
-        <div className="appointment-panel-actions">
-          <Link
-            className="btn btn-light"
-            aria-disabled={page <= 1}
-            href={page <= 1 ? link(1) : link(page - 1)}
+        {!logs.length && (
+          <div className="dashboard-empty">
+            <History size={32} />
+            <h3>No activity matches these filters</h3>
+            <p>Try adjusting your search or date range.</p>
+          </div>
+        )}
+        {pages > 1 && (
+          <nav
+            className="pagination-bar activity-pagination"
+            aria-label="Activity log pages"
           >
-            Previous
-          </Link>
-          <span>
-            Page {page} of {pages} · {total} records
-          </span>
-          <Link
-            className="btn btn-light"
-            aria-disabled={page >= pages}
-            href={page >= pages ? link(pages) : link(page + 1)}
-          >
-            Next
-          </Link>
-        </div>
+            <span>
+              Page {page} of {pages} · {total} records
+            </span>
+            <div>
+              <Link
+                className={`btn btn-light${page <= 1 ? " is-disabled" : ""}`}
+                aria-disabled={page <= 1}
+                href={page <= 1 ? link(1) : link(page - 1)}
+              >
+                Previous
+              </Link>
+              <Link
+                className={`btn btn-light${page >= pages ? " is-disabled" : ""}`}
+                aria-disabled={page >= pages}
+                href={page >= pages ? link(pages) : link(page + 1)}
+              >
+                Next
+              </Link>
+            </div>
+          </nav>
+        )}
       </div>
     </>
   );

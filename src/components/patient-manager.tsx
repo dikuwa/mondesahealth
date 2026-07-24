@@ -576,7 +576,12 @@ export function PatientManager({
               {visible.map((p) => (
                 <tr key={p.id}>
                   <td>
-                    <b>{p.fullName}</b>
+                    <Link
+                      href={`/dashboard/patients/${p.id}`}
+                      className="patient-name-link"
+                    >
+                      <b>{p.fullName}</b>
+                    </Link>
                     <small style={{ display: "block" }}>
                       {p.patientNumber}
                     </small>
@@ -645,7 +650,12 @@ export function PatientManager({
             {visible.map((p) => (
               <article className="record-card" key={p.id}>
                 <span className="record-card-heading">
-                  <b>{p.fullName}</b>
+                  <Link
+                    href={`/dashboard/patients/${p.id}`}
+                    className="patient-name-link"
+                  >
+                    <b>{p.fullName}</b>
+                  </Link>
                   <small>{p.patientNumber}</small>
                 </span>
                 <span>{p.phone}</span>

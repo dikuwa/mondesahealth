@@ -16,6 +16,7 @@ import {
   CreditCard,
   Settings,
 } from "lucide-react";
+import { PracticeActivationCard } from "@/components/practice-activation-card";
 import toast from "react-hot-toast";
 import { CustomSelect } from "@/components/ui/custom-select";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -220,33 +221,6 @@ export function PracticeRecordView({
     }
   }
 
-  async function activatePractice(status: "ACTIVE_PRIVATE" | "ACTIVE_PUBLIC") {
-    setSaving(true);
-    const toastId = toast.loading("Activating practice…");
-    try {
-      const response = await fetch(
-        `/api/platform/practices/${practice.id}/activate`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status }),
-        },
-      );
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      toast.success("Practice activated", { id: toastId });
-      setPractice((prev) => ({ ...prev, status }));
-      router.refresh();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Could not activate practice",
-        { id: toastId },
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
   return (
     <div className="practice-record-view">
       {/* Tab navigation */}
@@ -385,53 +359,18 @@ export function PracticeRecordView({
               </div>
             )}
 
-            {canManage &&
-              practice.status === "PENDING_VERIFICATION" && (
-                <div className="card dashboard-card" style={{ padding: 20 }}>
-                  <h3>Activation</h3>
-                  <p>
-                    This practice has completed onboarding and is awaiting
-                    activation.
-                  </p>
-                  <div className="form-actions">
-                    <button
-                      className="btn btn-primary"
-                      disabled={saving}
-                      onClick={() => activatePractice("ACTIVE_PRIVATE")}
-                    >
-                      {saving && <Loader2 className="toast-spinner" />}
-                      Activate (private)
-                    </button>
-                    <button
-                      className="btn btn-light"
-                      disabled={saving}
-                      onClick={() => activatePractice("ACTIVE_PUBLIC")}
-                    >
-                      {saving && <Loader2 className="toast-spinner" />}
-                      Activate (public)
-                    </button>
-                  </div>
-                </div>
-              )}
-
-            {canManage &&
-              practice.status === "ACTIVE_PRIVATE" && (
-                <div className="card dashboard-card" style={{ padding: 20 }}>
-                  <h3>Publish</h3>
-                  <p>
-                    The practice is active privately. Publish to make it
-                    publicly visible and bookable.
-                  </p>
-                  <button
-                    className="btn btn-primary"
-                    disabled={saving}
-                    onClick={() => activatePractice("ACTIVE_PUBLIC")}
-                  >
-                    {saving && <Loader2 className="toast-spinner" />}
-                    Publish public profile
-                  </button>
-                </div>
-              )}
+            {canManage && (
+              <PracticeActivationCard
+                practiceId={practice.id}
+                practiceName={practice.name}
+                practiceType={practice.type}
+                currentStatus={practice.status}
+                currentStatusLabel={lifecycleLabel(practice.status)}
+                onActivated={(status) =>
+                  setPractice((prev) => ({ ...prev, status }))
+                }
+              />
+            )}
           </div>
         )}
 

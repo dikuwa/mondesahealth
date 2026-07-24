@@ -6,7 +6,7 @@ import { isValidLifecycleTransition } from "@/lib/practice-lifecycle";
 import { requestAuditInfo } from "@/lib/tenant";
 
 const activateSchema = z.object({
-  status: z.enum(["ACTIVE_PRIVATE", "ACTIVE_PUBLIC"]),
+  status: z.enum(["ACTIVE_PRIVATE", "ACTIVE_PUBLIC", "ONBOARDING", "DEACTIVATED"]),
   note: z.string().trim().max(1000).optional(),
 });
 
@@ -58,6 +58,12 @@ export async function POST(
       },
     });
 
+    const statusLabels: Record<string, string> = {
+      ACTIVE_PRIVATE: "active (private)",
+      ACTIVE_PUBLIC: "active (public)",
+      ONBOARDING: "sent back to onboarding",
+      DEACTIVATED: "deactivated",
+    };
     await tx.activityLog.create({
       data: {
         userId: session.id,
@@ -65,7 +71,7 @@ export async function POST(
         action: `PRACTICE_${parsed.data.status}`,
         entityType: "Practice",
         entityId: id,
-        summary: `Practice ${practice.name} set to ${parsed.data.status === "ACTIVE_PRIVATE" ? "active (private)" : "active (public)"}${parsed.data.note ? `: ${parsed.data.note}` : ""}`,
+        summary: `Practice ${practice.name} set to ${statusLabels[parsed.data.status] || parsed.data.status}${parsed.data.note ? `: ${parsed.data.note}` : ""}`,
         requestInfo: requestAuditInfo(request),
       },
     });
