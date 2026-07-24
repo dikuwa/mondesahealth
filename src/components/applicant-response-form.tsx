@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, CheckCircle2, Loader2, Send } from "lucide-react";
+import { CheckCircle2, Loader2, Send } from "lucide-react";
 import toast from "react-hot-toast";
 import { ApplicationDocumentUpload } from "@/components/application-document-upload";
 import { documentCategoryLabel } from "@/lib/application-document-categories";
@@ -20,7 +20,6 @@ type Props = {
 export function ApplicantResponseForm({
   token,
   reference,
-  practiceName,
   message,
   deadline,
   requestedCategories,
@@ -28,7 +27,7 @@ export function ApplicantResponseForm({
   applicationId,
 }: Props) {
   const [applicantMessage, setApplicantMessage] = useState("");
-  const [documentCount, setDocumentCount] = useState(0);
+  const [, setDocumentCount] = useState(0);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -38,9 +37,6 @@ export function ApplicantResponseForm({
     event.preventDefault();
     setSaving(true);
     const toastId = toast.loading("Submitting your response…");
-
-    // Create application if in draft (document upload needs valid applicationId)
-    let appId = applicationId;
 
     try {
       // We use PUT for the response

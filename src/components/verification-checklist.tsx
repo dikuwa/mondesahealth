@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { CheckCircle2, Circle, Loader2, Save } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -23,30 +23,33 @@ export function VerificationChecklist({
   const [saving, setSaving] = useState(false);
   const [notes, setNotes] = useState<Record<string, string>>({});
 
-  const fetchChecklist = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `/api/provider-applications/checklist?applicationId=${encodeURIComponent(applicationId)}`,
-      );
-      if (!response.ok) throw new Error("Failed to load checklist");
-      const data = await response.json();
-      setItems(data.items);
-      const noteMap: Record<string, string> = {};
-      for (const item of data.items) {
-        if (item.note) noteMap[item.key] = item.note;
-      }
-      setNotes(noteMap);
-    } catch {
-      toast.error("Could not load verification checklist");
-    } finally {
-      setLoading(false);
-    }
-  }, [applicationId]);
-
   useEffect(() => {
-    fetchChecklist();
-  }, [fetchChecklist]);
+    let cancelled = false;
+    async function load() {
+      try {
+        const response = await fetch(
+          `/api/provider-applications/checklist?applicationId=${encodeURIComponent(applicationId)}`,
+        );
+        if (!response.ok) throw new Error("Failed to load checklist");
+        const data = await response.json();
+        if (cancelled) return;
+        setItems(data.items);
+        const noteMap: Record<string, string> = {};
+        for (const item of data.items) {
+          if (item.note) noteMap[item.key] = item.note;
+        }
+        setNotes(noteMap);
+      } catch {
+        if (!cancelled) toast.error("Could not load verification checklist");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [applicationId]);
 
   async function toggleItem(key: string) {
     setItems((current) =>

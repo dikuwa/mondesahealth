@@ -59,7 +59,6 @@ export function ApplicationDocumentReview({ applicationId }: Props) {
   } | null>(null);
 
   const fetchDocuments = useCallback(async () => {
-    setLoading(true);
     try {
       const response = await fetch(
         `/api/provider-applications/documents?applicationId=${encodeURIComponent(applicationId)}`,
@@ -75,8 +74,26 @@ export function ApplicationDocumentReview({ applicationId }: Props) {
   }, [applicationId]);
 
   useEffect(() => {
-    fetchDocuments();
-  }, [fetchDocuments]);
+    let cancelled = false;
+    async function load() {
+      try {
+        const response = await fetch(
+          `/api/provider-applications/documents?applicationId=${encodeURIComponent(applicationId)}`,
+        );
+        if (!response.ok) throw new Error("Failed to load documents");
+        const data = await response.json();
+        if (!cancelled) setDocuments(data.documents || []);
+      } catch {
+        if (!cancelled) toast.error("Could not load application documents");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [applicationId]);
 
   async function performAction() {
     if (!actionFor) return;

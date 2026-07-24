@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -108,87 +108,91 @@ export function PracticeRecordView({
   // Settings form state
   const [formStatus, setFormStatus] = useState(practice.status);
   const [formPublic, setFormPublic] = useState(practice.publicVisible);
+  const [prevPracticeState, setPrevPracticeState] = useState({
+    status: practice.status,
+    publicVisible: practice.publicVisible,
+  });
 
-  // Update form state when practice changes
-  useEffect(() => {
+  if (
+    prevPracticeState.status !== practice.status ||
+    prevPracticeState.publicVisible !== practice.publicVisible
+  ) {
+    setPrevPracticeState({
+      status: practice.status,
+      publicVisible: practice.publicVisible,
+    });
     setFormStatus(practice.status);
     setFormPublic(practice.publicVisible);
-  }, [practice.status, practice.publicVisible]);
+  }
 
-  // Fetch tab data on tab change
   useEffect(() => {
-    if (activeTab === "application" || activeTab === "documents" || activeTab === "verification") {
-      fetchApplicationData();
-    }
-    if (activeTab === "activity") {
-      fetchActivityLogs();
-    }
-    if (activeTab === "locations" || activeTab === "practitioners") {
-      fetchPracticeResources();
-    }
-  }, [activeTab, practice.id]);
-
-  const fetchApplicationData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `/api/provider-applications?practiceId=${encodeURIComponent(practice.id)}`,
-      );
-      if (!response.ok) throw new Error("Failed to load application");
-      const data = await response.json();
-      if (data.application) {
-        setApplication(data.application);
-        if (activeTab === "documents") {
-          const docsResponse = await fetch(
-            `/api/provider-applications/documents?applicationId=${encodeURIComponent(data.application.id)}`,
+    let cancelled = false;
+    async function loadData() {
+      if (
+        activeTab === "application" ||
+        activeTab === "documents" ||
+        activeTab === "verification"
+      ) {
+        try {
+          const response = await fetch(
+            `/api/provider-applications?practiceId=${encodeURIComponent(practice.id)}`,
           );
-          if (docsResponse.ok) {
-            const docsData = await docsResponse.json();
-            setApplicationDocs(docsData.documents || []);
+          if (!response.ok) throw new Error("Failed to load application");
+          const data = await response.json();
+          if (cancelled) return;
+          if (data.application) {
+            setApplication(data.application);
+            if (activeTab === "documents") {
+              const docsResponse = await fetch(
+                `/api/provider-applications/documents?applicationId=${encodeURIComponent(data.application.id)}`,
+              );
+              if (docsResponse.ok && !cancelled) {
+                const docsData = await docsResponse.json();
+                setApplicationDocs(docsData.documents || []);
+              }
+            }
           }
+        } catch {
+          // Application may not exist yet — that's fine
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      } else if (activeTab === "activity") {
+        try {
+          const response = await fetch(
+            `/api/activity?practiceId=${encodeURIComponent(practice.id)}&limit=200`,
+          );
+          if (response.ok && !cancelled) {
+            const data = await response.json();
+            setActivityLogs(data.logs || []);
+          }
+        } catch {
+          // ignore
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      } else if (activeTab === "locations" || activeTab === "practitioners") {
+        try {
+          const response = await fetch(
+            `/api/platform/practices/${encodeURIComponent(practice.id)}/resources`,
+          );
+          if (response.ok && !cancelled) {
+            const data = await response.json();
+            if (data.locations) setLocations(data.locations);
+            if (data.practitioners) setPractitioners(data.practitioners);
+          }
+        } catch {
+          // ignore
+        } finally {
+          if (!cancelled) setLoading(false);
         }
       }
-    } catch {
-      // Application may not exist yet — that's fine
-    } finally {
-      setLoading(false);
     }
-  }, [practice.id, activeTab]);
-
-  const fetchActivityLogs = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `/api/activity?practiceId=${encodeURIComponent(practice.id)}&limit=200`,
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setActivityLogs(data.logs || []);
-      }
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
-  }, [practice.id]);
-
-  const fetchPracticeResources = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `/api/platform/practices/${encodeURIComponent(practice.id)}/resources`,
-      );
-      if (response.ok) {
-        const data = await response.json();
-        if (data.locations) setLocations(data.locations);
-        if (data.practitioners) setPractitioners(data.practitioners);
-      }
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
-  }, [practice.id]);
+    loadData();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, practice.id]);
 
   async function saveSettings(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

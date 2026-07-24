@@ -1,6 +1,5 @@
 import { db } from "@/lib/db";
-import { sendInvitationEmail } from "@/lib/invitation-email";
-import { notifyStaff, notifyPlatformAdmins } from "@/lib/notifications";
+import { notifyPlatformAdmins } from "@/lib/notifications";
 
 type ApplicationEvent =
   | "SUBMITTED"
